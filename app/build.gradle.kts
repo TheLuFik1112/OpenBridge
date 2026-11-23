@@ -16,15 +16,8 @@ android {
         applicationId = "app.fluxdrop.p2p"
         minSdk = 26
         targetSdk = 35
-        versionCode = 13
-        versionName = "0.3.3"
-    }
-
-    buildTypes {
-        release {
-            isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-        }
+        versionCode = 14
+        versionName = "0.3.4"
     }
 
     signingConfigs {
@@ -34,6 +27,19 @@ android {
             storePassword = "fluxdrop"
             keyAlias = "fluxdrop-debug"
             keyPassword = "fluxdrop"
+            enableV1Signing = true
+            enableV2Signing = true
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("debug")
+        }
+        getByName("release") {
+            isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
