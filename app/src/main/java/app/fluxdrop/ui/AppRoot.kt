@@ -112,6 +112,10 @@ fun AppRoot(viewModel: AppViewModel) {
         ActivityResultContracts.OpenMultipleDocuments()
     ) { uris -> viewModel.addUris(uris) }
 
+    val photoPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetMultipleContents()
+    ) { uris -> viewModel.addUris(uris) }
+
     val folderPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenDocumentTree()
     ) { uri -> uri?.let { viewModel.addFolder(it) } }
@@ -156,6 +160,7 @@ fun AppRoot(viewModel: AppViewModel) {
                         sending = sending,
                         isEngineReady = engineReady,
                         onPickFiles = { filePicker.launch(arrayOf("*/*")) },
+                        onPickPhotos = { photoPicker.launch("image/*") },
                         onPickFolder = { folderPicker.launch(null) },
                         onShowQr = { url -> qrPayload = url },
                     )
@@ -177,6 +182,7 @@ fun AppRoot(viewModel: AppViewModel) {
         NearbyIncomingSheet(
             request = request,
             onAccept = viewModel::acceptNearby,
+            onTrust = viewModel::trustNearby,
             onDecline = viewModel::declineNearby,
         )
     }

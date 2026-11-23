@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">FluxDrop</string>
-    <string name="tile_clipboard">Отправить буфер</string>
+    <string name="app_description">Fast peer-to-peer file transfer for local network, nearby and web</string>
+    <string name="tile_clipboard">Send clipboard</string>
 </resources>

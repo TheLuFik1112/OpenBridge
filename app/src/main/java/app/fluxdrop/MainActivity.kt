@@ -32,7 +32,14 @@ class MainActivity : ComponentActivity() {
                 AppRoot(viewModel)
             }
         }
+        setupNfc()
         handleIntent(intent)
+    }
+
+    private fun setupNfc() {
+        app.fluxdrop.util.NfcHelper.setupNfcPush(this) {
+            viewModel.portalUrl.value ?: "https://github.com/TheLuFik1112/FluxDrop/releases/latest"
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -42,6 +49,12 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
+        val nfcData = app.fluxdrop.util.NfcHelper.extractNfcUri(intent)
+        if (nfcData != null) {
+            Diag.log("nfc", "received NFC data: $nfcData")
+            viewModel.handleNfcReceived(nfcData)
+        }
+
         if (intent?.getBooleanExtra(EXTRA_SEND_CLIPBOARD, false) != true) return
         intent.removeExtra(EXTRA_SEND_CLIPBOARD)
         // Окно ещё не получило фокус — читать буфер обмена сразу нельзя.

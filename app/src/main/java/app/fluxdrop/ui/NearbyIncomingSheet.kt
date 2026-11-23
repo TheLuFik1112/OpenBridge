@@ -38,6 +38,7 @@ import app.fluxdrop.discovery.NearbyRequest
 fun NearbyIncomingSheet(
     request: NearbyRequest,
     onAccept: () -> Unit,
+    onTrust: () -> Unit,
     onDecline: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -81,13 +82,28 @@ fun NearbyIncomingSheet(
             Spacer(Modifier.height(16.dp))
 
             Text(
-                "Телефон рядом хочет подключиться напрямую, без Wi-Fi сети. " +
-                    "Файлы и текст придут через Nearby.",
+                "Телефон рядом хочет передать данные напрямую без роутера через Nearby / Wi-Fi Direct.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
+
+            androidx.compose.material3.OutlinedButton(
+                onClick = onTrust,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Icon(
+                    androidx.compose.material.icons.Icons.Rounded.Shield,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text("Всегда принимать (Доверенное)")
+            }
+
+            Spacer(Modifier.height(10.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TextButton(onClick = onDecline, modifier = Modifier.weight(1f)) {

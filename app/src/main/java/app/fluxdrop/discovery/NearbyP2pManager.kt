@@ -406,6 +406,14 @@ class NearbyP2pManager(
                 )
                 onProgress(base + step, "Готово")
             }
+
+            if (!isTrusted(deviceId)) {
+                // Если устройство не доверенное — закрываем сессию после передачи,
+                // чтобы при следующей отправке получателю снова показалась шторка с подтверждением.
+                delay(500)
+                connections.remove(endpointId)
+                runCatching { client.disconnectFromEndpoint(endpointId) }
+            }
         }.onFailure { error ->
             Diag.log("nearby", "send failed: $error")
             _progress.value = null

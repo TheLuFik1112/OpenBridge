@@ -1,108 +1,74 @@
 # FluxDrop
 
-Передача файлов, папок и текста между телефонами напрямую: без интернета, без облака,
-без аккаунтов и без регистрации. Устройства находят друг друга в одной Wi-Fi сети
-или соединяются напрямую через Google Nearby, если роутера рядом нет.
+[English](#english) | [Русский](#русский)
 
-**Текущая версия: 0.3.0** · Android 8.0+ (minSdk 26) · Kotlin + Jetpack Compose (Material 3)
+---
 
-## Возможности
+<a name="english"></a>
+## English
 
-- **Пакет отправки** — сначала собираете файлы, папку или текст, потом выбираете получателя.
-- **Два независимых канала поиска**:
-  - **LAN** — активный UDP-broadcast каждые 2 секунды с `MulticastLock`; работает в любой
-    общей сети и в хотспоте;
-  - **Nearby** — Google Nearby Connections (BLE + Wi-Fi Direct под капотом) находит
-    устройства даже без роутера и без интернета.
-- **Входящая шторка** — запрос на приём показывается поверх любого приложения, даже
-  когда FluxDrop свёрнут.
-- **«Всегда принимать от …»** — ключ устройства запоминается, следующие передачи
-  приходят без вопросов, только тихий прогресс в уведомлении.
-- **Докачка** — файлы режутся на куски по 4 МБ с SHA-256; оборванная передача
-  продолжается с места обрыва.
-- **Веб-портал** — QR-код открывает страницу в браузере: можно скачать файлы с
-  телефона или закинуть свои.
-- **Плитка в быстрых настройках** — один тап отправляет текст из буфера обмена
-  последнему доверенному устройству рядом.
-- **Тихий журнал и отчёты о сбоях** — при падении сохраняется `last_crash.txt`,
-  на следующем запуске можно отправить отчёт одной кнопкой.
+Fast peer-to-peer file, photo, folder, and text transfer between devices: no internet required, no cloud, no accounts, and no registration. Devices discover each other on the local Wi-Fi network or connect directly via Google Nearby / Wi-Fi Direct when no router is available.
 
-## Установка
+**Current version: 0.4.0** · Android 8.0+ (minSdk 26) · Kotlin + Jetpack Compose (Material 3)
 
-1. Откройте [Releases](../../releases) и скачайте `FluxDrop-*.apk`.
-2. Откройте файл на телефоне и разрешите установку из этого источника.
-3. Запустите приложение и выдайте разрешения:
-   - **Уведомления** — запросы на приём и прогресс;
-   - **Устройства поблизости** / **Местоположение** — поиск по Wi-Fi и Bluetooth
-     (на Android 12 и ниже также нужна включённая геолокация);
-   - **Файлы** — при первом выборе файлов.
+### Features
 
-## Как отправить
+- **Send Package:** Queue files, photos, folders, or clipboard text before selecting the recipient.
+- **Dedicated Photo Picker:** Fast selection of pictures with the dedicated "Photos" button.
+- **NFC Tap & Share:** Tap phones together to share data. If the receiver has FluxDrop installed, it automatically launches via Android Application Record (`app.fluxdrop.p2p`). If not, it opens the download page.
+- **One-Tap QR Code on Home Screen:** Instant QR code generation on the main screen to open the Web Portal in any browser (PC, iPhone, Android) without installing an app.
+- **Dual Discovery Channels:**
+  - **LAN:** UDP broadcast every 2 seconds with `MulticastLock`; works on any shared network or mobile hotspot.
+  - **Nearby:** Google Nearby Connections (BLE + Wi-Fi Direct) connects phones directly without internet or router.
+- **Enhanced Nearby Security:**
+  - Untrusted devices are disconnected after transfer so that incoming confirmation sheets re-appear for every new transfer.
+  - One-tap "Always Accept (Trusted)" button in the incoming sheet saves trusted devices.
+- **Incoming Sheet Overlay:** Incoming prompts appear over any app even when FluxDrop is minimized.
+- **High-Speed Resumable Transfers:** 16 MB chunks with SHA-256 integrity checks; interrupted transfers resume seamlessly.
+- **Quick Settings Tile:** Send clipboard contents to the nearest trusted peer with a single tap.
+- **Crash Diagnostics:** Error logs and crash reports can be inspected or exported in developer settings.
 
-1. Вкладка **«Отправить»** → **Файлы**, **Папка** или **Текст** — соберите пакет.
-2. Второе устройство: запущенный FluxDrop, желательно в той же Wi-Fi сети.
-3. В списке «Устройства рядом» нажмите **Отправить**.
-4. На втором телефоне: **Принять** или **Отклонить**.
+### Installation
 
-Принятые файлы попадают в **Download/FluxDrop**, текст — в буфер обмена.
+1. Go to [Releases](../../releases) and download the latest `FluxDrop-*.apk`.
+2. Open the file on your device and allow installation from this source.
+3. Grant necessary permissions (Notifications, Nearby devices / Location, Storage).
 
-### Без общей сети
+### License
 
-Wi-Fi-модуль оставьте включённым, роутер не нужен. Соберите пакет и нажмите
-«Отправить»: если LAN-канал недоступен, приложение подключится через Nearby.
-На принимающем телефоне появится шторка «Входящая передача» — нажмите **Принять**.
-Передача идёт напрямую, интернет не используется.
+Distributed under the MIT License. See [LICENSE](LICENSE) for details.
 
-> Папки передаются только по LAN: Nearby умеет отдельные файлы и текст.
+---
 
-## Настройки
+<a name="русский"></a>
+## Русский
 
-- **Фоновая работа** — служба обнаружения, шторка поверх приложений, отключение
-  оптимизации батареи, переход к уведомлениям.
-- **Приём** — автоприём от доверенных устройств.
-- **Доверенные устройства** — список с отпечатками ключей, можно отозвать.
-- **Веб-портал** — включение и QR-код.
-- **Отчёты об ошибках** — автоматическая отправка без лишних окон.
+Быстрая передача файлов, фото, папок и текста между устройствами напрямую: без интернета, без облака, без аккаунтов и без регистрации. Устройства находят друг друга в локальной Wi-Fi сети или соединяются напрямую через Google Nearby / Wi-Fi Direct, если роутера рядом нет.
 
-### Для разработчиков
+**Текущая версия: 0.4.0** · Android 8.0+ (minSdk 26) · Kotlin + Jetpack Compose (Material 3)
 
-Семь быстрых нажатий по строке версии в «Настройках» открывают скрытый раздел:
-проверка сервера, журнал, сохранение логов, перезапуск релея и сетевая статистика.
+### Возможности
 
-## Сборка
+- **Пакет отправки:** Собирайте файлы, фото, папки или текст, затем выбирайте получателя.
+- **Кнопка «Фото»:** Быстрый выбор изображений отдельной кнопкой рядом с файлами и папками.
+- **Передача по NFC:** Приложите телефон к другому устройству: при наличии FluxDrop открывается приложение через AAR (`app.fluxdrop.p2p`), а если приложения нет — ссылка на страницу скачивания.
+- **Кнопка QR-кода на главном экране:** Быстрый показ QR-кода веб-портала прямо со статусной карточки главного экрана — удобно для передачи на ПК или iPhone без установки приложения.
+- **Два канала передачи:**
+  - **LAN:** Активный UDP-broadcast каждые 2 секунды с `MulticastLock`; работает в локальной сети и точке доступа (хотспоте).
+  - **Nearby:** Google Nearby Connections (BLE + Wi-Fi Direct) для связи напрямую без роутера.
+- **Безопасность Nearby:**
+  - Для недоверенных устройств сессия сбрасывается после отправки, поэтому запрос на приём вылезает при каждой новой передаче.
+  - В шторку добавлена кнопка «Всегда принимать (Доверенное)» для добавления в белый список.
+- **Входящая шторка:** Показывается поверх любых приложений, даже когда FluxDrop свёрнут.
+- **Высокая скорость и докачка:** Чанки по 16 МБ с SHA-256; передача продолжается с места обрыва.
+- **Плитка в шторке Android:** Отправка буфера обмена в один тап.
 
-APK собирается автоматически в GitHub Actions при каждом пуше
-(`.github/workflows/build.yml`). Готовый файл — во вкладке **Actions** (артефакт)
-или в **Releases** для тегов `v*`.
+### Установка
 
-Локально: Android Studio, JDK 17, Gradle 8.10.2, AGP 8.7.3, compileSdk 35.
+1. Откройте [Releases](../../releases) и скачайте свежий `FluxDrop-*.apk`.
+2. Откройте файл на телефоне и подтвердите установку.
+3. Выдайте разрешения (Уведомления, Устройства рядом, Память).
 
-## Как устроено
+### Лицензия
 
-```
-app/src/main/java/app/fluxdrop/
-├─ core/        модели, ключи и сертификаты, сборка пакета, журнал, crash handler
-├─ data/        настройки, доверенные устройства, история (JSON + SharedPreferences)
-├─ discovery/   LanUdpDiscovery (UDP + MulticastLock), NearbyP2pManager (без роутера)
-├─ net/         TLS-релей, Ktor-сервер, клиент отправки, приём чанков, веб-портал
-├─ overlay/     шторка поверх приложений
-├─ service/     foreground-служба, уведомления
-├─ tile/        плитка быстрых настроек
-└─ ui/          Compose Material 3: радар, история, настройки, диалог сбоя
-```
-
-Коротко о протоколе:
-
-- порты: TLS `53530`, веб-портал и UDP-обнаружение `53531`, внутренний HTTP `53533`;
-- ключ устройства — EC P-256, идентификатор = SHA-256 открытого ключа;
-- TLS-терминация вынесена в отдельный релей (Ktor 3 CIO не умеет HTTPS), дальше поток
-  идёт на loopback-порт Ktor;
-- запрос на передачу подписан ключом отправителя, получатель проверяет подпись и
-  соответствие ключа сертификату;
-- доверие — по отпечатку ключа, хранится локально;
-- Nearby-устройства дедуплицируются с LAN по `deviceId`; если доступны оба канала,
-  отправка идёт по LAN.
-
-## Лицензия
-
-Проект личный, распространяется как есть, без гарантий.
+Распространяется под лицензией MIT. Подробности в файле [LICENSE](LICENSE).

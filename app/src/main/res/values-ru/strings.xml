@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FluxDrop</string>
+    <string name="app_description">Быстрая передача файлов без интернета по локальной сети, Nearby и вебу</string>
+    <string name="tile_clipboard">Отправить буфер</string>
+</resources>

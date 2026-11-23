@@ -253,11 +253,54 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         message.value = "Соединяемся с ${request.name}…"
     }
 
+    /** Пользователь нажал «Доверять» в шторке: добавляем в доверенные и принимаем. */
+    fun trustNearby() {
+        val request = _nearbyIncoming.value ?: return
+        _nearbyIncoming.value = null
+        viewModelScope.launch(Dispatchers.IO) {
+            g.peers.trust(
+                app.fluxdrop.core.PeerInfo(
+                    id = request.deviceId,
+                    name = request.name,
+                    certFingerprint = request.deviceId,
+                )
+            )
+        }
+        g.nearby.accept(request.endpointId)
+        message.value = "${request.name} добавлено в доверенные"
+    }
+
     fun declineNearby() {
         val request = _nearbyIncoming.value ?: return
         _nearbyIncoming.value = null
         g.nearby.decline(request.endpointId)
         message.value = "Запрос отклонён"
+    }
+
+    fun handleNfcReceived(data: String) {
+        message.value = "NFC соединение установлено"
+        if (data.contains("/web")) {
+            runCatching {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(data)).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(intent)
+            }
+        }
+    }
+
+    /** Включает веб-портал (если выключен) и возвращает URL для показа QR-кода. */
+    fun ensurePortalUrl(onReady: (String) -> Unit) {
+        if (!portalEnabled.value) {
+            setPortalEnabled(true)
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            val url = g.portal.url()
+            portalUrl.value = url
+            withContext(Dispatchers.Main) {
+                if (url != null) onReady(url)
+            }
+        }
     }
 
     fun dismissNearbyProgress() {

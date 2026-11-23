@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Folder
+import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.Shield
@@ -65,6 +66,7 @@ fun HomeScreen(
     sending: SendState?,
     isEngineReady: Boolean,
     onPickFiles: () -> Unit,
+    onPickPhotos: () -> Unit,
     onPickFolder: () -> Unit,
     onShowQr: (String) -> Unit,
 ) {
@@ -84,7 +86,7 @@ fun HomeScreen(
                 peerCount = peers.size,
                 portalUrl = portalUrl,
                 isEngineReady = isEngineReady,
-                onShowQr = { portalUrl?.let(onShowQr) },
+                onShowQr = { viewModel.ensurePortalUrl(onShowQr) },
             )
         }
 
@@ -92,6 +94,7 @@ fun HomeScreen(
             QueueCard(
                 queue = queue,
                 onPickFiles = onPickFiles,
+                onPickPhotos = onPickPhotos,
                 onPickFolder = onPickFolder,
                 onAddText = { showTextDialog = true },
                 onRemove = viewModel::removeItem,
@@ -209,14 +212,18 @@ private fun StatusCard(
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
                     )
                 }
-                if (portalUrl != null) {
-                    IconButton(onClick = onShowQr) {
-                        Icon(
-                            Icons.Rounded.QrCode2,
-                            contentDescription = "QR веб-портала",
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        )
-                    }
+                FilledTonalButton(
+                    onClick = onShowQr,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                ) {
+                    Icon(
+                        Icons.Rounded.QrCode2,
+                        contentDescription = "Показать QR-код",
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text("QR", style = MaterialTheme.typography.labelMedium)
                 }
             }
             if (portalUrl != null) {
@@ -237,6 +244,7 @@ private fun StatusCard(
 private fun QueueCard(
     queue: List<QueueItem>,
     onPickFiles: () -> Unit,
+    onPickPhotos: () -> Unit,
     onPickFolder: () -> Unit,
     onAddText: () -> Unit,
     onRemove: (String) -> Unit,
@@ -269,7 +277,7 @@ private fun QueueCard(
 
             if (queue.isEmpty()) {
                 Text(
-                    "Добавьте файлы, папку или текст — получателя можно выбрать потом.",
+                    "Добавьте файлы, фото, папку или текст — получателя можно выбрать потом.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -317,21 +325,57 @@ private fun QueueCard(
             }
 
             Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilledTonalButton(onClick = onPickFiles, shape = RoundedCornerShape(14.dp)) {
-                    Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Файлы")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                FilledTonalButton(
+                    onClick = onPickFiles,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.height(2.dp))
+                        Text("Файлы", style = MaterialTheme.typography.labelSmall)
+                    }
                 }
-                FilledTonalButton(onClick = onPickFolder, shape = RoundedCornerShape(14.dp)) {
-                    Icon(Icons.Rounded.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Папка")
+                FilledTonalButton(
+                    onClick = onPickPhotos,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Rounded.Image, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.height(2.dp))
+                        Text("Фото", style = MaterialTheme.typography.labelSmall)
+                    }
                 }
-                FilledTonalButton(onClick = onAddText, shape = RoundedCornerShape(14.dp)) {
-                    Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Текст")
+                FilledTonalButton(
+                    onClick = onPickFolder,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Rounded.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.height(2.dp))
+                        Text("Папка", style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+                FilledTonalButton(
+                    onClick = onAddText,
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.height(2.dp))
+                        Text("Текст", style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
         }

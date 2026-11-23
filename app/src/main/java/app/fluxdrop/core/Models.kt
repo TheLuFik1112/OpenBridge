@@ -8,7 +8,7 @@ const val TLS_PORT = 53530
 const val WEB_PORT = 53531
 const val TLS_LOCAL_PORT = 53533
 const val CHUNK_SIZE = 16 * 1024 * 1024
-const val APP_VERSION = "0.3.4"
+const val APP_VERSION = "0.4.0"
 
 @Serializable
 @Immutable
