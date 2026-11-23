@@ -7,9 +7,7 @@ import android.net.Uri
 import android.nfc.NdefMessage
 import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
-import android.nfc.NfcEvent
 import app.fluxdrop.core.Diag
-import java.nio.charset.StandardCharsets
 
 object NfcHelper {
 
@@ -38,12 +36,30 @@ object NfcHelper {
         val adapter = NfcAdapter.getDefaultAdapter(activity) ?: return
 
         runCatching {
-            adapter.setNdefPushMessageCallback({ _: NfcEvent ->
-                val targetUrl = shareUrlProvider() ?: GITHUB_DOWNLOAD_URL
-                createNdefMessage(targetUrl)
-            }, activity)
+            val callbackClass = Class.forName("android.nfc.NfcAdapter\$CreateNdefMessageCallback")
+            val proxy = java.lang.reflect.Proxy.newProxyInstance(
+                activity.classLoader,
+                arrayOf(callbackClass),
+            ) { _, method, _ ->
+                if (method.name == "createNdefMessage") {
+                    val targetUrl = shareUrlProvider() ?: GITHUB_DOWNLOAD_URL
+                    createNdefMessage(targetUrl)
+                } else null
+            }
+            val setCallbackMethod = NfcAdapter::class.java.getMethod(
+                "setNdefPushMessageCallback",
+                callbackClass,
+                Activity::class.java,
+                Array<Activity>::class.java,
+            )
+            setCallbackMethod.invoke(
+                adapter,
+                proxy,
+                activity,
+                java.lang.reflect.Array.newInstance(Activity::class.java, 0),
+            )
         }.onFailure {
-            Diag.log("nfc", "setupNfcPush failed: $it")
+            Diag.log("nfc", "setupNfcPush reflection fallback: $it")
         }
     }
 
