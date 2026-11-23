@@ -32,20 +32,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.launch
 
 private data class Tab(
-    val title: String,
-    val label: String,
+    val title: (AppStrings) -> String,
+    val label: (AppStrings) -> String,
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
 )
 
 private val tabs = listOf(
-    Tab("Отправить", "Отправить", Icons.Rounded.Send),
-    Tab("История", "История", Icons.Rounded.History),
-    Tab("Настройки", "Настройки", Icons.Rounded.Settings),
+    Tab(title = { "FluxDrop" }, label = { it.tabSend }, icon = Icons.Rounded.Send),
+    Tab(title = { it.tabHistory }, label = { it.tabHistory }, icon = Icons.Rounded.History),
+    Tab(title = { it.tabSettings }, label = { it.tabSettings }, icon = Icons.Rounded.Settings),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +67,7 @@ fun AppRoot(viewModel: AppViewModel) {
     val engineReady by viewModel.isEngineReady.collectAsState()
     val nearbyIncoming by viewModel.nearbyIncoming.collectAsState()
     val nearbyProgress by viewModel.nearbyProgress.collectAsState()
+    val strings by viewModel.strings.collectAsState()
 
     // Движок стартует только после того, как кадр уже нарисован.
     LaunchedEffect(Unit) {
@@ -124,85 +126,85 @@ fun AppRoot(viewModel: AppViewModel) {
     val pagerState = rememberPagerState { tabs.size }
     val selectedTab = pagerState.currentPage
 
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text(tabs[selectedTab].title) })
-        },
-        bottomBar = {
-            NavigationBar {
-                tabs.forEachIndexed { index, tab ->
-                    NavigationBarItem(
-                        selected = selectedTab == index,
-                        onClick = {
-                            coroutineScope.launch {
-                                pagerState.animateScrollToPage(index)
-                            }
-                        },
-                        icon = { Icon(tab.icon, contentDescription = tab.label) },
-                        label = { Text(tab.label) },
-                    )
+    CompositionLocalProvider(LocalStrings provides strings) {
+        Scaffold(
+            topBar = {
+                TopAppBar(title = { Text(tabs[selectedTab].title(strings)) })
+            },
+            bottomBar = {
+                NavigationBar {
+                    tabs.forEachIndexed { index, tab ->
+                        NavigationBarItem(
+                            selected = selectedTab == index,
+                            onClick = {
+                                coroutineScope.launch {
+                                    pagerState.animateScrollToPage(index)
+                                }
+                            },
+                            icon = { Icon(tab.icon, contentDescription = tab.label(strings)) },
+                            label = { Text(tab.label(strings)) },
+                        )
+                    }
                 }
-            }
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-    ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding)) {
-            HorizontalPager(
-                state = pagerState,
-                beyondViewportPageCount = 0,
-                modifier = Modifier.fillMaxSize(),
-            ) { page ->
-                when (page) {
-                    0 -> HomeScreen(
-                        viewModel = viewModel,
-                        queue = queue,
-                        peers = peers,
-                        sending = sending,
-                        isEngineReady = engineReady,
-                        onPickFiles = { filePicker.launch(arrayOf("*/*")) },
-                        onPickPhotos = { photoPicker.launch("image/*") },
-                        onPickFolder = { folderPicker.launch(null) },
-                        onShowQr = { url -> qrPayload = url },
-                    )
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+        ) { padding ->
+            Box(Modifier.fillMaxSize().padding(padding)) {
+                HorizontalPager(
+                    state = pagerState,
+                    beyondViewportPageCount = 0,
+                    modifier = Modifier.fillMaxSize(),
+                ) { page ->
+                    when (page) {
+                        0 -> HomeScreen(
+                            viewModel = viewModel,
+                            queue = queue,
+                            peers = peers,
+                            sending = sending,
+                            isEngineReady = engineReady,
+                            onPickFiles = { filePicker.launch(arrayOf("*/*")) },
+                            onPickPhotos = { photoPicker.launch("image/*") },
+                            onPickFolder = { folderPicker.launch(null) },
+                            onShowQr = { url -> qrPayload = url },
+                        )
 
-                    1 -> HistoryScreen(history)
+                        1 -> HistoryScreen(history)
 
-                    else -> SettingsScreen(
-                        viewModel = viewModel,
-                        trusted = trusted,
-                        portalUrl = portalUrl,
-                        onShowQr = { url -> qrPayload = url },
-                    )
+                        else -> SettingsScreen(
+                            viewModel = viewModel,
+                            trusted = trusted,
+                        )
+                    }
                 }
             }
         }
-    }
 
-    nearbyIncoming?.let { request ->
-        NearbyIncomingSheet(
-            request = request,
-            onAccept = viewModel::acceptNearby,
-            onTrust = viewModel::trustNearby,
-            onDecline = viewModel::declineNearby,
-        )
-    }
+        nearbyIncoming?.let { request ->
+            NearbyIncomingSheet(
+                request = request,
+                onAccept = viewModel::acceptNearby,
+                onTrust = viewModel::trustNearby,
+                onDecline = viewModel::declineNearby,
+            )
+        }
 
-    nearbyProgress?.let { progress ->
-        NearbyProgressDialog(
-            progress = progress,
-            onDismiss = viewModel::dismissNearbyProgress,
-        )
-    }
+        nearbyProgress?.let { progress ->
+            NearbyProgressDialog(
+                progress = progress,
+                onDismiss = viewModel::dismissNearbyProgress,
+            )
+        }
 
-    qrPayload?.let { payload ->
-        QrDialog(payload = payload, onDismiss = { qrPayload = null })
-    }
+        qrPayload?.let { payload ->
+            QrDialog(payload = payload, onDismiss = { qrPayload = null })
+        }
 
-    crash?.let { pending ->
-        CrashDialog(
-            crash = pending,
-            onSend = viewModel::sendCrash,
-            onDismiss = viewModel::dismissCrash,
-        )
+        crash?.let { pending ->
+            CrashDialog(
+                crash = pending,
+                onSend = viewModel::sendCrash,
+                onDismiss = viewModel::dismissCrash,
+            )
+        }
     }
 }

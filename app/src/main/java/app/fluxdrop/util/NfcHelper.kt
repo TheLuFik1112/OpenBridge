@@ -7,12 +7,23 @@ import android.net.Uri
 import android.nfc.NdefMessage
 import android.nfc.NdefRecord
 import android.nfc.NfcAdapter
+import android.nfc.Tag
+import android.nfc.tech.IsoDep
+import android.nfc.tech.Ndef
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import app.fluxdrop.core.Diag
+import java.nio.charset.StandardCharsets
 
 object NfcHelper {
 
     private const val GITHUB_DOWNLOAD_URL = "https://github.com/TheLuFik1112/FluxDrop/releases/latest"
     private const val APP_PACKAGE = "app.fluxdrop.p2p"
+
+    @Volatile
+    var currentPayload: String? = null
 
     fun isNfcAvailable(context: Context): Boolean {
         val adapter = NfcAdapter.getDefaultAdapter(context)
@@ -24,10 +35,122 @@ object NfcHelper {
         return adapter != null && adapter.isEnabled
     }
 
+    fun updatePayload(payload: String?) {
+        currentPayload = payload ?: GITHUB_DOWNLOAD_URL
+    }
+
     /**
-     * Настраивает NFC передачу при касании телефонов.
-     * Если у второго телефона есть FluxDrop — он откроет приложение и примет данные.
-     * Если FluxDrop не установлен — откроет браузер со ссылкой на скачивание APK.
+     * Запускает современный режим считывания (Reader Mode).
+     * Работает надёжно на всех современных версиях Android (включая Android 10-16).
+     * При обнаружении другого телефона с FluxDrop или NFC-метки считывает данные
+     * по протоколу ISO-DEP (APDU) или NDEF.
+     */
+    fun startReaderMode(
+        activity: Activity,
+        onPayloadReceived: (String) -> Unit,
+    ) {
+        val adapter = NfcAdapter.getDefaultAdapter(activity) ?: return
+        if (!adapter.isEnabled) return
+
+        val flags = NfcAdapter.FLAG_READER_NFC_A or
+                NfcAdapter.FLAG_READER_NFC_B or
+                NfcAdapter.FLAG_READER_NFC_F or
+                NfcAdapter.FLAG_READER_NFC_V or
+                NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS
+
+        runCatching {
+            adapter.enableReaderMode(activity, { tag: Tag ->
+                handleTag(tag, activity, onPayloadReceived)
+            }, flags, null)
+            Diag.log("nfc", "Reader mode enabled")
+        }.onFailure {
+            Diag.log("nfc", "enableReaderMode failed: $it")
+        }
+    }
+
+    fun stopReaderMode(activity: Activity) {
+        val adapter = NfcAdapter.getDefaultAdapter(activity) ?: return
+        runCatching {
+            adapter.disableReaderMode(activity)
+            Diag.log("nfc", "Reader mode disabled")
+        }.onFailure {
+            Diag.log("nfc", "disableReaderMode failed: $it")
+        }
+    }
+
+    private fun handleTag(
+        tag: Tag,
+        activity: Activity,
+        onPayloadReceived: (String) -> Unit,
+    ) {
+        // 1. Сначала пробуем IsoDep (связь телефон-телефон через FluxApduService HCE)
+        val isoDep = IsoDep.get(tag)
+        if (isoDep != null) {
+            runCatching {
+                isoDep.connect()
+                isoDep.timeout = 2000
+                val response = isoDep.transceive(FluxApduService.SELECT_APDU)
+                isoDep.close()
+
+                if (response.size >= 2) {
+                    val sw1 = response[response.size - 2]
+                    val sw2 = response[response.size - 1]
+                    if (sw1 == 0x90.toByte() && sw2 == 0x00.toByte()) {
+                        val payload = String(response, 0, response.size - 2, StandardCharsets.UTF_8)
+                        Diag.log("nfc", "IsoDep read success: $payload")
+                        vibrate(activity)
+                        activity.runOnUiThread { onPayloadReceived(payload) }
+                        return
+                    }
+                }
+            }.onFailure {
+                Diag.log("nfc", "IsoDep transceive error: $it")
+            }
+        }
+
+        // 2. Если не сработало — пробуем считать стандартный NDEF (метка или Android Beam)
+        val ndef = Ndef.get(tag)
+        if (ndef != null) {
+            runCatching {
+                ndef.connect()
+                val message = ndef.ndefMessage
+                ndef.close()
+                if (message != null && message.records.isNotEmpty()) {
+                    val record = message.records.firstOrNull { it.toUri() != null }
+                    val uri = record?.toUri()?.toString()
+                    if (!uri.isNullOrBlank()) {
+                        Diag.log("nfc", "NDEF read success: $uri")
+                        vibrate(activity)
+                        activity.runOnUiThread { onPayloadReceived(uri) }
+                        return
+                    }
+                }
+            }.onFailure {
+                Diag.log("nfc", "Ndef read error: $it")
+            }
+        }
+    }
+
+    fun vibrate(context: Context) {
+        runCatching {
+            val vibrator = if (Build.VERSION.SDK_INT >= 31) {
+                val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                vm?.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            }
+            if (Build.VERSION.SDK_INT >= 26) {
+                vibrator?.vibrate(VibrationEffect.createOneShot(80, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator?.vibrate(80)
+            }
+        }
+    }
+
+    /**
+     * Настраивает NFC Beam (для старых версий Android, где он поддерживается).
      */
     fun setupNfcPush(
         activity: Activity,
@@ -65,14 +188,10 @@ object NfcHelper {
 
     private fun createNdefMessage(url: String): NdefMessage {
         val uriRecord = NdefRecord.createUri(Uri.parse(url))
-        // Android Application Record: запускает app.fluxdrop.p2p, если установлено
         val aarRecord = NdefRecord.createApplicationRecord(APP_PACKAGE)
         return NdefMessage(arrayOf(uriRecord, aarRecord))
     }
 
-    /**
-     * Разбирает входящий NFC Intent. Возвращает переданную ссылку/текст, если есть.
-     */
     fun extractNfcUri(intent: Intent?): String? {
         if (intent == null || NfcAdapter.ACTION_NDEF_DISCOVERED != intent.action) return null
         return intent.dataString

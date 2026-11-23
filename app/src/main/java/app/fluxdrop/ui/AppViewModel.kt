@@ -83,6 +83,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val portalEnabled = MutableStateFlow(false)
     val developerMode = MutableStateFlow(false)
     val autoSendReports = MutableStateFlow(false)
+    val appLanguage = MutableStateFlow("system")
+    val strings = MutableStateFlow<AppStrings>(resolveStrings("system"))
 
     val peers = MutableStateFlow<List<DiscoveredPeer>>(emptyList())
     val trusted = MutableStateFlow<List<TrustedPeer>>(emptyList())
@@ -165,6 +167,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             portalEnabled.value = s.portalEnabled.value
             developerMode.value = s.developerMode.value
             autoSendReports.value = s.autoSendReports.value
+            appLanguage.value = s.appLanguage.value
+            strings.value = resolveStrings(s.appLanguage.value)
         }.onFailure { fail("Настройки", it) }
     }
 
@@ -632,7 +636,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // ── для разработчиков ────────────────────────────────────────────────
+    fun setAppLanguage(lang: String) {
+        val clean = if (lang in listOf("system", "en", "ru")) lang else "system"
+        appLanguage.value = clean
+        strings.value = resolveStrings(clean)
+        viewModelScope.launch(Dispatchers.IO) { g.settings.setAppLanguage(clean) }
+    }
 
     fun setDeveloperMode(enabled: Boolean) {
         developerMode.value = enabled

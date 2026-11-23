@@ -18,6 +18,13 @@ class SettingsRepository(private val context: Context) {
     val overlayPromptShown = MutableStateFlow(prefs.getBoolean(KEY_OVERLAY_PROMPT, false))
     val developerMode = MutableStateFlow(prefs.getBoolean(KEY_DEVELOPER, false))
     val autoSendReports = MutableStateFlow(prefs.getBoolean(KEY_AUTO_REPORTS, false))
+    val appLanguage = MutableStateFlow(prefs.getString(KEY_LANGUAGE, "system") ?: "system")
+
+    fun setAppLanguage(value: String) {
+        val clean = if (value in listOf("system", "en", "ru")) value else "system"
+        appLanguage.value = clean
+        prefs.edit().putString(KEY_LANGUAGE, clean).apply()
+    }
 
     fun setDeviceName(value: String) {
         val clean = value.trim().take(40).ifBlank { defaultName }
@@ -76,5 +83,6 @@ class SettingsRepository(private val context: Context) {
         const val KEY_OVERLAY_PROMPT = "overlay_prompt"
         const val KEY_DEVELOPER = "developer_mode"
         const val KEY_AUTO_REPORTS = "auto_send_reports"
+        const val KEY_LANGUAGE = "app_language"
     }
 }

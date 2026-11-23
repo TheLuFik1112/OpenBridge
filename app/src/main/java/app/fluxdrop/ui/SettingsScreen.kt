@@ -21,16 +21,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -46,6 +45,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
@@ -62,18 +62,18 @@ import app.fluxdrop.util.requestOverlayPermission
 fun SettingsScreen(
     viewModel: AppViewModel,
     trusted: List<TrustedPeer>,
-    portalUrl: String?,
-    onShowQr: (String) -> Unit,
 ) {
+    val strings = LocalStrings.current
     val context = LocalContext.current
     val deviceName by viewModel.deviceName.collectAsState()
+    val appLanguage by viewModel.appLanguage.collectAsState()
     val serviceEnabled by viewModel.serviceEnabled.collectAsState()
     val autoAccept by viewModel.autoAccept.collectAsState()
-    val portalEnabled by viewModel.portalEnabled.collectAsState()
     val developerMode by viewModel.developerMode.collectAsState()
     val autoSendReports by viewModel.autoSendReports.collectAsState()
 
     var renameOpen by rememberSaveable { mutableStateOf(false) }
+    var langOpen by rememberSaveable { mutableStateOf(false) }
     var statsOpen by rememberSaveable { mutableStateOf(false) }
     var logsOpen by rememberSaveable { mutableStateOf(false) }
     var overlayGranted by remember { mutableStateOf(hasOverlayPermission(context)) }
@@ -89,50 +89,70 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item(key = "device") {
-            SettingsCard("Устройство") {
+            SettingsCard(strings.deviceCard) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("Имя в сети", style = MaterialTheme.typography.bodyLarge)
+                        Text(strings.deviceNameLabel, style = MaterialTheme.typography.bodyLarge)
                         Text(
                             deviceName,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    TextButton(onClick = { renameOpen = true }) { Text("Изменить") }
+                    TextButton(onClick = { renameOpen = true }) { Text(strings.btnChange) }
+                }
+            }
+        }
+
+        item(key = "language") {
+            SettingsCard(strings.languageCard) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(strings.languageLabel, style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            when (appLanguage) {
+                                "en" -> strings.langEn
+                                "ru" -> strings.langRu
+                                else -> strings.langSystem
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    TextButton(onClick = { langOpen = true }) { Text(strings.btnChange) }
                 }
             }
         }
 
         item(key = "service") {
-            SettingsCard("Фоновая работа") {
+            SettingsCard(strings.serviceCard) {
                 SwitchRow(
-                    title = "Служба обнаружения",
-                    subtitle = "Приём передач, даже когда приложение свёрнуто",
+                    title = strings.serviceTitle,
+                    subtitle = strings.serviceSubtitle,
                     checked = serviceEnabled,
                     onCheckedChange = viewModel::setServiceEnabled,
                 )
                 Spacer(Modifier.height(8.dp))
                 ActionRow(
-                    title = "Шторка поверх других приложений",
-                    subtitle = if (overlayGranted) "Разрешено" else "Нужно для показа запроса поверх чужих приложений",
-                    action = if (overlayGranted) "Настроить" else "Разрешить",
+                    title = strings.overlayTitle,
+                    subtitle = if (overlayGranted) strings.overlaySubtitleAllowed else strings.overlaySubtitleNeeded,
+                    action = if (overlayGranted) strings.btnConfigure else strings.btnAllow,
                 ) {
                     requestOverlayPermission(context)
                     overlayGranted = hasOverlayPermission(context)
                 }
                 ActionRow(
-                    title = "Не оптимизировать батарею",
-                    subtitle = if (batteryOk) "Разрешено" else "Иначе Android может убивать приём в фоне",
-                    action = "Открыть",
+                    title = strings.batteryTitle,
+                    subtitle = if (batteryOk) strings.batterySubtitleAllowed else strings.batterySubtitleNeeded,
+                    action = strings.btnOpen,
                 ) {
                     requestIgnoreBatteryOptimizations(context)
                     batteryOk = isIgnoringBatteryOptimizations(context)
                 }
                 ActionRow(
-                    title = "Уведомления",
-                    subtitle = "Запросы на приём и прогресс",
-                    action = "Открыть",
+                    title = strings.notificationsTitle,
+                    subtitle = strings.notificationsSubtitle,
+                    action = strings.btnOpen,
                 ) {
                     openAppNotificationSettings(context)
                 }
@@ -140,10 +160,10 @@ fun SettingsScreen(
         }
 
         item(key = "receive") {
-            SettingsCard("Приём") {
+            SettingsCard(strings.receiveCard) {
                 SwitchRow(
-                    title = "Автоприём от доверенных",
-                    subtitle = "Без шторки, только тихое уведомление о прогрессе",
+                    title = strings.autoAcceptTitle,
+                    subtitle = strings.autoAcceptSubtitle,
                     checked = autoAccept,
                     onCheckedChange = viewModel::setAutoAccept,
                 )
@@ -151,14 +171,10 @@ fun SettingsScreen(
         }
 
         item(key = "reports") {
-            SettingsCard("Отчёты об ошибках") {
+            SettingsCard(strings.reportsCard) {
                 SwitchRow(
-                    title = "Автоматически отправлять отчёты об ошибках разработчику",
-                    subtitle = if (autoSendReports) {
-                        "При сбое отчёт уйдёт в фоне, без лишних окон"
-                    } else {
-                        "При сбое появится окно с предложением отправить логи"
-                    },
+                    title = strings.reportsTitle,
+                    subtitle = if (autoSendReports) strings.reportsSubtitleAuto else strings.reportsSubtitleManual,
                     checked = autoSendReports,
                     onCheckedChange = viewModel::setAutoSendReports,
                 )
@@ -166,10 +182,10 @@ fun SettingsScreen(
         }
 
         item(key = "trusted") {
-            SettingsCard("Доверенные устройства") {
+            SettingsCard(strings.trustedCard) {
                 if (trusted.none { !it.revoked }) {
                     Text(
-                        "Пока пусто. Поставьте галочку «Всегда принимать» во входящей шторке.",
+                        strings.trustedEmpty,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -195,7 +211,7 @@ fun SettingsScreen(
                                 )
                             }
                             IconButton(onClick = { viewModel.revoke(peer.id) }) {
-                                Icon(Icons.Rounded.Delete, contentDescription = "Отозвать")
+                                Icon(Icons.Rounded.Delete, contentDescription = strings.btnRevoke)
                             }
                         }
                     }
@@ -203,34 +219,8 @@ fun SettingsScreen(
             }
         }
 
-        item(key = "portal") {
-            SettingsCard("Веб-портал") {
-                SwitchRow(
-                    title = "Браузер без приложения",
-                    subtitle = "Страница по QR-коду для скачивания и загрузки файлов",
-                    checked = portalEnabled,
-                    onCheckedChange = viewModel::setPortalEnabled,
-                )
-                if (portalEnabled && portalUrl != null) {
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        portalUrl,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Button(onClick = { onShowQr(portalUrl) }, shape = RoundedCornerShape(14.dp)) {
-                        Icon(Icons.Rounded.QrCode2, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Показать QR")
-                    }
-                }
-            }
-        }
-
         item(key = "about") {
-            SettingsCard("О приложении") {
+            SettingsCard(strings.aboutCard) {
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     shape = RoundedCornerShape(14.dp),
@@ -246,49 +236,42 @@ fun SettingsScreen(
                                 taps = if (now - lastTapAt > 1_500) 1 else taps + 1
                                 lastTapAt = now
                                 if (taps >= 7) {
-                                    taps = 0
-                                    viewModel.setDeveloperMode(true)
-                                    Toast.makeText(
-                                        context,
-                                        "Режим разработчика включён",
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
-                                } else if (taps >= 4) {
-                                    Toast.makeText(context, "Ещё ${7 - taps}", Toast.LENGTH_SHORT).show()
-                                }
+                                taps = 0
+                                viewModel.setDeveloperMode(true)
+                                Toast.makeText(
+                                    context,
+                                    "Developer mode enabled",
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            } else if (taps >= 4) {
+                                Toast.makeText(context, "${7 - taps}", Toast.LENGTH_SHORT).show()
                             }
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text("FluxDrop", style = MaterialTheme.typography.bodyLarge)
                             Text(
-                                "Версия $APP_VERSION",
+                                "${strings.versionLabel} $APP_VERSION",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                         if (developerMode) {
                             Text(
-                                "режим разработчика",
+                                "dev",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary,
                             )
                         }
                     }
                 }
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Локальная передача: TLS + подпись запросов, файлы чанками 16 МБ с SHA-256, " +
-                        "доверенные устройства — по отпечатку ключа.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
 
         if (developerMode) {
             item(key = "developer") {
-                SettingsCard("Для разработчиков") {
+                SettingsCard("Developer Options") {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Rounded.BugReport,
@@ -298,7 +281,7 @@ fun SettingsScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            "Технические проверки и журналы",
+                            "Technical diagnostics & logs",
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
@@ -313,12 +296,12 @@ fun SettingsScreen(
                             onClick = { viewModel.checkServer() },
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.weight(1f),
-                        ) { Text("Проверить сервер") }
+                        ) { Text("Check server") }
                         OutlinedButton(
                             onClick = { viewModel.saveLogs() },
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.weight(1f),
-                        ) { Text("Сохранить логи") }
+                        ) { Text("Save logs") }
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(
@@ -329,37 +312,48 @@ fun SettingsScreen(
                             onClick = { viewModel.restartServer() },
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.weight(1f),
-                        ) { Text("Перезапуск релея") }
+                        ) { Text("Restart server") }
                         OutlinedButton(
                             onClick = { statsOpen = true },
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.weight(1f),
-                        ) { Text("Статистика") }
+                        ) { Text("Statistics") }
                     }
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(
                         onClick = { logsOpen = true },
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Показать журнал") }
+                    ) { Text("Show logs") }
                     Spacer(Modifier.height(10.dp))
                     TextButton(
                         onClick = {
                             viewModel.setDeveloperMode(false)
-                            Toast.makeText(context, "Режим разработчика выключен", Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Скрыть раздел") }
+                    ) { Text("Hide section") }
                 }
             }
         }
+    }
+
+    if (langOpen) {
+        LanguageDialog(
+            current = appLanguage,
+            strings = strings,
+            onDismiss = { langOpen = false },
+            onSelect = { code ->
+                viewModel.setAppLanguage(code)
+                langOpen = false
+            },
+        )
     }
 
     if (renameOpen) {
         var value by remember(deviceName) { mutableStateOf(deviceName) }
         AlertDialog(
             onDismissRequest = { renameOpen = false },
-            title = { Text("Имя устройства") },
+            title = { Text(strings.renameDialogTitle) },
             text = {
                 OutlinedTextField(
                     value = value,
@@ -375,10 +369,10 @@ fun SettingsScreen(
                         renameOpen = false
                     },
                     enabled = value.isNotBlank(),
-                ) { Text("Сохранить") }
+                ) { Text(strings.btnSave) }
             },
             dismissButton = {
-                TextButton(onClick = { renameOpen = false }) { Text("Отмена") }
+                TextButton(onClick = { renameOpen = false }) { Text(strings.btnCancel) }
             },
         )
     }
@@ -390,7 +384,7 @@ fun SettingsScreen(
     if (statsOpen) {
         AlertDialog(
             onDismissRequest = { statsOpen = false },
-            title = { Text("Сетевая статистика") },
+            title = { Text("Server Stats") },
             text = {
                 Text(
                     viewModel.serverStats(),
@@ -398,29 +392,66 @@ fun SettingsScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { statsOpen = false }) { Text("Закрыть") }
+                TextButton(onClick = { statsOpen = false }) { Text("Close") }
             },
         )
     }
 }
 
-/**
- * Журнал читается только пока открыт этот диалог: поток запускается в
- * LaunchedEffect и умирает вместе с композицией. Радар и настройки его не читают.
- */
+@Composable
+private fun LanguageDialog(
+    current: String,
+    strings: AppStrings,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(strings.languageCard) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(
+                    "system" to strings.langSystem,
+                    "en" to strings.langEn,
+                    "ru" to strings.langRu,
+                ).forEach { (code, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onSelect(code) }
+                            .padding(vertical = 10.dp, horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = current == code,
+                            onClick = { onSelect(code) },
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(label, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(strings.btnCancel) }
+        },
+    )
+}
+
 @Composable
 private fun LogsDialog(viewModel: AppViewModel, onDismiss: () -> Unit) {
-    var text by remember { mutableStateOf("Читаю журнал…") }
+    var text by remember { mutableStateOf("Reading logs…") }
 
     LaunchedEffect(Unit) {
         viewModel.logsFlow().collect { lines ->
-            text = lines.ifBlank { "Журнал пуст" }
+            text = lines.ifBlank { "Logs are empty" }
         }
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Журнал") },
+        title = { Text("Logs") },
         text = {
             Column(
                 Modifier
@@ -435,10 +466,10 @@ private fun LogsDialog(viewModel: AppViewModel, onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Закрыть") }
+            TextButton(onClick = onDismiss) { Text("Close") }
         },
         dismissButton = {
-            TextButton(onClick = { viewModel.saveLogs() }) { Text("Сохранить в файл") }
+            TextButton(onClick = { viewModel.saveLogs() }) { Text("Save to file") }
         },
     )
 }
@@ -451,12 +482,8 @@ private fun SettingsCard(title: String, content: @Composable () -> Unit) {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(Modifier.padding(16.dp)) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Spacer(Modifier.height(10.dp))
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(12.dp))
             content()
         }
     }
@@ -469,7 +496,10 @@ private fun SwitchRow(
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(
@@ -490,9 +520,14 @@ private fun ActionRow(
     action: String,
     onClick: () -> Unit,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(title, style = MaterialTheme.typography.bodyMedium)
             Text(
                 subtitle,
                 style = MaterialTheme.typography.bodySmall,
@@ -500,8 +535,6 @@ private fun ActionRow(
             )
         }
         Spacer(Modifier.width(8.dp))
-        OutlinedButton(onClick = onClick, shape = RoundedCornerShape(12.dp)) {
-            Text(action)
-        }
+        TextButton(onClick = onClick) { Text(action) }
     }
 }

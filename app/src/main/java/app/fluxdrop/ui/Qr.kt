@@ -28,6 +28,7 @@ import com.google.zxing.qrcode.QRCodeWriter
 
 @Composable
 fun QrDialog(payload: String, onDismiss: () -> Unit) {
+    val strings = LocalStrings.current
     val bitmap = remember(payload) { generateQr(payload) }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -40,7 +41,7 @@ fun QrDialog(payload: String, onDismiss: () -> Unit) {
                 verticalArrangement = Arrangement.Center,
             ) {
                 Text(
-                    "Отсканируйте камерой телефона",
+                    strings.qrScanTitle,
                     style = MaterialTheme.typography.titleMedium,
                     textAlign = TextAlign.Center,
                 )
@@ -52,13 +53,13 @@ fun QrDialog(payload: String, onDismiss: () -> Unit) {
                     ) {
                         Image(
                             bitmap = bitmap.asImageBitmap(),
-                            contentDescription = "QR-код веб-портала",
+                            contentDescription = "QR",
                             modifier = Modifier.padding(10.dp).size(260.dp),
                         )
                     }
                 } else {
                     Text(
-                        "Не удалось построить QR-код",
+                        strings.qrError,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -72,7 +73,7 @@ fun QrDialog(payload: String, onDismiss: () -> Unit) {
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Spacer(Modifier.height(4.dp))
-                TextButton(onClick = onDismiss) { Text("Закрыть") }
+                TextButton(onClick = onDismiss) { Text(strings.btnCancel) }
             }
         }
     }

@@ -1,9 +1,11 @@
 package app.fluxdrop.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,6 +26,8 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
+import androidx.compose.material.icons.rounded.Nfc
 import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.Shield
@@ -50,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -57,6 +62,7 @@ import app.fluxdrop.core.QueueItem
 import app.fluxdrop.core.QueueKind
 import app.fluxdrop.core.formatBytes
 import app.fluxdrop.data.DiscoveredPeer
+import app.fluxdrop.util.NfcHelper
 
 @Composable
 fun HomeScreen(
@@ -70,86 +76,141 @@ fun HomeScreen(
     onPickFolder: () -> Unit,
     onShowQr: (String) -> Unit,
 ) {
+    val strings = LocalStrings.current
     var showTextDialog by remember { mutableStateOf(false) }
+    var showNfcSheet by remember { mutableStateOf(false) }
     val portalUrl by viewModel.portalUrl.collectAsState()
     val trustedIds by viewModel.trustedIds.collectAsState()
     val deviceName by viewModel.deviceName.collectAsState()
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+    LaunchedEffect(portalUrl) {
+        NfcHelper.updatePayload(portalUrl)
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectVerticalDragGestures { _, dragAmount ->
+                    if (dragAmount < -20f) {
+                        showNfcSheet = true
+                    }
+                }
+            }
     ) {
-        item {
-            StatusCard(
-                deviceName = deviceName.ifBlank { "FluxDrop" },
-                peerCount = peers.size,
-                portalUrl = portalUrl,
-                isEngineReady = isEngineReady,
-                onShowQr = { viewModel.ensurePortalUrl(onShowQr) },
-            )
-        }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item {
+                StatusCard(
+                    strings = strings,
+                    deviceName = deviceName.ifBlank { "FluxDrop" },
+                    peerCount = peers.size,
+                    portalUrl = portalUrl,
+                    isEngineReady = isEngineReady,
+                    onShowQr = { viewModel.ensurePortalUrl(onShowQr) },
+                )
+            }
 
-        item {
-            QueueCard(
-                queue = queue,
-                onPickFiles = onPickFiles,
-                onPickPhotos = onPickPhotos,
-                onPickFolder = onPickFolder,
-                onAddText = { showTextDialog = true },
-                onRemove = viewModel::removeItem,
-                onClear = viewModel::clearQueue,
-            )
-        }
+            item {
+                QueueCard(
+                    strings = strings,
+                    queue = queue,
+                    onPickFiles = onPickFiles,
+                    onPickPhotos = onPickPhotos,
+                    onPickFolder = onPickFolder,
+                    onAddText = { showTextDialog = true },
+                    onRemove = viewModel::removeItem,
+                    onClear = viewModel::clearQueue,
+                )
+            }
 
-        if (sending != null) {
-            item { SendingCard(sending) }
-        }
+            if (sending != null) {
+                item { SendingCard(strings, sending) }
+            }
 
-        item {
-            Text(
-                "Устройства рядом",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-        }
+            item {
+                Text(
+                    strings.devicesNearby,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
 
-        if (peers.isEmpty()) {
+            if (peers.isEmpty()) {
+                item {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Column(Modifier.padding(18.dp)) {
+                            Text(strings.noDevicesYet, style = MaterialTheme.typography.bodyLarge)
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                strings.noDevicesHint,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
+            }
+
+            items(peers, key = { it.info.id }) { peer ->
+                PeerRow(
+                    strings = strings,
+                    peer = peer,
+                    trusted = peer.info.id in trustedIds,
+                    enabled = queue.isNotEmpty() && sending == null,
+                    onSend = { viewModel.sendTo(peer) },
+                )
+            }
+
             item {
                 Surface(
-                    shape = RoundedCornerShape(18.dp),
+                    onClick = { showNfcSheet = true },
+                    shape = RoundedCornerShape(16.dp),
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                 ) {
-                    Column(Modifier.padding(18.dp)) {
-                        Text("Пока никого не видно", style = MaterialTheme.typography.bodyLarge)
-                        Spacer(Modifier.height(4.dp))
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                    ) {
+                        Icon(
+                            Icons.Rounded.Nfc,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
                         Text(
-                            "Откройте FluxDrop на втором устройстве рядом. " +
-                                "Общая Wi-Fi сеть не обязательна: без роутера устройства " +
-                                "найдут друг друга через Google Nearby.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            strings.nfcSwipeHint,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Icon(
+                            Icons.Rounded.KeyboardArrowUp,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }
             }
-        }
 
-        items(peers, key = { it.info.id }) { peer ->
-            PeerRow(
-                peer = peer,
-                trusted = peer.info.id in trustedIds,
-                enabled = queue.isNotEmpty() && sending == null,
-                onSend = { viewModel.sendTo(peer) },
-            )
+            item { Spacer(Modifier.height(16.dp)) }
         }
-
-        item { Spacer(Modifier.height(12.dp)) }
     }
 
     if (showTextDialog) {
         TextDialog(
+            strings = strings,
             onDismiss = { showTextDialog = false },
             onConfirm = { text ->
                 viewModel.addText(text)
@@ -157,10 +218,21 @@ fun HomeScreen(
             },
         )
     }
+
+    if (showNfcSheet) {
+        NfcSheet(
+            strings = strings,
+            onDismiss = { showNfcSheet = false },
+            onPayloadReceived = { payload ->
+                viewModel.handleNfcReceived(payload)
+            },
+        )
+    }
 }
 
 @Composable
 private fun StatusCard(
+    strings: AppStrings,
     deviceName: String,
     peerCount: Int,
     portalUrl: String?,
@@ -204,9 +276,9 @@ private fun StatusCard(
                     )
                     Text(
                         when {
-                            !isEngineReady -> "Готовим соединение…"
-                            peerCount > 0 -> "Рядом устройств: $peerCount"
-                            else -> "Ожидаю устройства рядом"
+                            !isEngineReady -> strings.statusPreparing
+                            peerCount > 0 -> strings.statusPeersCount(peerCount)
+                            else -> strings.statusWaitingPeers
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
@@ -215,15 +287,15 @@ private fun StatusCard(
                 FilledTonalButton(
                     onClick = onShowQr,
                     shape = RoundedCornerShape(12.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                 ) {
                     Icon(
                         Icons.Rounded.QrCode2,
-                        contentDescription = "Показать QR-код",
+                        contentDescription = "QR",
                         modifier = Modifier.size(18.dp),
                     )
                     Spacer(Modifier.width(4.dp))
-                    Text("QR", style = MaterialTheme.typography.labelMedium)
+                    Text(strings.btnQr, style = MaterialTheme.typography.labelMedium)
                 }
             }
             if (portalUrl != null) {
@@ -242,6 +314,7 @@ private fun StatusCard(
 
 @Composable
 private fun QueueCard(
+    strings: AppStrings,
     queue: List<QueueItem>,
     onPickFiles: () -> Unit,
     onPickPhotos: () -> Unit,
@@ -258,7 +331,7 @@ private fun QueueCard(
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Пакет отправки",
+                    strings.sendPackageTitle,
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f),
                 )
@@ -270,14 +343,14 @@ private fun QueueCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     IconButton(onClick = onClear) {
-                        Icon(Icons.Rounded.Delete, contentDescription = "Очистить")
+                        Icon(Icons.Rounded.Delete, contentDescription = strings.btnClear)
                     }
                 }
             }
 
             if (queue.isEmpty()) {
                 Text(
-                    "Добавьте файлы, фото, папку или текст — получателя можно выбрать потом.",
+                    strings.sendPackageEmpty,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -316,7 +389,7 @@ private fun QueueCard(
                         IconButton(onClick = { onRemove(item.id) }, modifier = Modifier.size(32.dp)) {
                             Icon(
                                 Icons.Rounded.Close,
-                                contentDescription = "Убрать",
+                                contentDescription = strings.btnRemove,
                                 modifier = Modifier.size(18.dp),
                             )
                         }
@@ -332,49 +405,49 @@ private fun QueueCard(
                 FilledTonalButton(
                     onClick = onPickFiles,
                     shape = RoundedCornerShape(12.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                     modifier = Modifier.weight(1f),
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.height(2.dp))
-                        Text("Файлы", style = MaterialTheme.typography.labelSmall)
+                        Text(strings.btnFiles, style = MaterialTheme.typography.labelSmall)
                     }
                 }
                 FilledTonalButton(
                     onClick = onPickPhotos,
                     shape = RoundedCornerShape(12.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                     modifier = Modifier.weight(1f),
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Rounded.Image, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.height(2.dp))
-                        Text("Фото", style = MaterialTheme.typography.labelSmall)
+                        Text(strings.btnPhotos, style = MaterialTheme.typography.labelSmall)
                     }
                 }
                 FilledTonalButton(
                     onClick = onPickFolder,
                     shape = RoundedCornerShape(12.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                     modifier = Modifier.weight(1f),
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Rounded.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.height(2.dp))
-                        Text("Папка", style = MaterialTheme.typography.labelSmall)
+                        Text(strings.btnFolder, style = MaterialTheme.typography.labelSmall)
                     }
                 }
                 FilledTonalButton(
                     onClick = onAddText,
                     shape = RoundedCornerShape(12.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 4.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
                     modifier = Modifier.weight(1f),
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.height(2.dp))
-                        Text("Текст", style = MaterialTheme.typography.labelSmall)
+                        Text(strings.btnText, style = MaterialTheme.typography.labelSmall)
                     }
                 }
             }
@@ -383,7 +456,7 @@ private fun QueueCard(
 }
 
 @Composable
-private fun SendingCard(state: SendState) {
+private fun SendingCard(strings: AppStrings, state: SendState) {
     Surface(
         shape = RoundedCornerShape(18.dp),
         color = MaterialTheme.colorScheme.secondaryContainer,
@@ -391,7 +464,7 @@ private fun SendingCard(state: SendState) {
     ) {
         Column(Modifier.padding(16.dp)) {
             Text(
-                "Передача: ${state.peerName}",
+                strings.transferringTo(state.peerName),
                 style = MaterialTheme.typography.titleSmall,
             )
             Spacer(Modifier.height(8.dp))
@@ -411,6 +484,7 @@ private fun SendingCard(state: SendState) {
 
 @Composable
 private fun PeerRow(
+    strings: AppStrings,
     peer: DiscoveredPeer,
     trusted: Boolean,
     enabled: Boolean,
@@ -452,7 +526,7 @@ private fun PeerRow(
                         Spacer(Modifier.width(6.dp))
                         Icon(
                             Icons.Rounded.Shield,
-                            contentDescription = "Доверенное устройство",
+                            contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp),
                         )
@@ -461,8 +535,8 @@ private fun PeerRow(
                 Text(
                     when {
                         peer.ip.isNotBlank() -> "${peer.ip} • ${peer.source.uppercase()}"
-                        peer.source == "nearby" -> "Nearby • без роутера"
-                        else -> "поиск…"
+                        peer.source == "nearby" -> strings.peerNearbyDirect
+                        else -> strings.peerSearching
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -478,18 +552,18 @@ private fun PeerRow(
             ) {
                 Icon(Icons.Rounded.Send, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Отправить")
+                Text(strings.btnSend)
             }
         }
     }
 }
 
 @Composable
-private fun TextDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+private fun TextDialog(strings: AppStrings, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Текст в буфер получателя") },
+        title = { Text(strings.textDialogTitle) },
         text = {
             OutlinedTextField(
                 value = text,
@@ -497,19 +571,16 @@ private fun TextDialog(onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
                 minLines = 4,
                 maxLines = 8,
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Ссылка, пароль, заметка…") },
+                placeholder = { Text(strings.textDialogPlaceholder) },
             )
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(text) }, enabled = text.isNotBlank()) {
-                Text("Добавить")
+                Text(strings.btnAdd)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Отмена") }
+            TextButton(onClick = onDismiss) { Text(strings.btnCancel) }
         },
     )
 }
-
-@Suppress("unused")
-private fun peerBadge(trusted: Boolean) = if (trusted) "доверенное" else "новое"

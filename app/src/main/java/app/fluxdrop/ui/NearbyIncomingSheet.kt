@@ -82,10 +82,11 @@ fun NearbyIncomingSheet(
                 }
             }
 
+            val strings = LocalStrings.current
             Spacer(Modifier.height(16.dp))
 
             Text(
-                "Телефон рядом хочет передать данные напрямую без роутера через Nearby / Wi-Fi Direct.",
+                strings.nearbyIncomingDesc,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -103,17 +104,17 @@ fun NearbyIncomingSheet(
                     modifier = Modifier.size(18.dp),
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Всегда принимать (Доверенное)")
+                Text(strings.btnTrustAlways)
             }
 
             Spacer(Modifier.height(10.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 TextButton(onClick = onDecline, modifier = Modifier.weight(1f)) {
-                    Text("Отклонить")
+                    Text(strings.btnDecline)
                 }
                 Button(onClick = onAccept, modifier = Modifier.weight(1f)) {
-                    Text("Принять")
+                    Text(strings.btnAccept)
                 }
             }
         }

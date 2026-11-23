@@ -37,6 +37,7 @@ import java.util.Locale
 
 @Composable
 fun HistoryScreen(entries: List<HistoryEntry>) {
+    val strings = LocalStrings.current
     if (entries.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -48,12 +49,13 @@ fun HistoryScreen(entries: List<HistoryEntry>) {
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "История пуста",
+                    if (strings is RuStrings) "История пуста" else "History is empty",
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Здесь появятся отправленные и принятые передачи",
+                    if (strings is RuStrings) "Здесь появятся отправленные и принятые передачи"
+                    else "Sent and received transfers will appear here",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -122,11 +124,12 @@ private fun HistoryRow(entry: HistoryEntry) {
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                val strings = LocalStrings.current
                 Text(
                     when {
-                        !ok -> "не удалось"
+                        !ok -> if (strings is RuStrings) "не удалось" else "failed"
                         entry.bytes > 0 -> formatBytes(entry.bytes)
-                        else -> "готово"
+                        else -> if (strings is RuStrings) "готово" else "done"
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = if (ok) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
