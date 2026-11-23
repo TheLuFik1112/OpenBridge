@@ -74,7 +74,11 @@ fun AppRoot(viewModel: AppViewModel) {
 
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { }
+    ) { granted ->
+        if (granted.values.any { it }) {
+            viewModel.restartDiscovery()
+        }
+    }
 
     LaunchedEffect(Unit) {
         val needed = buildList {
@@ -87,10 +91,8 @@ fun AppRoot(viewModel: AppViewModel) {
                 add(Manifest.permission.BLUETOOTH_ADVERTISE)
                 add(Manifest.permission.BLUETOOTH_CONNECT)
             }
-            // До Android 13 поиск по Wi-Fi Direct и BLE требует геолокации.
-            if (Build.VERSION.SDK_INT < 33) {
-                add(Manifest.permission.ACCESS_FINE_LOCATION)
-            }
+            add(Manifest.permission.ACCESS_FINE_LOCATION)
+            add(Manifest.permission.ACCESS_COARSE_LOCATION)
             if (Build.VERSION.SDK_INT < 29) {
                 add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }

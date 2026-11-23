@@ -230,7 +230,7 @@ class TransferServer(private val g: AppGraph) {
                                 if (n <= 0) break
                                 skipped += n
                             }
-                            val buffer = ByteArray(64 * 1024)
+                            val buffer = ByteArray(256 * 1024)
                             var remaining = length
                             while (remaining > 0) {
                                 val read = input.read(buffer, 0, minOf(buffer.size.toLong(), remaining).toInt())
@@ -275,7 +275,7 @@ class TransferServer(private val g: AppGraph) {
 
     private suspend fun copyBody(call: io.ktor.server.application.ApplicationCall, output: java.io.OutputStream) {
         val channel = call.receiveChannel()
-        val buffer = ByteArray(64 * 1024)
+        val buffer = ByteArray(256 * 1024)
         while (true) {
             val read = channel.readAvailable(buffer, 0, buffer.size)
             if (read <= 0) break

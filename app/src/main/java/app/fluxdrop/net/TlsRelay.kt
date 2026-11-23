@@ -102,14 +102,14 @@ class TlsRelay(
     private fun pump(from: Socket, to: Socket) {
         try {
             val input: InputStream = from.getInputStream()
-            val output: OutputStream = to.getOutputStream()
-            val buffer = ByteArray(32 * 1024)
+            val output: OutputStream = to.getOutputStream().buffered(256 * 1024)
+            val buffer = ByteArray(256 * 1024)
             while (true) {
                 val read = input.read(buffer)
                 if (read < 0) break
                 output.write(buffer, 0, read)
-                output.flush()
             }
+            output.flush()
             runCatching { to.shutdownOutput() }
         } catch (_: Exception) {
             // соединение закрылось — обычная ситуация

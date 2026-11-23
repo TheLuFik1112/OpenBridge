@@ -166,11 +166,25 @@ class NearbyP2pManager(
 
         client.startAdvertising(localName(), SERVICE_ID, lifecycleCallback, advertising)
             .addOnSuccessListener { Diag.log("nearby", "startAdvertising ok") }
-            .addOnFailureListener { Diag.log("nearby", "startAdvertising failed: $it") }
+            .addOnFailureListener { error ->
+                Diag.log("nearby", "startAdvertising failed: $error")
+                // Если уже рекламировались — перезапускаем
+                if (error.message?.contains("8001") == true || error.message?.contains("ALREADY") == true) {
+                    client.stopAdvertising()
+                    client.startAdvertising(localName(), SERVICE_ID, lifecycleCallback, advertising)
+                }
+            }
 
         client.startDiscovery(SERVICE_ID, endpointCallback, discovery)
             .addOnSuccessListener { Diag.log("nearby", "startDiscovery ok") }
-            .addOnFailureListener { Diag.log("nearby", "startDiscovery failed: $it") }
+            .addOnFailureListener { error ->
+                Diag.log("nearby", "startDiscovery failed: $error")
+                // Если уже вели поиск — перезапускаем
+                if (error.message?.contains("8002") == true || error.message?.contains("ALREADY") == true) {
+                    client.stopDiscovery()
+                    client.startDiscovery(SERVICE_ID, endpointCallback, discovery)
+                }
+            }
 
         // Nearby сообщает о находке один раз, а список на экране живёт по lastSeen.
         // Освежаем отметку, иначе устройство «исчезнет» через 20 секунд.

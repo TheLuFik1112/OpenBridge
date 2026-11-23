@@ -289,7 +289,7 @@ class TransferClient(private val g: AppGraph) {
             requestMethod = method
             connectTimeout = 15_000
             readTimeout = 180_000
-            setRequestProperty("Connection", "close")
+            setRequestProperty("Connection", "keep-alive")
             if (token != null) setRequestProperty("X-Transfer-Token", token)
         }
 
@@ -300,7 +300,7 @@ class TransferClient(private val g: AppGraph) {
                 if (method == "PUT") "application/octet-stream" else "application/json",
             )
             connection.setFixedLengthStreamingMode(body.size)
-            connection.outputStream.use { it.write(body) }
+            connection.outputStream.buffered(256 * 1024).use { it.write(body); it.flush() }
         }
 
         val code = connection.responseCode

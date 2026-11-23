@@ -116,19 +116,31 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val startedAt = SystemClock.elapsedRealtime()
             Diag.log("engine", "start")
 
-            runCatching { g.warmUp() }
-                .onFailure { fail("Ключи и данные", it) }
-
-            runCatching { g.startRuntime() }
-                .onFailure { fail("Сервер", it) }
-
-            runCatching { fluxApp.startRadarServiceIfEnabled() }
-                .onFailure { fail("Служба", it) }
-
+            // Настройки и репозитории привязываем в первую очередь: UI сразу заполняется данными
             bindSettings()
             bindRepositories()
-            loadPendingCrash()
-            nearbyEnabled.value = runCatching { g.nearby.isAvailable() }.getOrDefault(false)
+
+            // Параллельно запускаем тяжелые операции
+            val warmUpJob = launch {
+                runCatching { g.warmUp() }
+                    .onFailure { fail("Ключи и данные", it) }
+            }
+            warmUpJob.join()
+
+            launch {
+                runCatching { g.startRuntime() }
+                    .onFailure { fail("Сервер", it) }
+            }
+
+            launch {
+                runCatching { fluxApp.startRadarServiceIfEnabled() }
+                    .onFailure { fail("Служба", it) }
+            }
+
+            launch {
+                loadPendingCrash()
+                nearbyEnabled.value = runCatching { g.nearby.isAvailable() }.getOrDefault(false)
+            }
 
             _isEngineReady.value = true
             Diag.log(
@@ -624,6 +636,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         appendLine("Передач в истории: ${history.value.size}")
         appendLine("LAN: UDP 53531")
         append("Nearby: ${if (nearbyEnabled.value) "доступен" else "нет (нет Play Services)"}")
+    }
+
+    fun restartDiscovery() {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { g.nearby.stop() }
+            runCatching { g.nearby.start() }
+            runCatching { g.discovery.start() }
+            nearbyEnabled.value = runCatching { g.nearby.isAvailable() }.getOrDefault(false)
+        }
     }
 
     private fun publishPortal() {

@@ -118,7 +118,11 @@ class ReceiveStore(
             file.handle.seek(chunkIndex.toLong() * file.meta.chunkSize)
             file.handle.write(data)
             file.received.add(chunkIndex)
-            file.persistProgress()
+            // Пишем прогресс на диск каждые 8 чанков — достаточно для resume,
+            // но не убивает скорость дисковыми операциями на каждый чанк.
+            if (file.received.size % 8 == 0 || file.received.size == file.meta.chunkCount) {
+                file.persistProgress()
+            }
         }
 
         session.onProgress?.invoke(progressBytes(transferId))
