@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.launch
 
 private data class Tab(
     val title: String,
@@ -52,7 +53,6 @@ private val tabs = listOf(
 fun AppRoot(viewModel: AppViewModel) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
-    var selectedTab by rememberSaveable { mutableStateOf(0) }
     var qrPayload by remember { mutableStateOf<String?>(null) }
 
     val peers by viewModel.peers.collectAsState()
@@ -116,16 +116,9 @@ fun AppRoot(viewModel: AppViewModel) {
         ActivityResultContracts.OpenDocumentTree()
     ) { uri -> uri?.let { viewModel.addFolder(it) } }
 
-    // Вкладки живут в HorizontalPager: все три страницы остаются в композиции,
-    // переключение — мгновенный scrollToPage, без пересоздания экранов.
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     val pagerState = rememberPagerState { tabs.size }
-
-    LaunchedEffect(selectedTab) {
-        if (pagerState.currentPage != selectedTab) pagerState.scrollToPage(selectedTab)
-    }
-    LaunchedEffect(pagerState.currentPage) {
-        if (selectedTab != pagerState.currentPage) selectedTab = pagerState.currentPage
-    }
+    val selectedTab = pagerState.currentPage
 
     Scaffold(
         topBar = {
@@ -136,7 +129,11 @@ fun AppRoot(viewModel: AppViewModel) {
                 tabs.forEachIndexed { index, tab ->
                     NavigationBarItem(
                         selected = selectedTab == index,
-                        onClick = { selectedTab = index },
+                        onClick = {
+                            coroutineScope.launch {
+                                pagerState.animateScrollToPage(index)
+                            }
+                        },
                         icon = { Icon(tab.icon, contentDescription = tab.label) },
                         label = { Text(tab.label) },
                     )
@@ -148,7 +145,7 @@ fun AppRoot(viewModel: AppViewModel) {
         Box(Modifier.fillMaxSize().padding(padding)) {
             HorizontalPager(
                 state = pagerState,
-                beyondViewportPageCount = tabs.lastIndex,
+                beyondViewportPageCount = 0,
                 modifier = Modifier.fillMaxSize(),
             ) { page ->
                 when (page) {
