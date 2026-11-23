@@ -12,7 +12,7 @@ Fast peer-to-peer file, photo, folder, and text transfer between devices: no int
 
 - **Send Package:** Queue files, photos, folders, or clipboard text before selecting the recipient.
 - **Dedicated Photo Picker:** Fast selection of pictures with the dedicated "Photos" button.
-- **NFC Tap & Share with Swipe-up:** Swipe up on the home screen to bring up the animated NFC screen. Tap phones together to share data. If the receiver has FluxDrop installed, it automatically launches via Android Application Record (`app.fluxdrop.p2p`). If not, it opens the download page.
+- **NFC Tap & Share with Swipe-Down:** Swipe down on the home screen to open the animated 'Hold devices together' NFC panel. Tap phones back-to-back to share data: if the receiving phone has FluxDrop installed, an incoming prompt appears; if not, it opens the browser download page.
 - **One-Tap QR Code on Home Screen:** Instant QR code generation on the main screen to open the Web Portal in any browser (PC, iPhone, Android) without installing an app.
 - **Dual Discovery Channels:**
   - **LAN:** UDP broadcast every 2 seconds with `MulticastLock`; works on any shared network or mobile hotspot.

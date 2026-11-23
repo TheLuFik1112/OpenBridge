@@ -118,7 +118,7 @@ object RuStrings : AppStrings {
     override val btnAdd = "Добавить"
     override val btnCancel = "Отмена"
 
-    override val nfcSwipeHint = "Свайп вверх для NFC передачи"
+    override val nfcSwipeHint = "Свайп вниз для NFC передачи"
     override val nfcTitle = "Приложите телефон"
     override val nfcSubtitle = "Держите телефоны задними панелями друг к другу для быстрой передачи"
     override val nfcReady = "Поиск устройства NFC…"
@@ -201,7 +201,7 @@ object EnStrings : AppStrings {
     override val btnAdd = "Add"
     override val btnCancel = "Cancel"
 
-    override val nfcSwipeHint = "Swipe up for NFC transfer"
+    override val nfcSwipeHint = "Swipe down for NFC transfer"
     override val nfcTitle = "Hold devices together"
     override val nfcSubtitle = "Hold phones back-to-back for instant NFC transfer"
     override val nfcReady = "Waiting for NFC device…"

@@ -14,6 +14,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -22,6 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,6 +71,7 @@ fun AppRoot(viewModel: AppViewModel) {
     val nearbyIncoming by viewModel.nearbyIncoming.collectAsState()
     val nearbyProgress by viewModel.nearbyProgress.collectAsState()
     val strings by viewModel.strings.collectAsState()
+    val nfcIncoming by viewModel.nfcIncoming.collectAsState()
 
     // Движок стартует только после того, как кадр уже нарисован.
     LaunchedEffect(Unit) {
@@ -199,9 +203,7 @@ fun AppRoot(viewModel: AppViewModel) {
             QrDialog(payload = payload, onDismiss = { qrPayload = null })
         }
 
-        val nfcIncoming by viewModel.nfcIncoming.collectAsState()
-
-        nfcIncoming?.let {
+        if (nfcIncoming != null) {
             AlertDialog(
                 onDismissRequest = viewModel::declineNfc,
                 title = { Text(if (strings is RuStrings) "Входящая передача по NFC" else "Incoming NFC Transfer") },

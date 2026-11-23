@@ -42,6 +42,18 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        app.fluxdrop.util.NfcHelper.startReaderMode(this) { payload ->
+            viewModel.handleNfcReceived(payload)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        app.fluxdrop.util.NfcHelper.stopReaderMode(this)
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)

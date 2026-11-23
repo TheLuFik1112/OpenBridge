@@ -281,16 +281,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         message.value = "Запрос отклонён"
     }
 
-    val nfcIncoming = MutableStateFlow<String?>(null)
+    private val _nfcIncoming = MutableStateFlow<String?>(null)
+    val nfcIncoming: StateFlow<String?> = _nfcIncoming.asStateFlow()
 
     fun handleNfcReceived(data: String) {
         Diag.log("nfc", "Incoming NFC transfer: $data")
-        nfcIncoming.value = data
+        _nfcIncoming.value = data
     }
 
     fun acceptNfc() {
-        val data = nfcIncoming.value ?: return
-        nfcIncoming.value = null
+        val data = _nfcIncoming.value ?: return
+        _nfcIncoming.value = null
         runCatching {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(data)).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -300,7 +301,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun declineNfc() {
-        nfcIncoming.value = null
+        _nfcIncoming.value = null
     }
 
     /** Включает веб-портал (если выключен) и возвращает URL для показа QR-кода. */

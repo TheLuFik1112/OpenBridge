@@ -65,8 +65,9 @@ class FluxApduService : HostApduService() {
                 return STATUS_SUCCESS
             }
 
-            val le = if (commandApdu.size >= 5) commandApdu[4].toInt() and 0xFF else 0
-            val readLen = if (le == 0) fileData.size - offset else minOf(le, fileData.size - offset)
+            val rawLe = if (commandApdu.size >= 5) commandApdu[4].toInt() and 0xFF else 0
+            val le = if (rawLe == 0) 256 else rawLe
+            val readLen = minOf(le, fileData.size - offset)
             val result = ByteArray(readLen + 2)
             System.arraycopy(fileData, offset, result, 0, readLen)
             result[result.size - 2] = 0x90.toByte()
@@ -83,12 +84,20 @@ class FluxApduService : HostApduService() {
     }
 
     companion object {
-        private val STATUS_SUCCESS = byteArrayOf(0x90.toByte(), 0x00.toByte())
-        private val STATUS_FAILED = byteArrayOf(0x6F.toByte(), 0x00.toByte())
-        private val STATUS_FILE_NOT_FOUND = byteArrayOf(0x6A.toByte(), 0x82.toByte())
+        val STATUS_SUCCESS = byteArrayOf(0x90.toByte(), 0x00.toByte())
+        val STATUS_FAILED = byteArrayOf(0x6F.toByte(), 0x00.toByte())
+        val STATUS_FILE_NOT_FOUND = byteArrayOf(0x6A.toByte(), 0x82.toByte())
+
+        // SELECT Type 4 Tag AID (D2760000850101)
+        val SELECT_AID_APDU = byteArrayOf(
+            0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(),
+            0x07.toByte(),
+            0xD2.toByte(), 0x76.toByte(), 0x00.toByte(), 0x00.toByte(), 0x85.toByte(), 0x01.toByte(), 0x01.toByte(),
+            0x00.toByte(),
+        )
 
         // Standard Capability Container (CC) file for Type 4 Tag v2.0
-        private val CC_FILE = byteArrayOf(
+        val CC_FILE = byteArrayOf(
             0x00, 0x0F,             // CCLEN: 15 bytes
             0x20,                   // Mapping Version 2.0
             0x00, 0x7F.toByte(),    // MLe (Max R-APDU size)
