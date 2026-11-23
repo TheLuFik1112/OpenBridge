@@ -1,5 +1,11 @@
 package app.fluxdrop.ui
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -26,7 +32,6 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Image
-import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Nfc
 import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.Send
@@ -54,8 +59,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.fluxdrop.core.QueueItem
@@ -78,10 +85,14 @@ fun HomeScreen(
 ) {
     val strings = LocalStrings.current
     var showTextDialog by remember { mutableStateOf(false) }
-    var showNfcSheet by remember { mutableStateOf(false) }
+    var showNfcTopPanel by remember { mutableStateOf(false) }
     val portalUrl by viewModel.portalUrl.collectAsState()
     val trustedIds by viewModel.trustedIds.collectAsState()
     val deviceName by viewModel.deviceName.collectAsState()
+
+    val sortedPeers = remember(peers) {
+        peers.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.info.name })
+    }
 
     LaunchedEffect(portalUrl) {
         NfcHelper.updatePayload(portalUrl)
@@ -92,8 +103,8 @@ fun HomeScreen(
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectVerticalDragGestures { _, dragAmount ->
-                    if (dragAmount < -20f) {
-                        showNfcSheet = true
+                    if (dragAmount > 25f) {
+                        showNfcTopPanel = true
                     }
                 }
             }
@@ -103,6 +114,15 @@ fun HomeScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (showNfcTopPanel) {
+                item {
+                    NfcTopCard(
+                        strings = strings,
+                        onDismiss = { showNfcTopPanel = false },
+                    )
+                }
+            }
+
             item {
                 StatusCard(
                     strings = strings,
@@ -159,7 +179,7 @@ fun HomeScreen(
                 }
             }
 
-            items(peers, key = { it.info.id }) { peer ->
+            items(sortedPeers, key = { it.info.id }) { peer ->
                 PeerRow(
                     strings = strings,
                     peer = peer,
@@ -167,41 +187,6 @@ fun HomeScreen(
                     enabled = queue.isNotEmpty() && sending == null,
                     onSend = { viewModel.sendTo(peer) },
                 )
-            }
-
-            item {
-                Surface(
-                    onClick = { showNfcSheet = true },
-                    shape = RoundedCornerShape(16.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                    ) {
-                        Icon(
-                            Icons.Rounded.Nfc,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            strings.nfcSwipeHint,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Icon(
-                            Icons.Rounded.KeyboardArrowUp,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp),
-                        )
-                    }
-                }
             }
 
             item { Spacer(Modifier.height(16.dp)) }
@@ -218,15 +203,100 @@ fun HomeScreen(
             },
         )
     }
+}
 
-    if (showNfcSheet) {
-        NfcSheet(
-            strings = strings,
-            onDismiss = { showNfcSheet = false },
-            onPayloadReceived = { payload ->
-                viewModel.handleNfcReceived(payload)
-            },
-        )
+@Composable
+private fun NfcTopCard(
+    strings: AppStrings,
+    onDismiss: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Rounded.Nfc,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(24.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        strings.nfcTitle,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+                IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                    Icon(
+                        Icons.Rounded.Close,
+                        contentDescription = strings.btnCancel,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+
+            val transition = rememberInfiniteTransition(label = "nfc_top_waves")
+            val wave by transition.animateFloat(
+                initialValue = 0.82f,
+                targetValue = 1.25f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1200, easing = LinearEasing),
+                    repeatMode = RepeatMode.Reverse,
+                ),
+                label = "top_wave",
+            )
+
+            Box(
+                modifier = Modifier.size(90.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(72.dp)
+                        .scale(wave)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                )
+                Box(
+                    modifier = Modifier
+                        .size(54.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Rounded.Nfc,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier.size(32.dp),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(10.dp))
+
+            Text(
+                strings.nfcSubtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 

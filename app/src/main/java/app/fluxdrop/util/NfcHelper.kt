@@ -186,6 +186,17 @@ object NfcHelper {
         }
     }
 
+    fun buildNdefFile(): ByteArray {
+        val url = currentPayload ?: GITHUB_DOWNLOAD_URL
+        val ndefMessage = createNdefMessage(url)
+        val ndefBytes = ndefMessage.toByteArray()
+        val ndefFile = ByteArray(2 + ndefBytes.size)
+        ndefFile[0] = ((ndefBytes.size ushr 8) and 0xFF).toByte()
+        ndefFile[1] = (ndefBytes.size and 0xFF).toByte()
+        System.arraycopy(ndefBytes, 0, ndefFile, 2, ndefBytes.size)
+        return ndefFile
+    }
+
     private fun createNdefMessage(url: String): NdefMessage {
         val uriRecord = NdefRecord.createUri(Uri.parse(url))
         val aarRecord = NdefRecord.createApplicationRecord(APP_PACKAGE)
@@ -193,7 +204,23 @@ object NfcHelper {
     }
 
     fun extractNfcUri(intent: Intent?): String? {
-        if (intent == null || NfcAdapter.ACTION_NDEF_DISCOVERED != intent.action) return null
-        return intent.dataString
+        if (intent == null) return null
+        if (intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED || intent.action == Intent.ACTION_VIEW) {
+            val dataStr = intent.dataString
+            if (!dataStr.isNullOrBlank()) return dataStr
+
+            val rawMsgs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES, NdefMessage::class.java)
+            } else {
+                @Suppress("DEPRECATION")
+                intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
+            }
+            if (rawMsgs != null && rawMsgs.isNotEmpty()) {
+                val msg = rawMsgs[0] as? NdefMessage
+                val uri = msg?.records?.firstOrNull { it.toUri() != null }?.toUri()?.toString()
+                if (!uri.isNullOrBlank()) return uri
+            }
+        }
+        return null
     }
 }

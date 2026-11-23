@@ -199,6 +199,31 @@ fun AppRoot(viewModel: AppViewModel) {
             QrDialog(payload = payload, onDismiss = { qrPayload = null })
         }
 
+        val nfcIncoming by viewModel.nfcIncoming.collectAsState()
+
+        nfcIncoming?.let {
+            AlertDialog(
+                onDismissRequest = viewModel::declineNfc,
+                title = { Text(if (strings is RuStrings) "Входящая передача по NFC" else "Incoming NFC Transfer") },
+                text = {
+                    Text(
+                        if (strings is RuStrings) "Телефон рядом передал файлы через NFC. Принять передачу?"
+                        else "Nearby phone shared files via NFC. Accept transfer?"
+                    )
+                },
+                confirmButton = {
+                    Button(onClick = viewModel::acceptNfc) {
+                        Text(strings.btnAccept)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = viewModel::declineNfc) {
+                        Text(strings.btnDecline)
+                    }
+                },
+            )
+        }
+
         crash?.let { pending ->
             CrashDialog(
                 crash = pending,
