@@ -7,7 +7,6 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -60,7 +59,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -85,7 +87,10 @@ fun HomeScreen(
 ) {
     val strings = LocalStrings.current
     var showTextDialog by remember { mutableStateOf(false) }
-    var showNfcTopPanel by remember { mutableStateOf(false) }
+    // Используем remember с MutableState явно — чтобы объект NestedScrollConnection
+    // мог читать и писать значение напрямую через .value без захвата by-делегата.
+    val showNfcTopPanelState = remember { mutableStateOf(false) }
+    var showNfcTopPanel by showNfcTopPanelState
     val portalUrl by viewModel.portalUrl.collectAsState()
     val trustedIds by viewModel.trustedIds.collectAsState()
     val deviceName by viewModel.deviceName.collectAsState()
@@ -98,16 +103,36 @@ fun HomeScreen(
         NfcHelper.updatePayload(portalUrl)
     }
 
+    // NestedScrollConnection перехватывает момент, когда список прокручен
+    // в самый верх и пользователь тянет ВНИЗ (pull-down). Это единственный
+    // надёжный способ обнаружить pull-down в LazyColumn без конфликтов со скроллом.
+    val accumulatedDragPx = remember { mutableStateOf(0f) }
+    val nestedScrollConnection = remember(showNfcTopPanelState) {
+        object : NestedScrollConnection {
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                // available.y > 0: список достиг верха, пользователь тянет вниз (overscroll)
+                if (available.y > 0 && !showNfcTopPanelState.value) {
+                    accumulatedDragPx.value += available.y
+                    if (accumulatedDragPx.value >= 80f) {
+                        accumulatedDragPx.value = 0f
+                        showNfcTopPanelState.value = true
+                    }
+                } else if (available.y <= 0) {
+                    accumulatedDragPx.value = 0f
+                }
+                return Offset.Zero
+            }
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .pointerInput(Unit) {
-                detectVerticalDragGestures { _, dragAmount ->
-                    if (dragAmount > 25f) {
-                        showNfcTopPanel = true
-                    }
-                }
-            }
+            .nestedScroll(nestedScrollConnection)
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
