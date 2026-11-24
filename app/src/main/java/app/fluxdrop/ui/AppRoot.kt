@@ -59,19 +59,17 @@ fun AppRoot(viewModel: AppViewModel) {
     val snackbarHostState = remember { SnackbarHostState() }
     var qrPayload by remember { mutableStateOf<String?>(null) }
 
-    val peers by viewModel.peers.collectAsState()
-    val queue by viewModel.queue.collectAsState()
-    val sending by viewModel.sending.collectAsState()
+    // На корне держим только то, что действительно нужно всему экрану:
+    // строки, снекбар, диалоги поверх и оверлей. Всё остальное (очередь,
+    // пиры, отправка, история, доверенные) собирают сами экраны — иначе
+    // любой маяк из сети перерисовывал весь pager целиком.
     val message by viewModel.message.collectAsState()
-    val trusted by viewModel.trusted.collectAsState()
-    val history by viewModel.history.collectAsState()
-    val portalUrl by viewModel.portalUrl.collectAsState()
     val crash by viewModel.crash.collectAsState()
-    val engineReady by viewModel.isEngineReady.collectAsState()
     val nearbyIncoming by viewModel.nearbyIncoming.collectAsState()
     val nearbyProgress by viewModel.nearbyProgress.collectAsState()
     val strings by viewModel.strings.collectAsState()
     val nfcIncoming by viewModel.nfcIncoming.collectAsState()
+    val fpsOverlay by viewModel.fpsOverlay.collectAsState()
 
     // Движок стартует только после того, как кадр уже нарисован.
     LaunchedEffect(Unit) {
@@ -162,22 +160,15 @@ fun AppRoot(viewModel: AppViewModel) {
                     when (page) {
                         0 -> HomeScreen(
                             viewModel = viewModel,
-                            queue = queue,
-                            peers = peers,
-                            sending = sending,
-                            isEngineReady = engineReady,
                             onPickFiles = { filePicker.launch(arrayOf("*/*")) },
                             onPickPhotos = { photoPicker.launch("image/*") },
                             onPickFolder = { folderPicker.launch(null) },
                             onShowQr = { url -> qrPayload = url },
                         )
 
-                        1 -> HistoryScreen(history)
+                        1 -> HistoryScreen(viewModel)
 
-                        else -> SettingsScreen(
-                            viewModel = viewModel,
-                            trusted = trusted,
-                        )
+                        else -> SettingsScreen(viewModel = viewModel)
                     }
                 }
             }
@@ -233,5 +224,8 @@ fun AppRoot(viewModel: AppViewModel) {
                 onDismiss = viewModel::dismissCrash,
             )
         }
+
+        // Диагностический счётчик кадров: пока он выключен, ничего не считается и не рисуется.
+        FpsOverlay(enabled = fpsOverlay)
     }
 }

@@ -39,6 +39,13 @@ interface AppStrings {
     val nfcReady: String
     val nfcSuccess: String
     val nfcNotAvailable: String
+    val nfcShareMode: String
+    val nfcReceiveMode: String
+    val nfcPickMode: String
+    val nfcShareReady: String
+    val nfcReceiveReady: String
+    val nfcNeedItems: String
+    val nfcFallbackLink: String
 
     // Settings
     val settingsTitle: String
@@ -124,6 +131,13 @@ object RuStrings : AppStrings {
     override val nfcReady = "Поиск устройства NFC…"
     override val nfcSuccess = "Успешно передано!"
     override val nfcNotAvailable = "NFC недоступен или выключен на этом телефоне"
+    override val nfcShareMode = "Поделиться"
+    override val nfcReceiveMode = "Принять"
+    override val nfcPickMode = "Выберите режим: «Поделиться» на своём телефоне, «Принять» — на втором."
+    override val nfcShareReady = "Готово. Приложите телефон получателя — он получит ссылку на файлы из пакета."
+    override val nfcReceiveReady = "Сканирую. Приложите телефон, который делится файлами."
+    override val nfcNeedItems = "Сначала добавьте файлы или папку в пакет отправки"
+    override val nfcFallbackLink = "Нет Wi-Fi: по NFC уйдёт ссылка на скачивание FluxDrop"
 
     override val settingsTitle = "Настройки"
     override val deviceCard = "Устройство"
@@ -207,6 +221,13 @@ object EnStrings : AppStrings {
     override val nfcReady = "Waiting for NFC device…"
     override val nfcSuccess = "Successfully transferred!"
     override val nfcNotAvailable = "NFC is not supported or disabled on this device"
+    override val nfcShareMode = "Share"
+    override val nfcReceiveMode = "Receive"
+    override val nfcPickMode = "Pick a mode: Share on this phone, Receive on the other one."
+    override val nfcShareReady = "Ready. Hold the other phone here — it will get a link to the queued files."
+    override val nfcReceiveReady = "Scanning. Hold the phone that is sharing files."
+    override val nfcNeedItems = "Add files or a folder to the send package first"
+    override val nfcFallbackLink = "No Wi-Fi: NFC will share the FluxDrop download link"
 
     override val settingsTitle = "Settings"
     override val deviceCard = "Device"

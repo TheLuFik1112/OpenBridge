@@ -27,6 +27,8 @@ import app.fluxdrop.discovery.NearbyProgress
 import app.fluxdrop.discovery.NearbyRequest
 import app.fluxdrop.net.PortalFile
 import app.fluxdrop.service.RadarService
+import app.fluxdrop.util.NfcHelper
+import app.fluxdrop.util.NfcMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -283,6 +285,73 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _nfcIncoming = MutableStateFlow<String?>(null)
     val nfcIncoming: StateFlow<String?> = _nfcIncoming.asStateFlow()
+
+    /** Текущая роль NFC: выключено / делимся / принимаем. */
+    private val _nfcMode = MutableStateFlow(NfcMode.OFF)
+    val nfcMode: StateFlow<NfcMode> = _nfcMode.asStateFlow()
+
+    /** Диагностический оверлей с FPS (включается в «Для разработчиков»). */
+    val fpsOverlay = MutableStateFlow(false)
+
+    fun setFpsOverlay(enabled: Boolean) {
+        fpsOverlay.value = enabled
+    }
+
+    /**
+     * «Поделиться»: включаем веб-портал и публикуем очередь, чтобы NDEF-метка
+     * вела на живую страницу со скачиванием. Reader mode при этом выключен —
+     * иначе телефон не сможет отвечать как NFC-карта.
+     */
+    fun startNfcShare() {
+        if (_nfcMode.value == NfcMode.SHARE) {
+            stopNfc()
+            return
+        }
+        if (!NfcHelper.isNfcEnabled(context)) {
+            message.value = strings.value.nfcNotAvailable
+            return
+        }
+        if (!_isEngineReady.value) {
+            message.value = strings.value.statusPreparing
+            return
+        }
+        if (queue.value.none { it.kind != QueueKind.TEXT && it.uri != null }) {
+            message.value = strings.value.nfcNeedItems
+            return
+        }
+
+        _nfcMode.value = NfcMode.SHARE
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                if (!portalEnabled.value) {
+                    portalEnabled.value = true
+                    g.settings.setPortalEnabled(true)
+                    g.portal.rotateToken()
+                }
+                publishPortal()
+                if (g.portal.url().contains("127.0.0.1")) {
+                    message.value = strings.value.nfcFallbackLink
+                }
+            }.onFailure { Diag.log("nfc", "share setup failed: $it") }
+        }
+    }
+
+    /** «Принять»: включаем reader mode на время, пока экран активен. */
+    fun startNfcReceive() {
+        if (_nfcMode.value == NfcMode.RECEIVE) {
+            stopNfc()
+            return
+        }
+        if (!NfcHelper.isNfcEnabled(context)) {
+            message.value = strings.value.nfcNotAvailable
+            return
+        }
+        _nfcMode.value = NfcMode.RECEIVE
+    }
+
+    fun stopNfc() {
+        _nfcMode.value = NfcMode.OFF
+    }
 
     fun handleNfcReceived(data: String) {
         Diag.log("nfc", "Incoming NFC transfer: $data")
@@ -717,6 +786,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 .filter { it.kind != QueueKind.TEXT && it.uri != null }
                 .map { PortalFile(id = it.id, name = it.name, size = it.size, uri = it.uri.toString()) }
             g.portal.publish(files)
+
+            // Держим NDEF-ссылку актуальной: касание должно вести на живую страницу,
+            // а не на страницу релизов. Без Wi-Fi (127.0.0.1) отдаём страницу релизов.
+            val url = g.portal.url()
+            portalUrl.value = url
+            NfcHelper.updatePayload(url.takeIf { !it.contains("127.0.0.1") })
         }.onFailure { Diag.log("portal", "publish failed: $it") }
     }
 }

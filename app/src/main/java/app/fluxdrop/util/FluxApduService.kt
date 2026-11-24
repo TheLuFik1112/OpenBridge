@@ -3,7 +3,6 @@ package app.fluxdrop.util
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
 import app.fluxdrop.core.Diag
-import java.util.Arrays
 
 /**
  * Эмуляция стандартного NFC Forum Type 4 Tag (AID D2760000850101).
@@ -12,48 +11,47 @@ import java.util.Arrays
  *
  * Если на втором телефоне есть FluxDrop — откроется приложение благодаря AAR (app.fluxdrop.p2p).
  * Если приложения нет — откроется браузер со ссылкой на скачивание.
+ *
+ * Важно: работает только пока на этом телефоне НЕ включён reader mode
+ * (см. [NfcMode] и комментарий в [NfcHelper]).
  */
 class FluxApduService : HostApduService() {
 
     private var selectedFile: SelectedFile = SelectedFile.NONE
 
-    private enum class SelectedFile {
-        NONE, CC, NDEF
-    }
+    private enum class SelectedFile { NONE, CC, NDEF }
 
     override fun processCommandApdu(commandApdu: ByteArray?, extras: Bundle?): ByteArray {
         if (commandApdu == null || commandApdu.size < 4) return STATUS_FAILED
 
-        val cla = commandApdu[0]
         val ins = commandApdu[1]
         val p1 = commandApdu[2]
         val p2 = commandApdu[3]
 
-        // 1. SELECT Application (AID D2760000850101)
-        if (ins == 0xA4.toByte() && p1 == 0x04.toByte()) {
+        // 1. SELECT по AID (00 A4 04 00 07 D2760000850101)
+        if (ins == INS_SELECT && p1 == 0x04.toByte()) {
             selectedFile = SelectedFile.NONE
             Diag.log("nfc_hce", "SELECT Type 4 Tag AID")
             return STATUS_SUCCESS
         }
 
-        // 2. SELECT File by ID (00 A4 00 0C 02 <FileID>)
-        if (ins == 0xA4.toByte()) {
+        // 2. SELECT файла по ID (00 A4 00 0C 02 <FID>)
+        if (ins == INS_SELECT) {
             if (commandApdu.size >= 7) {
-                val fileId0 = commandApdu[5]
-                val fileId1 = commandApdu[6]
-                if (fileId0 == 0xE1.toByte() && fileId1 == 0x03.toByte()) {
-                    selectedFile = SelectedFile.CC
-                    return STATUS_SUCCESS
-                } else if (fileId0 == 0xE1.toByte() && fileId1 == 0x04.toByte()) {
-                    selectedFile = SelectedFile.NDEF
-                    return STATUS_SUCCESS
+                val fid = ((commandApdu[5].toInt() and 0xFF) shl 8) or
+                    (commandApdu[6].toInt() and 0xFF)
+                selectedFile = when (fid) {
+                    0xE103 -> SelectedFile.CC
+                    0xE104 -> SelectedFile.NDEF
+                    else -> return STATUS_FILE_NOT_FOUND
                 }
+                return STATUS_SUCCESS
             }
             return STATUS_FILE_NOT_FOUND
         }
 
-        // 3. READ BINARY (00 B0 <offset_high> <offset_low> <length>)
-        if (ins == 0xB0.toByte()) {
+        // 3. READ BINARY (00 B0 <offset_hi> <offset_lo> <Le>)
+        if (ins == INS_READ_BINARY) {
             val offset = ((p1.toInt() and 0xFF) shl 8) or (p2.toInt() and 0xFF)
             val fileData = when (selectedFile) {
                 SelectedFile.CC -> CC_FILE
@@ -61,21 +59,23 @@ class FluxApduService : HostApduService() {
                 SelectedFile.NONE -> return STATUS_FAILED
             }
 
-            if (offset >= fileData.size) {
-                return STATUS_SUCCESS
+            if (offset > fileData.size) return STATUS_WRONG_OFFSET
+            if (offset == fileData.size) {
+                return byteArrayOf(0x90.toByte(), 0x00)
             }
 
             val rawLe = if (commandApdu.size >= 5) commandApdu[4].toInt() and 0xFF else 0
             val le = if (rawLe == 0) 256 else rawLe
             val readLen = minOf(le, fileData.size - offset)
+
             val result = ByteArray(readLen + 2)
             System.arraycopy(fileData, offset, result, 0, readLen)
             result[result.size - 2] = 0x90.toByte()
-            result[result.size - 1] = 0x00.toByte()
+            result[result.size - 1] = 0x00
             return result
         }
 
-        return STATUS_FAILED
+        return STATUS_INS_NOT_SUPPORTED
     }
 
     override fun onDeactivated(reason: Int) {
@@ -84,29 +84,26 @@ class FluxApduService : HostApduService() {
     }
 
     companion object {
-        val STATUS_SUCCESS = byteArrayOf(0x90.toByte(), 0x00.toByte())
-        val STATUS_FAILED = byteArrayOf(0x6F.toByte(), 0x00.toByte())
+        private val INS_SELECT = 0xA4.toByte()
+        private val INS_READ_BINARY = 0xB0.toByte()
+
+        val STATUS_SUCCESS = byteArrayOf(0x90.toByte(), 0x00)
+        val STATUS_FAILED = byteArrayOf(0x6F.toByte(), 0x00)
         val STATUS_FILE_NOT_FOUND = byteArrayOf(0x6A.toByte(), 0x82.toByte())
+        val STATUS_WRONG_OFFSET = byteArrayOf(0x6B.toByte(), 0x00)
+        val STATUS_INS_NOT_SUPPORTED = byteArrayOf(0x6D.toByte(), 0x00)
 
-        // SELECT Type 4 Tag AID (D2760000850101)
-        val SELECT_AID_APDU = byteArrayOf(
-            0x00.toByte(), 0xA4.toByte(), 0x04.toByte(), 0x00.toByte(),
-            0x07.toByte(),
-            0xD2.toByte(), 0x76.toByte(), 0x00.toByte(), 0x00.toByte(), 0x85.toByte(), 0x01.toByte(), 0x01.toByte(),
-            0x00.toByte(),
-        )
-
-        // Standard Capability Container (CC) file for Type 4 Tag v2.0
+        // Стандартный Capability Container (CC) для Type 4 Tag v2.0
         val CC_FILE = byteArrayOf(
-            0x00, 0x0F,             // CCLEN: 15 bytes
+            0x00, 0x0F,             // CCLEN: 15 байт
             0x20,                   // Mapping Version 2.0
-            0x00, 0x7F.toByte(),    // MLe (Max R-APDU size)
-            0x00, 0x7F.toByte(),    // MLc (Max C-APDU size)
+            0x00, 0xFF.toByte(),    // MLe (максимальный размер R-APDU)
+            0x00, 0xFF.toByte(),    // MLc (максимальный размер C-APDU)
             0x04, 0x06,             // NDEF File Control TLV (T=04, L=06)
             0xE1.toByte(), 0x04,    // File ID: E104
-            0x0F, 0xFE.toByte(),    // Max NDEF size: 4094 bytes
-            0x00,                   // Read access: Free read (00)
-            0x00,                   // Write access: Free write (00)
+            0x0F, 0xFE.toByte(),    // Максимальный размер NDEF: 4094 байта
+            0x00,                   // Доступ на чтение: свободный
+            0x00,                   // Доступ на запись: свободный
         )
     }
 }

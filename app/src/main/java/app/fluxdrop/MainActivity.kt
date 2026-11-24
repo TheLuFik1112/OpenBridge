@@ -7,10 +7,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import app.fluxdrop.core.Diag
 import app.fluxdrop.ui.AppRoot
 import app.fluxdrop.ui.AppViewModel
 import app.fluxdrop.ui.FluxTheme
+import app.fluxdrop.util.NfcHelper
+import app.fluxdrop.util.NfcMode
+import kotlinx.coroutines.launch
 
 /**
  * Единственная задача Activity — показать первый кадр.
@@ -32,26 +38,32 @@ class MainActivity : ComponentActivity() {
                 AppRoot(viewModel)
             }
         }
-        setupNfc()
+
+        // Reader mode живёт ровно столько, сколько экран активен, и только
+        // в режиме «Принять». В режиме «Поделиться» он выключен — иначе
+        // контроллер занят чтением и телефон не может эмулировать карту.
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                try {
+                    viewModel.nfcMode.collect { mode -> applyNfcMode(mode) }
+                } finally {
+                    NfcHelper.stopReaderMode(this@MainActivity)
+                }
+            }
+        }
+
         handleIntent(intent)
     }
 
-    private fun setupNfc() {
-        app.fluxdrop.util.NfcHelper.setupNfcPush(this) {
-            viewModel.portalUrl.value ?: "https://github.com/TheLuFik1112/FluxDrop/releases/latest"
-        }
-    }
+    private fun applyNfcMode(mode: NfcMode) {
+        when (mode) {
+            NfcMode.RECEIVE -> NfcHelper.startReaderMode(this) { payload ->
+                viewModel.handleNfcReceived(payload)
+            }
 
-    override fun onResume() {
-        super.onResume()
-        app.fluxdrop.util.NfcHelper.startReaderMode(this) { payload ->
-            viewModel.handleNfcReceived(payload)
+            NfcMode.SHARE, NfcMode.OFF -> NfcHelper.stopReaderMode(this)
         }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        app.fluxdrop.util.NfcHelper.stopReaderMode(this)
+        Diag.log("nfc", "mode=$mode")
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -61,7 +73,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        val nfcData = app.fluxdrop.util.NfcHelper.extractNfcUri(intent)
+        val nfcData = NfcHelper.extractNfcUri(intent)
         if (nfcData != null) {
             Diag.log("nfc", "received NFC data: $nfcData")
             viewModel.handleNfcReceived(nfcData)

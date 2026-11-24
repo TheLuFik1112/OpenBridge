@@ -11,71 +11,137 @@ import android.nfc.Tag
 import android.nfc.tech.IsoDep
 import android.nfc.tech.Ndef
 import android.os.Build
+import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import app.fluxdrop.core.Diag
-import java.nio.charset.StandardCharsets
+
+/**
+ * Роли NFC. Очень важно: Android не умеет одновременно быть считывателем
+ * (enableReaderMode) и эмулировать карту (HCE). Пока включён reader mode,
+ * контроллер занят только чтением, поэтому второе устройство не увидит
+ * этот телефон как NFC-метку. Отсюда два явных режима:
+ *
+ *  - SHARE   — reader mode выключен, работает HostApduService (Type 4 Tag);
+ *  - RECEIVE — включён reader mode, телефон читает чужую метку.
+ */
+enum class NfcMode { OFF, SHARE, RECEIVE }
 
 object NfcHelper {
 
     private const val GITHUB_DOWNLOAD_URL = "https://github.com/TheLuFik1112/FluxDrop/releases/latest"
     private const val APP_PACKAGE = "app.fluxdrop.p2p"
 
-    @Volatile
-    var currentPayload: String? = null
+    /** Максимальный размер NDEF-файла, который мы объявляем в Capability Container. */
+    private const val NDEF_FILE_MAX = 0x0FFE
 
-    fun isNfcAvailable(context: Context): Boolean {
-        val adapter = NfcAdapter.getDefaultAdapter(context)
-        return adapter != null
-    }
+    /** Сколько байт за одно чтение: 254 укладывается в короткий APDU (Le ≤ 255). */
+    private const val READ_CHUNK = 0xFE
+
+    private val SELECT_AID = byteArrayOf(
+        0x00, 0xA4.toByte(), 0x04, 0x00, 0x07,
+        0xD2.toByte(), 0x76, 0x00, 0x00, 0x85.toByte(), 0x01, 0x01, 0x00,
+    )
+
+    @Volatile
+    private var payload: String? = null
+
+    @Volatile
+    private var cachedFile: ByteArray? = null
+
+    @Volatile
+    private var cachedFileKey: String? = null
+
+    fun isNfcAvailable(context: Context): Boolean =
+        NfcAdapter.getDefaultAdapter(context) != null
 
     fun isNfcEnabled(context: Context): Boolean {
-        val adapter = NfcAdapter.getDefaultAdapter(context)
-        return adapter != null && adapter.isEnabled
-    }
-
-    fun updatePayload(payload: String?) {
-        currentPayload = payload ?: GITHUB_DOWNLOAD_URL
+        val adapter = NfcAdapter.getDefaultAdapter(context) ?: return false
+        return runCatching { adapter.isEnabled }.getOrDefault(false)
     }
 
     /**
-     * Запускает современный режим считывания (Reader Mode).
-     * Работает надёжно на всех современных версиях Android (включая Android 10-16).
-     * При обнаружении другого телефона с FluxDrop или NFC-метки считывает данные
-     * по протоколу ISO-DEP (APDU) или NDEF.
+     * Публикуемая по NFC ссылка. null означает «нет локального адреса» —
+     * тогда отдаём страницу релизов, чтобы получатель всё равно смог скачать приложение.
      */
-    fun startReaderMode(
-        activity: Activity,
-        onPayloadReceived: (String) -> Unit,
-    ) {
+    fun updatePayload(url: String?) {
+        val clean = url?.trim()?.takeIf { it.isNotEmpty() }
+        payload = clean
+        cachedFile = null
+        cachedFileKey = null
+        Diag.log("nfc", "payload: ${clean ?: "release link"}")
+    }
+
+    fun shareUrl(): String = payload ?: GITHUB_DOWNLOAD_URL
+
+    /**
+     * Готовый NDEF-файл формата Type 4 Tag: два байта NLEN + само сообщение.
+     * Кешируется, потому что HCE читает его на каждый READ BINARY (иногда десятки раз).
+     */
+    fun buildNdefFile(): ByteArray {
+        val key = shareUrl()
+        cachedFile?.let { if (cachedFileKey == key) return it }
+
+        val message = buildNdefMessage(key)
+        val bytes = message.toByteArray()
+        val file = ByteArray(2 + bytes.size)
+        file[0] = ((bytes.size ushr 8) and 0xFF).toByte()
+        file[1] = (bytes.size and 0xFF).toByte()
+        System.arraycopy(bytes, 0, file, 2, bytes.size)
+
+        cachedFileKey = key
+        cachedFile = file
+        return file
+    }
+
+    /**
+     * URI-запись + Android Application Record: получатель с FluxDrop откроет приложение,
+     * без FluxDrop — браузер со ссылкой на скачивание.
+     */
+    private fun buildNdefMessage(url: String): NdefMessage = NdefMessage(
+        arrayOf(
+            NdefRecord.createUri(Uri.parse(url)),
+            NdefRecord.createApplicationRecord(APP_PACKAGE),
+        )
+    )
+
+    // ── чтение ───────────────────────────────────────────────────────────
+
+    fun startReaderMode(activity: Activity, onPayloadReceived: (String) -> Unit) {
         val adapter = NfcAdapter.getDefaultAdapter(activity) ?: return
-        if (!adapter.isEnabled) return
+        if (!runCatching { adapter.isEnabled }.getOrDefault(false)) {
+            Diag.log("nfc", "reader mode skipped: NFC disabled")
+            return
+        }
 
         val flags = NfcAdapter.FLAG_READER_NFC_A or
-                NfcAdapter.FLAG_READER_NFC_B or
-                NfcAdapter.FLAG_READER_NFC_F or
-                NfcAdapter.FLAG_READER_NFC_V or
-                NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS
+            NfcAdapter.FLAG_READER_NFC_B or
+            NfcAdapter.FLAG_READER_NFC_F or
+            NfcAdapter.FLAG_READER_NFC_V or
+            NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS
+
+        val extras = Bundle().apply {
+            putInt(NfcAdapter.EXTRA_READER_PRESENCE_CHECK_DELAY, 250)
+        }
 
         runCatching {
-            adapter.enableReaderMode(activity, { tag: Tag ->
-                handleTag(tag, activity, onPayloadReceived)
-            }, flags, null)
-            Diag.log("nfc", "Reader mode enabled")
-        }.onFailure {
-            Diag.log("nfc", "enableReaderMode failed: $it")
-        }
+            adapter.enableReaderMode(
+                activity,
+                { tag: Tag -> handleTag(tag, activity, onPayloadReceived) },
+                flags,
+                extras,
+            )
+            Diag.log("nfc", "reader mode ON")
+        }.onFailure { Diag.log("nfc", "enableReaderMode failed: $it") }
     }
 
     fun stopReaderMode(activity: Activity) {
         val adapter = NfcAdapter.getDefaultAdapter(activity) ?: return
         runCatching {
             adapter.disableReaderMode(activity)
-            Diag.log("nfc", "Reader mode disabled")
-        }.onFailure {
-            Diag.log("nfc", "disableReaderMode failed: $it")
-        }
+            Diag.log("nfc", "reader mode OFF")
+        }.onFailure { Diag.log("nfc", "disableReaderMode failed: $it") }
     }
 
     private fun handleTag(
@@ -83,72 +149,101 @@ object NfcHelper {
         activity: Activity,
         onPayloadReceived: (String) -> Unit,
     ) {
-        // 1. Сначала пробуем NDEF (стандарт для меток и HCE Type 4 Tag)
-        val ndef = Ndef.get(tag)
-        if (ndef != null) {
-            runCatching {
-                ndef.connect()
-                val message = ndef.ndefMessage
-                ndef.close()
-                if (message != null && message.records.isNotEmpty()) {
-                    for (record in message.records) {
-                        val uri = record.toUri()?.toString()
-                        if (!uri.isNullOrBlank()) {
-                            Diag.log("nfc", "NDEF URI read: $uri")
-                            vibrate(activity)
-                            activity.runOnUiThread { onPayloadReceived(uri) }
-                            return
-                        }
-                    }
-                }
-            }.onFailure {
-                Diag.log("nfc", "NDEF read failed: $it")
-            }
-        }
+        // 1. Обычная NDEF-метка или HCE-карта, которую система уже разобрала.
+        val uri = readNdef(tag) ?: readIsoDep(tag)
 
-        // 2. Если NDEF напрямую не считался — пробуем IsoDep (Type 4 Tag APDU)
-        val isoDep = IsoDep.get(tag)
-        if (isoDep != null) {
-            runCatching {
-                isoDep.connect()
-                isoDep.timeout = 2000
-                // SELECT AID D2760000850101
-                val aidResp = isoDep.transceive(FluxApduService.SELECT_AID_APDU)
-                if (aidResp.size >= 2 && aidResp[aidResp.size - 2] == 0x90.toByte()) {
-                    // SELECT NDEF file (00 A4 00 0C 02 E1 04)
-                    val selectNdef = byteArrayOf(0x00, 0xA4.toByte(), 0x00, 0x0C, 0x02, 0xE1.toByte(), 0x04)
-                    val ndefSelectResp = isoDep.transceive(selectNdef)
-                    if (ndefSelectResp.size >= 2 && ndefSelectResp[ndefSelectResp.size - 2] == 0x90.toByte()) {
-                        // READ NLEN (00 B0 00 00 02)
-                        val readLen = byteArrayOf(0x00, 0xB0.toByte(), 0x00, 0x00, 0x02)
-                        val lenResp = isoDep.transceive(readLen)
-                        if (lenResp.size >= 4 && lenResp[lenResp.size - 2] == 0x90.toByte()) {
-                            val nlen = ((lenResp[0].toInt() and 0xFF) shl 8) or (lenResp[1].toInt() and 0xFF)
-                            if (nlen in 1..2048) {
-                                val readMsg = byteArrayOf(0x00, 0xB0.toByte(), 0x00, 0x02, minOf(nlen, 255).toByte())
-                                val msgResp = isoDep.transceive(readMsg)
-                                if (msgResp.size >= 2 && msgResp[msgResp.size - 2] == 0x90.toByte()) {
-                                    val msgBytes = java.util.Arrays.copyOf(msgResp, msgResp.size - 2)
-                                    val parsed = NdefMessage(msgBytes)
-                                    val uri = parsed.records.firstOrNull { it.toUri() != null }?.toUri()?.toString()
-                                    if (!uri.isNullOrBlank()) {
-                                        isoDep.close()
-                                        Diag.log("nfc", "IsoDep Type4 read: $uri")
-                                        vibrate(activity)
-                                        activity.runOnUiThread { onPayloadReceived(uri) }
-                                        return
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                isoDep.close()
-            }.onFailure {
-                Diag.log("nfc", "IsoDep transceive error: $it")
-            }
+        if (uri.isNullOrBlank()) {
+            Diag.log("nfc", "tag without URI: ${tag.techList.joinToString()}")
+            return
+        }
+        Diag.log("nfc", "tag URI: $uri")
+        vibrate(activity)
+        activity.runOnUiThread { onPayloadReceived(uri) }
+    }
+
+    private fun readNdef(tag: Tag): String? {
+        val ndef = Ndef.get(tag) ?: return null
+        return try {
+            ndef.connect()
+            ndef.ndefMessage
+                ?.records
+                ?.firstNotNullOfOrNull { record -> record.toUri()?.toString() }
+        } catch (t: Throwable) {
+            Diag.log("nfc", "NDEF read failed: ${t.message}")
+            null
+        } finally {
+            runCatching { ndef.close() }
         }
     }
+
+    private fun readIsoDep(tag: Tag): String? {
+        val iso = IsoDep.get(tag) ?: return null
+        return try {
+            iso.connect()
+            iso.timeout = 3_000
+            readType4(iso)
+        } catch (t: Throwable) {
+            Diag.log("nfc", "IsoDep read failed: ${t.message}")
+            null
+        } finally {
+            runCatching { iso.close() }
+        }
+    }
+
+    /** Чтение NDEF-файла E104 из стандартного Type 4 Tag по APDU. */
+    private fun readType4(iso: IsoDep): String? {
+        if (!isOk(iso.transceive(SELECT_AID))) {
+            Diag.log("nfc", "SELECT Type4 AID rejected")
+            return null
+        }
+        if (!isOk(iso.transceive(selectFile(0xE1, 0x04)))) {
+            Diag.log("nfc", "SELECT NDEF file rejected")
+            return null
+        }
+
+        val lenResponse = iso.transceive(
+            byteArrayOf(0x00, 0xB0.toByte(), 0x00, 0x00, 0x02)
+        )
+        if (!isOk(lenResponse) || lenResponse.size < 4) return null
+
+        val nlen = ((lenResponse[0].toInt() and 0xFF) shl 8) or
+            (lenResponse[1].toInt() and 0xFF)
+        if (nlen <= 0 || nlen > NDEF_FILE_MAX) {
+            Diag.log("nfc", "bad NLEN: $nlen")
+            return null
+        }
+
+        val buffer = ByteArray(nlen)
+        var offset = 0
+        while (offset < nlen) {
+            val chunk = minOf(READ_CHUNK, nlen - offset)
+            val apdu = byteArrayOf(
+                0x00, 0xB0.toByte(),
+                ((offset ushr 8) and 0xFF).toByte(),
+                (offset and 0xFF).toByte(),
+                chunk.toByte(),
+            )
+            val response = iso.transceive(apdu)
+            if (!isOk(response) || response.size < 3) return null
+            val data = response.size - 2
+            System.arraycopy(response, 0, buffer, offset, data)
+            offset += data
+        }
+
+        return NdefMessage(buffer).records
+            .firstNotNullOfOrNull { record -> record.toUri()?.toString() }
+    }
+
+    private fun isOk(response: ByteArray?): Boolean =
+        response != null && response.size >= 2 &&
+            response[response.size - 2] == 0x90.toByte() &&
+            response[response.size - 1] == 0x00.toByte()
+
+    private fun selectFile(hi: Int, lo: Int): ByteArray = byteArrayOf(
+        0x00, 0xA4.toByte(), 0x00, 0x0C, 0x02, hi.toByte(), lo.toByte(),
+    )
+
+    // ── мелочи ───────────────────────────────────────────────────────────
 
     fun vibrate(context: Context) {
         runCatching {
@@ -160,7 +255,9 @@ object NfcHelper {
                 context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
             }
             if (Build.VERSION.SDK_INT >= 26) {
-                vibrator?.vibrate(VibrationEffect.createOneShot(80, VibrationEffect.DEFAULT_AMPLITUDE))
+                vibrator?.vibrate(
+                    VibrationEffect.createOneShot(80, VibrationEffect.DEFAULT_AMPLITUDE)
+                )
             } else {
                 @Suppress("DEPRECATION")
                 vibrator?.vibrate(80)
@@ -169,68 +266,19 @@ object NfcHelper {
     }
 
     /**
-     * Настраивает NFC Beam (для старых версий Android, где он поддерживался).
+     * Ссылка из intent'а NDEF_DISCOVERED / ACTION_VIEW.
+     * AAR приводит к запуску FluxDrop с тем же NDEF-сообщением в extras.
      */
-    fun setupNfcPush(
-        activity: Activity,
-        shareUrlProvider: () -> String?,
-    ) {
-        val adapter = NfcAdapter.getDefaultAdapter(activity) ?: return
-
-        runCatching {
-            val callbackClass = Class.forName("android.nfc.NfcAdapter\$CreateNdefMessageCallback")
-            val proxy = java.lang.reflect.Proxy.newProxyInstance(
-                activity.classLoader,
-                arrayOf(callbackClass),
-            ) { _, method, _ ->
-                if (method.name == "createNdefMessage") {
-                    val targetUrl = shareUrlProvider() ?: GITHUB_DOWNLOAD_URL
-                    createNdefMessage(targetUrl)
-                } else null
-            }
-            val setCallbackMethod = NfcAdapter::class.java.getMethod(
-                "setNdefPushMessageCallback",
-                callbackClass,
-                Activity::class.java,
-                Array<Activity>::class.java,
-            )
-            setCallbackMethod.invoke(
-                adapter,
-                proxy,
-                activity,
-                java.lang.reflect.Array.newInstance(Activity::class.java, 0),
-            )
-        }.onFailure {
-            Diag.log("nfc", "setupNfcPush reflection fallback: $it")
-        }
-    }
-
-    fun buildNdefFile(): ByteArray {
-        val url = currentPayload ?: GITHUB_DOWNLOAD_URL
-        val ndefMessage = createNdefMessage(url)
-        val ndefBytes = ndefMessage.toByteArray()
-        val ndefFile = ByteArray(2 + ndefBytes.size)
-        ndefFile[0] = ((ndefBytes.size ushr 8) and 0xFF).toByte()
-        ndefFile[1] = (ndefBytes.size and 0xFF).toByte()
-        System.arraycopy(ndefBytes, 0, ndefFile, 2, ndefBytes.size)
-        return ndefFile
-    }
-
-    private fun createNdefMessage(url: String): NdefMessage {
-        val uriRecord = NdefRecord.createUri(Uri.parse(url))
-        return NdefMessage(arrayOf(uriRecord))
-    }
-
     fun extractNfcUri(intent: Intent?): String? {
         if (intent == null) return null
 
-        // 1. Из dataString (приходит с NDEF_DISCOVERED или ACTION_VIEW)
         val dataStr = intent.dataString
-        if (!dataStr.isNullOrBlank() && (intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED || intent.action == Intent.ACTION_VIEW)) {
+        if (!dataStr.isNullOrBlank() &&
+            (intent.action == NfcAdapter.ACTION_NDEF_DISCOVERED || intent.action == Intent.ACTION_VIEW)
+        ) {
             return dataStr
         }
 
-        // 2. Из NDEF сообщений в extras (может прийти при любом action, включая ACTION_MAIN)
         val rawMsgs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES, NdefMessage::class.java)
         } else {
@@ -238,14 +286,12 @@ object NfcHelper {
             intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)
         }
         if (rawMsgs != null && rawMsgs.isNotEmpty()) {
-            val msg = rawMsgs[0] as? NdefMessage
-            val uri = msg?.records?.firstOrNull { it.toUri() != null }?.toUri()?.toString()
+            val message = rawMsgs[0] as? NdefMessage
+            val uri = message?.records
+                ?.firstNotNullOfOrNull { record -> record.toUri()?.toString() }
             if (!uri.isNullOrBlank()) return uri
         }
 
-        // 3. Прямой data URI если доступен
-        intent.data?.toString()?.takeIf { it.isNotBlank() }?.let { return it }
-
-        return null
+        return intent.data?.toString()?.takeIf { it.isNotBlank() }
     }
 }

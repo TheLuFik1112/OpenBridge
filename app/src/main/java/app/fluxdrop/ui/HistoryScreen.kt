@@ -25,6 +25,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,8 +38,9 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun HistoryScreen(entries: List<HistoryEntry>) {
+fun HistoryScreen(viewModel: AppViewModel) {
     val strings = LocalStrings.current
+    val entries by viewModel.history.collectAsState()
     if (entries.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

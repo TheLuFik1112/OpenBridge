@@ -36,18 +36,32 @@ class PeerRepository(context: Context, private val json: Json) {
     private val _discovered = MutableStateFlow<List<DiscoveredPeer>>(emptyList())
     val discovered: StateFlow<List<DiscoveredPeer>> = _discovered
 
+    /**
+     * Живое время последнего пакета по каждому пиру. Хранится отдельно от
+     * опубликованного списка: маяки приходят каждые 2 секунды, и если писать
+     * новый lastSeen в StateFlow, весь UI перерисовывается 2 раза в секунду
+     * без единого визуального изменения.
+     */
+    private val lastSeenAt = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
     @Synchronized
     fun onDiscovered(info: PeerInfo, ip: String, source: String) {
         val now = System.currentTimeMillis()
+        lastSeenAt[info.id] = now
+
         val current = _discovered.value
         val existing = current.firstOrNull { it.info.id == info.id }
         val mergedIp = ip.ifBlank { existing?.ip.orEmpty() }
         val merged = DiscoveredPeer(
             info = info.copy(certFingerprint = info.certFingerprint.ifBlank { info.id }),
             ip = mergedIp,
-            lastSeen = now,
+            // Сохраняем первое появление: порядок списка не дрожит на каждом маяке.
+            lastSeen = existing?.lastSeen ?: now,
             source = if (ip.isNotBlank()) source else existing?.source ?: source,
         )
+        // Ничего видимого не изменилось — не трогаем StateFlow вообще.
+        if (existing == merged) return
+
         _discovered.value = (current.filterNot { it.info.id == info.id } + merged)
             .sortedByDescending { it.lastSeen }
     }
@@ -55,14 +69,18 @@ class PeerRepository(context: Context, private val json: Json) {
     /** Убирает находку конкретного канала (например, Nearby-устройство ушло). */
     @Synchronized
     fun onPeerLost(id: String, source: String) {
-        val filtered = _discovered.value.filterNot { it.info.id == id && it.source == source }
-        if (filtered.size != _discovered.value.size) _discovered.value = filtered
+        if (_discovered.value.none { it.info.id == id && it.source == source }) return
+        lastSeenAt.remove(id)
+        _discovered.value = _discovered.value.filterNot { it.info.id == id && it.source == source }
     }
 
     @Synchronized
     fun prune(ttlMs: Long = 20_000) {
         val cutoff = System.currentTimeMillis() - ttlMs
-        val filtered = _discovered.value.filter { it.lastSeen >= cutoff }
+        val stale = lastSeenAt.filterValues { it <= cutoff }.keys.toSet()
+        if (stale.isEmpty()) return
+        stale.forEach { lastSeenAt.remove(it) }
+        val filtered = _discovered.value.filterNot { it.info.id in stale }
         if (filtered.size != _discovered.value.size) _discovered.value = filtered
     }
 

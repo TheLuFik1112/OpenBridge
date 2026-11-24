@@ -51,7 +51,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.fluxdrop.core.APP_VERSION
-import app.fluxdrop.core.TrustedPeer
 import app.fluxdrop.util.hasOverlayPermission
 import app.fluxdrop.util.isIgnoringBatteryOptimizations
 import app.fluxdrop.util.openAppNotificationSettings
@@ -59,13 +58,12 @@ import app.fluxdrop.util.requestIgnoreBatteryOptimizations
 import app.fluxdrop.util.requestOverlayPermission
 
 @Composable
-fun SettingsScreen(
-    viewModel: AppViewModel,
-    trusted: List<TrustedPeer>,
-) {
+fun SettingsScreen(viewModel: AppViewModel) {
     val strings = LocalStrings.current
     val context = LocalContext.current
     val deviceName by viewModel.deviceName.collectAsState()
+    val trusted by viewModel.trusted.collectAsState()
+    val fpsOverlay by viewModel.fpsOverlay.collectAsState()
     val appLanguage by viewModel.appLanguage.collectAsState()
     val serviceEnabled by viewModel.serviceEnabled.collectAsState()
     val autoAccept by viewModel.autoAccept.collectAsState()
@@ -285,6 +283,15 @@ fun SettingsScreen(
                             style = MaterialTheme.typography.bodyMedium,
                         )
                     }
+                    Spacer(Modifier.height(10.dp))
+                    HorizontalDivider()
+                    Spacer(Modifier.height(10.dp))
+                    SwitchRow(
+                        title = "FPS overlay",
+                        subtitle = "Show a live frame-rate counter on top of the UI",
+                        checked = fpsOverlay,
+                        onCheckedChange = viewModel::setFpsOverlay,
+                    )
                     Spacer(Modifier.height(10.dp))
                     HorizontalDivider()
                     Spacer(Modifier.height(10.dp))

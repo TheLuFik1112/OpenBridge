@@ -1,11 +1,5 @@
 package app.fluxdrop.ui
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,6 +34,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -49,7 +44,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,7 +52,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -72,14 +65,11 @@ import app.fluxdrop.core.QueueKind
 import app.fluxdrop.core.formatBytes
 import app.fluxdrop.data.DiscoveredPeer
 import app.fluxdrop.util.NfcHelper
+import app.fluxdrop.util.NfcMode
 
 @Composable
 fun HomeScreen(
     viewModel: AppViewModel,
-    queue: List<QueueItem>,
-    peers: List<DiscoveredPeer>,
-    sending: SendState?,
-    isEngineReady: Boolean,
     onPickFiles: () -> Unit,
     onPickPhotos: () -> Unit,
     onPickFolder: () -> Unit,
@@ -94,14 +84,19 @@ fun HomeScreen(
     val portalUrl by viewModel.portalUrl.collectAsState()
     val trustedIds by viewModel.trustedIds.collectAsState()
     val deviceName by viewModel.deviceName.collectAsState()
+    val queue by viewModel.queue.collectAsState()
+    val peers by viewModel.peers.collectAsState()
+    val sending by viewModel.sending.collectAsState()
+    val isEngineReady by viewModel.isEngineReady.collectAsState()
+    val nfcMode by viewModel.nfcMode.collectAsState()
 
     val sortedPeers = remember(peers) {
         peers.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.info.name })
     }
 
-    LaunchedEffect(portalUrl) {
-        NfcHelper.updatePayload(portalUrl)
-    }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // Проверяем адаптер только при открытии панели или смене режима — не на каждый кадр.
+    val nfcEnabled = remember(showNfcTopPanel, nfcMode) { NfcHelper.isNfcEnabled(context) }
 
     // NestedScrollConnection перехватывает момент, когда список прокручен
     // в самый верх и пользователь тянет ВНИЗ (pull-down). Это единственный
@@ -143,6 +138,10 @@ fun HomeScreen(
                 item {
                     NfcTopCard(
                         strings = strings,
+                        mode = nfcMode,
+                        nfcEnabled = nfcEnabled,
+                        onShare = viewModel::startNfcShare,
+                        onReceive = viewModel::startNfcReceive,
                         onDismiss = { showNfcTopPanel = false },
                     )
                 }
@@ -233,6 +232,10 @@ fun HomeScreen(
 @Composable
 private fun NfcTopCard(
     strings: AppStrings,
+    mode: NfcMode,
+    nfcEnabled: Boolean,
+    onShare: () -> Unit,
+    onReceive: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     Surface(
@@ -273,52 +276,57 @@ private fun NfcTopCard(
                 }
             }
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(12.dp))
 
-            val transition = rememberInfiniteTransition(label = "nfc_top_waves")
-            val wave by transition.animateFloat(
-                initialValue = 0.82f,
-                targetValue = 1.25f,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(1200, easing = LinearEasing),
-                    repeatMode = RepeatMode.Reverse,
-                ),
-                label = "top_wave",
-            )
-
-            Box(
-                modifier = Modifier.size(90.dp),
-                contentAlignment = Alignment.Center,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(72.dp)
-                        .scale(wave)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                FilterChip(
+                    selected = mode == NfcMode.SHARE,
+                    onClick = onShare,
+                    enabled = nfcEnabled,
+                    label = { Text(strings.nfcShareMode) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Rounded.Send,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
                 )
-                Box(
-                    modifier = Modifier
-                        .size(54.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        Icons.Rounded.Nfc,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(32.dp),
-                    )
-                }
+                FilterChip(
+                    selected = mode == NfcMode.RECEIVE,
+                    onClick = onReceive,
+                    enabled = nfcEnabled,
+                    label = { Text(strings.nfcReceiveMode) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Rounded.Nfc,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                    },
+                    modifier = Modifier.weight(1f),
+                )
             }
 
             Spacer(Modifier.height(10.dp))
 
             Text(
-                strings.nfcSubtitle,
+                text = when {
+                    !nfcEnabled -> strings.nfcNotAvailable
+                    mode == NfcMode.SHARE -> strings.nfcShareReady
+                    mode == NfcMode.RECEIVE -> strings.nfcReceiveReady
+                    else -> strings.nfcPickMode
+                },
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f),
+                color = if (nfcEnabled) {
+                    MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f)
+                } else {
+                    MaterialTheme.colorScheme.error
+                },
                 textAlign = TextAlign.Center,
             )
         }

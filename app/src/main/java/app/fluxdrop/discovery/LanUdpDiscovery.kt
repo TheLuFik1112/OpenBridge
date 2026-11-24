@@ -46,9 +46,19 @@ class LanUdpDiscovery(
         const val SWEEP_EVERY_TICKS = 5
         const val MAX_SWEEP_HOSTS = 254
         const val GLOBAL_BROADCAST = "255.255.255.255"
+
+        /**
+         * 254 unicast-пакета — это заметная пачка. Раньше она уходила каждые
+         * 10 секунд даже когда сосед уже найден и отвечает маяками. Теперь
+         * обход включается только если сеть замолчала: broadcast не доходит.
+         */
+        const val QUIET_BEFORE_SWEEP_MS = 15_000L
     }
 
     private val json = Json { ignoreUnknownKeys = true }
+
+    /** Когда последний раз приходил чужой маяк (мс, 0 — ещё ни разу). */
+    private val lastPeerAt = java.util.concurrent.atomic.AtomicLong(0L)
 
     private var job: Job? = null
     private var socket: DatagramSocket? = null
@@ -113,7 +123,10 @@ class LanUdpDiscovery(
                     }
 
                     // Unicast sweep: добиваем подсети, где broadcast выключен.
-                    if (tick % SWEEP_EVERY_TICKS == 0) {
+                    // Только если чужих маяков давно не было — иначе это лишний трафик.
+                    if (tick % SWEEP_EVERY_TICKS == 0 &&
+                        System.currentTimeMillis() - lastPeerAt.get() > QUIET_BEFORE_SWEEP_MS
+                    ) {
                         unicastSweep(sock, packet)
                     }
                 }
@@ -165,6 +178,7 @@ class LanUdpDiscovery(
                     certFingerprint = beacon.fp.ifBlank { beacon.id },
                 )
                 onPeer(peer, packet.address?.hostAddress.orEmpty(), "udp")
+                lastPeerAt.set(System.currentTimeMillis())
             } catch (_: Exception) {
                 if (sock.isClosed) break
                 // мусорный пакет — просто продолжаем слушать

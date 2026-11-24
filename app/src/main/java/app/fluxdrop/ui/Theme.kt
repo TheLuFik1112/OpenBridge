@@ -8,6 +8,7 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
@@ -45,11 +46,16 @@ fun FluxTheme(
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current
-    val colors = when {
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        darkTheme -> DarkScheme
-        else -> LightScheme
+    // dynamic*ColorScheme читает системную палитру и создаёт новый объект.
+    // Без remember это происходило на каждую рекомпозицию темы, а от неё
+    // зависит вся цветовая схема приложения.
+    val colors = remember(darkTheme) {
+        when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
+                if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+            darkTheme -> DarkScheme
+            else -> LightScheme
+        }
     }
     MaterialTheme(colorScheme = colors, content = content)
 }
