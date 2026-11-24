@@ -1,7 +1,6 @@
 package app.fluxdrop.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,8 +25,6 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Image
-import androidx.compose.material.icons.rounded.KeyboardArrowUp
-import androidx.compose.material.icons.rounded.Nfc
 import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.Shield
@@ -87,10 +84,10 @@ fun HomeScreen(
         peers.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.info.name })
     }
 
-    // Свайп вверх в конце списка открывает NFC-окно. NestedScrollConnection
+    // Свайп ВНИЗ в начале списка открывает NFC-окно. NestedScrollConnection
     // видит ровно тот остаток прокрутки, который LazyColumn уже не смог съесть,
     // поэтому обычный скролл срабатывание не ломает.
-    val accumulatedDragPx = remember { mutableStateOf(0f) }
+    val accumulatedPullPx = remember { mutableStateOf(0f) }
     val lastNfcOpenAt = remember { mutableStateOf(0L) }
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
@@ -99,17 +96,17 @@ fun HomeScreen(
                 available: Offset,
                 source: NestedScrollSource,
             ): Offset {
-                // available.y < 0: список в самом низу, палец тянет вверх.
-                if (available.y < 0f) {
-                    accumulatedDragPx.value += available.y
+                // available.y > 0: список в самом верху, палец тянет вниз.
+                if (available.y > 0f) {
+                    accumulatedPullPx.value += available.y
                     val now = System.currentTimeMillis()
-                    if (accumulatedDragPx.value <= -120f && now - lastNfcOpenAt.value > 1_200) {
-                        accumulatedDragPx.value = 0f
+                    if (accumulatedPullPx.value >= 120f && now - lastNfcOpenAt.value > 900) {
+                        accumulatedPullPx.value = 0f
                         lastNfcOpenAt.value = now
                         viewModel.openNfcSheet()
                     }
-                } else if (available.y > 0f) {
-                    accumulatedDragPx.value = 0f
+                } else if (available.y < 0f) {
+                    accumulatedPullPx.value = 0f
                 }
                 return Offset.Zero
             }
@@ -147,7 +144,6 @@ fun HomeScreen(
                     onAddText = { showTextDialog = true },
                     onRemove = viewModel::removeItem,
                     onClear = viewModel::clearQueue,
-                    onOpenNfc = viewModel::openNfcSheet,
                 )
             }
 
@@ -301,7 +297,6 @@ private fun QueueCard(
     onAddText: () -> Unit,
     onRemove: (String) -> Unit,
     onClear: () -> Unit,
-    onOpenNfc: () -> Unit,
 ) {
     Surface(
         shape = RoundedCornerShape(22.dp),
@@ -430,36 +425,6 @@ private fun QueueCard(
                         Text(strings.btnText, style = MaterialTheme.typography.labelSmall)
                     }
                 }
-            }
-
-            Spacer(Modifier.height(10.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .clickable { onOpenNfc() }
-                    .padding(vertical = 10.dp, horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    Icons.Rounded.Nfc,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    strings.nfcSwipeUp,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(
-                    Icons.Rounded.KeyboardArrowUp,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(18.dp),
-                )
             }
         }
     }

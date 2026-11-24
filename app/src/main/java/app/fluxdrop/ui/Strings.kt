@@ -33,7 +33,6 @@ interface AppStrings {
     val btnCancel: String
 
     // NFC
-    val nfcSwipeUp: String
     val nfcTitle: String
     val nfcHoldToSend: String
     val nfcSent: String
@@ -131,7 +130,6 @@ object RuStrings : AppStrings {
     override val btnAdd = "Добавить"
     override val btnCancel = "Отмена"
 
-    override val nfcSwipeUp = "Свайп вверх — передача по NFC"
     override val nfcTitle = "Приложите телефон"
     override val nfcHoldToSend = "Приложите телефон для отправки"
     override val nfcSent = "Отправлено!"
@@ -227,7 +225,6 @@ object EnStrings : AppStrings {
     override val btnAdd = "Add"
     override val btnCancel = "Cancel"
 
-    override val nfcSwipeUp = "Swipe up — send over NFC"
     override val nfcTitle = "Hold devices together"
     override val nfcHoldToSend = "Hold your phone here to send"
     override val nfcSent = "Sent!"

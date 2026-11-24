@@ -317,6 +317,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             message.value = strings.value.nfcNotAvailable
             return
         }
+        // Пустой пакет открывать нечего: окно появляется только когда есть что отправить.
+        if (queue.value.isEmpty()) {
+            message.value = strings.value.nfcNeedItems
+            return
+        }
         if (_nfcState.value.phase != NfcPhase.RECEIVING) {
             _nfcState.value = NfcState(hasItems = queue.value.isNotEmpty())
         }
