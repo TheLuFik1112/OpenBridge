@@ -171,8 +171,8 @@ fun HomeScreen(
                 )
             }
 
-            if (sending != null) {
-                item { SendingCard(strings, sending) }
+            sending?.let { state ->
+                item { SendingCard(strings, state) }
             }
 
             item {
