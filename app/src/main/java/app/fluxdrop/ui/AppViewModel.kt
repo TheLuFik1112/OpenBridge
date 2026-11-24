@@ -48,7 +48,7 @@ data class SendState(
     val text: String,
 )
 
-enum class NfcPhase { READY, RECEIVING, DONE, SENT, ERROR }
+enum class NfcPhase { READY, CONNECTING, RECEIVING, DONE, TRANSFER, SENT, ERROR }
 
 /** Что рисует NFC-шторка. Никаких режимов — только ход передачи. */
 @Immutable
@@ -58,6 +58,10 @@ data class NfcState(
     val files: Int = 0,
     val texts: Int = 0,
     val hasItems: Boolean = false,
+    /** Имя отправителя, с которым соединяемся (для строки «Соединяемся с …»). */
+    val peerName: String = "",
+    /** Шторка про нашу отправку, а не про приём: от этого зависит текст ошибки. */
+    val sending: Boolean = false,
 )
 
 /**
@@ -145,6 +149,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
             warmUpJob.join()
 
+            // Метка должна знать, кто мы: id для поиска по Nearby, имя для показа.
+            runCatching {
+                NfcHelper.prime(context)
+                NfcHelper.updateSender(
+                    id = g.identity.identity.id,
+                    name = deviceName.value,
+                )
+            }.onFailure { Diag.log("nfc", "sender init failed: $it") }
+
+            // Получатель по NFC просит пакет — отдаём очередь, которая живёт здесь.
+            g.nearby.pullProvider = { nearbyItems() }
+
             launch {
                 runCatching { g.startRuntime() }
                     .onFailure { fail("Сервер", it) }
@@ -220,7 +236,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 g.nearby.incoming.collect { _nearbyIncoming.value = it }
             }
             viewModelScope.launch(Dispatchers.IO) {
-                g.nearby.progress.collect { nearbyProgress.value = it }
+                g.nearby.progress.collect { progress ->
+                    nearbyProgress.value = progress
+                    if (progress != null) syncNfcProgress(progress.fraction)
+                }
             }
             viewModelScope.launch(Dispatchers.IO) {
                 g.nearby.events.collect { event -> event?.let { handleNearbyEvent(it) } }
@@ -304,7 +323,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * Состояние нижней NFC-шторки. Режимов больше нет: отправка (HostApduService)
      * и приём (NDEF_DISCOVERED) включены всегда, поэтому шторка только показывает,
-     * что происходит, и обновляет адрес портала перед касанием.
+     * что происходит.
      */
     private val _nfcSheetOpen = MutableStateFlow(false)
     val nfcSheetOpen: StateFlow<Boolean> = _nfcSheetOpen.asStateFlow()
@@ -322,26 +341,91 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             message.value = strings.value.nfcNeedItems
             return
         }
-        if (_nfcState.value.phase != NfcPhase.RECEIVING) {
-            _nfcState.value = NfcState(hasItems = queue.value.isNotEmpty())
+        syncNfcPackage()
+        if (_nfcState.value.phase != NfcPhase.RECEIVING &&
+            _nfcState.value.phase != NfcPhase.CONNECTING
+        ) {
+            _nfcState.value = NfcState(hasItems = true)
         }
         _nfcSheetOpen.value = true
-        // Свежий IP и токен: касание должно вести на живую страницу, а не на вчерашнюю.
-        viewModelScope.launch(Dispatchers.IO) { publishPortal() }
     }
 
     fun closeNfcSheet() {
         _nfcSheetOpen.value = false
     }
 
-    /** Касание вторым телефоном: ссылка с его NFC-метки. */
+    /**
+     * Касание вторым телефоном. В метке — адрес отправителя `fluxdrop://…`:
+     * ищем его по Nearby и забираем пакет. Старые метки с адресом локального
+     * портала тоже понимаем, чтобы обновление не рвало передачу между версиями.
+     */
     fun handleNfcReceived(raw: String) {
         Diag.log("nfc", "incoming: $raw")
-        if (!NfcPortal.isPortalUrl(raw)) {
-            // Пришла страница релизов: у отправителя нет общего Wi-Fi.
-            message.value = strings.value.nfcNoNetwork
+        val sender = NfcHelper.parseSender(raw)
+        if (sender != null) {
+            pullFromSender(sender)
             return
         }
+        if (NfcPortal.isPortalUrl(raw)) {
+            receiveFromPortal(raw)
+            return
+        }
+        message.value = strings.value.nfcNothingToReceive
+    }
+
+    /** Получатель нашёл отправителя в метке и забирает его пакет по Nearby. */
+    private fun pullFromSender(sender: NfcHelper.Sender) {
+        if (_nfcState.value.phase == NfcPhase.CONNECTING ||
+            _nfcState.value.phase == NfcPhase.RECEIVING
+        ) return
+        if (!runCatching { g.nearby.isAvailable() }.getOrDefault(false)) {
+            _nfcState.value = NfcState(NfcPhase.ERROR)
+            _nfcSheetOpen.value = true
+            message.value = strings.value.nfcNearbyUnavailable
+            return
+        }
+
+        _nfcState.value = NfcState(
+            phase = NfcPhase.CONNECTING,
+            peerName = sender.name.ifBlank { "отправитель" },
+        )
+        _nfcSheetOpen.value = true
+        NfcHelper.vibrate(context)
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val summary = g.nearby.pull(sender.deviceId, sender.name) {
+                    _nfcState.value = _nfcState.value.copy(phase = NfcPhase.RECEIVING)
+                }.getOrThrow()
+
+                _nfcState.value = NfcState(
+                    phase = NfcPhase.DONE,
+                    fraction = 1f,
+                    files = summary.files,
+                    texts = summary.texts,
+                )
+                message.value = when {
+                    summary.files > 0 -> strings.value.nfcReceivedCount(summary.files)
+                    summary.texts > 0 -> strings.value.nfcTextCopied
+                    else -> strings.value.nfcEmptyPackage
+                }
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (t: Throwable) {
+                Diag.log("nfc", "pull failed: $t")
+                _nfcState.value = NfcState(NfcPhase.ERROR)
+                message.value = when (t.message) {
+                    "empty" -> strings.value.nfcEmptyPackage
+                    "no-peer" -> strings.value.nfcNoNearbyPeer
+                    "blocked" -> strings.value.nfcNearbyUnavailable
+                    else -> strings.value.nfcReceiveFailed
+                }
+            }
+        }
+    }
+
+    /** Старая метка: страница портала отправителя, качаем по HTTP. */
+    private fun receiveFromPortal(raw: String) {
         if (_nfcState.value.phase == NfcPhase.RECEIVING) return
 
         _nfcState.value = NfcState(NfcPhase.RECEIVING)
@@ -385,32 +469,110 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Второй телефон дочитал нашу метку — показываем «Отправлено» и прячем шторку.
-     * Событие приходит из HCE-службы, поэтому подписка живёт в фоне.
+     * Отправка по NFC и её обратная связь:
+     *  - метку прочитали → «передаём», пока получатель не заберёт пакет;
+     *  - пакет ушёл → «Отправлено».
+     * События приходят из HCE-службы и Nearby, поэтому подписки живут в фоне.
      */
     private fun bindNfc() {
         viewModelScope.launch(Dispatchers.IO) {
             // StateFlow сразу отдаёт текущее значение: без этой отметки после
             // пересоздания Activity мы бы показали «Отправлено» ещё раз.
-            var handled = NfcHelper.served.value
+            var read = NfcHelper.served.value
             NfcHelper.served.collect { count ->
-                if (count <= handled) {
-                    handled = count
+                if (count <= read) {
+                    read = count
                     return@collect
                 }
-                handled = count
+                read = count
+                withContext(Dispatchers.Main) {
+                    if (_nfcState.value.phase != NfcPhase.RECEIVING) {
+                        _nfcState.value = NfcState(
+                            phase = NfcPhase.TRANSFER,
+                            hasItems = true,
+                            sending = true,
+                        )
+                        _nfcSheetOpen.value = true
+                    }
+                }
+                NfcHelper.vibrate(context)
+
+                // Получатель может не прийти: у него нет приложения, и он ушёл
+                // на страницу скачивания. Тогда просто показываем «Отправлено».
+                delay(NFC_HANDOFF_TIMEOUT_MS)
+                withContext(Dispatchers.Main) {
+                    if (_nfcState.value.phase == NfcPhase.TRANSFER &&
+                        g.nearby.progress.value == null
+                    ) {
+                        _nfcState.value = NfcState(phase = NfcPhase.SENT, fraction = 1f)
+                    }
+                }
+                delay(1_800)
+                withContext(Dispatchers.Main) {
+                    if (_nfcState.value.phase == NfcPhase.SENT) closeNfcSheet()
+                }
+            }
+        }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            var sent = g.nearby.delivered.value
+            g.nearby.delivered.collect { count ->
+                if (count <= sent) {
+                    sent = count
+                    return@collect
+                }
+                sent = count
                 withContext(Dispatchers.Main) {
                     _nfcState.value = NfcState(phase = NfcPhase.SENT, fraction = 1f)
                     _nfcSheetOpen.value = true
                     NfcHelper.vibrate(context)
                 }
                 delay(2_400)
-                if (_nfcState.value.phase == NfcPhase.SENT) {
-                    _nfcSheetOpen.value = false
-                    _nfcState.value = NfcState()
+                withContext(Dispatchers.Main) {
+                    if (_nfcState.value.phase == NfcPhase.SENT) closeNfcSheet()
                 }
             }
         }
+
+        // Пакет не дошёл, хотя метку прочитали: не оставляем шторку на «Передаём».
+        viewModelScope.launch(Dispatchers.IO) {
+            var failures = g.nearby.failed.value
+            g.nearby.failed.collect { count ->
+                if (count <= failures) {
+                    failures = count
+                    return@collect
+                }
+                failures = count
+                withContext(Dispatchers.Main) {
+                    _nfcState.value = NfcState(phase = NfcPhase.ERROR, sending = true)
+                    _nfcSheetOpen.value = true
+                }
+                NfcHelper.vibrate(context)
+                delay(5_000)
+                withContext(Dispatchers.Main) {
+                    if (_nfcState.value.phase == NfcPhase.ERROR) closeNfcSheet()
+                }
+            }
+        }
+    }
+
+    /** Прогресс Nearby во время NFC показываем в самой шторке, без второго диалога. */
+    private fun syncNfcProgress(fraction: Float) {
+        val current = _nfcState.value
+        when (current.phase) {
+            NfcPhase.CONNECTING, NfcPhase.RECEIVING ->
+                _nfcState.value = current.copy(phase = NfcPhase.RECEIVING, fraction = fraction)
+
+            NfcPhase.TRANSFER ->
+                _nfcState.value = current.copy(fraction = fraction)
+
+            else -> Unit
+        }
+    }
+
+    /** Метка зовёт за пакетом только тогда, когда он не пустой. */
+    private fun syncNfcPackage() {
+        NfcHelper.updatePackage(queue.value.isNotEmpty())
     }
 
     private suspend fun copyToClipboard(text: String) {
@@ -424,15 +586,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Включает веб-портал (если выключен) и возвращает URL для показа QR-кода. */
     fun ensurePortalUrl(onReady: (String) -> Unit) {
-        if (!portalEnabled.value) {
-            setPortalEnabled(true)
-        }
         viewModelScope.launch(Dispatchers.IO) {
+            // Включаем портал и публикуем пакет заново: QR должен вести на живой
+            // адрес с текущим IP и свежим токеном, а не на вчерашний.
+            if (!portalEnabled.value) {
+                portalEnabled.value = true
+                g.settings.setPortalEnabled(true)
+                g.portal.rotateToken()
+            }
+            publishPortal()
             val url = g.portal.url()
             portalUrl.value = url
-            withContext(Dispatchers.Main) {
-                if (url != null) onReady(url)
-            }
+            withContext(Dispatchers.Main) { onReady(url) }
         }
     }
 
@@ -724,6 +889,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setDeviceName(name: String) {
         deviceName.value = name.trim()
+        // Имя уходит в метку NFC: получатель ищет нас по нему в эфире.
+        NfcHelper.updateSender(name = name.trim())
         viewModelScope.launch(Dispatchers.IO) { g.settings.setDeviceName(name) }
     }
 
@@ -835,18 +1002,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * Публикует пакет на веб-портал и обновляет NDEF-ссылку.
+     * Пакет на веб-портал (QR-код) и состояние NFC-метки.
      *
-     * Вызывается после любого изменения очереди, поэтому касание NFC всегда
-     * ведёт на живую страницу: телефон без FluxDrop скачивает файлы в браузере,
-     * телефон с FluxDrop — тем же списком через [NfcPortal]. Портал включается
-     * сам: отдельного «режима отправки» больше нет.
+     * По NFC портал больше не открывается: метка ведёт напрямую в приложение
+     * получателя. Портал остался отдельной функцией и сам не включается —
+     * незачем держать пакет открытым в локальной сети без спроса.
      */
     private fun publishPortal() {
+        syncNfcPackage()
         runCatching {
             if (!portalEnabled.value) {
-                portalEnabled.value = true
-                g.settings.setPortalEnabled(true)
+                portalUrl.value = null
+                g.portal.publish(emptyList())
+                return@runCatching
             }
 
             val files = queue.value.mapNotNull { item ->
@@ -869,11 +1037,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
             g.portal.publish(files)
-
-            // Пустой пакет или отсутствие Wi-Fi — отдаём страницу релизов.
-            val url = g.portal.url()
-            portalUrl.value = url
-            NfcHelper.updatePayload(url.takeIf { files.isNotEmpty() && !it.contains("127.0.0.1") })
+            portalUrl.value = g.portal.url()
             Diag.log("portal", "published ${files.size} item(s)")
         }.onFailure { Diag.log("portal", "publish failed: $it") }
     }
@@ -887,5 +1051,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             .take(40)
             .ifBlank { "text" }
         return "$base.txt"
+    }
+
+    private companion object {
+        /** Сколько ждём получателя после чтения метки, прежде чем закрыть шторку. */
+        const val NFC_HANDOFF_TIMEOUT_MS = 25_000L
     }
 }

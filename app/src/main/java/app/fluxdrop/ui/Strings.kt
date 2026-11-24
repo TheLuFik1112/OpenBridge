@@ -40,12 +40,16 @@ interface AppStrings {
     val nfcReceived: String
     fun nfcReceivedCount(count: Int): String
     val nfcReceiveFailed: String
-    val nfcNoNetwork: String
+    fun nfcConnecting(name: String): String
+    val nfcSending: String
+    val nfcSendFailed: String
+    val nfcNoNearbyPeer: String
+    val nfcNearbyUnavailable: String
+    val nfcNothingToReceive: String
     val nfcEmptyPackage: String
     val nfcTextCopied: String
     val nfcNotAvailable: String
     val nfcNeedItems: String
-    val nfcFallbackLink: String
 
     // Settings
     val settingsTitle: String
@@ -133,16 +137,20 @@ object RuStrings : AppStrings {
     override val nfcTitle = "Приложите телефон"
     override val nfcHoldToSend = "Приложите телефон для отправки"
     override val nfcSent = "Отправлено!"
-    override val nfcReceiving = "Получение файлов…"
+    override val nfcReceiving = "Получение пакета…"
     override val nfcReceived = "Готово"
     override fun nfcReceivedCount(count: Int) = "Получено файлов: $count"
-    override val nfcReceiveFailed = "Не удалось получить файлы. Проверьте, что телефоны в одной сети"
-    override val nfcNoNetwork = "У отправителя нет общей сети — передача невозможна"
+    override val nfcReceiveFailed = "Не удалось получить пакет. Поднесите телефон ещё раз"
+    override fun nfcConnecting(name: String) = "Соединяемся с $name…"
+    override val nfcSending = "Передаём пакет…"
+    override val nfcSendFailed = "Не удалось передать пакет. Поднесите телефон ещё раз"
+    override val nfcNoNearbyPeer = "Отправитель не найден поблизости. Включите Bluetooth на обоих телефонах"
+    override val nfcNearbyUnavailable = "Передача поблизости недоступна: нет Google Play Services"
+    override val nfcNothingToReceive = "В метке нет пакета — обновите FluxDrop на обоих телефонах"
     override val nfcEmptyPackage = "В пакете отправителя пока ничего нет"
     override val nfcTextCopied = "Текст скопирован в буфер обмена"
     override val nfcNotAvailable = "NFC недоступен или выключен на этом телефоне"
     override val nfcNeedItems = "Сначала добавьте файлы, фото или текст в пакет"
-    override val nfcFallbackLink = "Нет Wi-Fi: по NFC уйдёт ссылка на скачивание FluxDrop"
 
     override val settingsTitle = "Настройки"
     override val deviceCard = "Устройство"
@@ -228,16 +236,20 @@ object EnStrings : AppStrings {
     override val nfcTitle = "Hold devices together"
     override val nfcHoldToSend = "Hold your phone here to send"
     override val nfcSent = "Sent!"
-    override val nfcReceiving = "Receiving files…"
+    override val nfcReceiving = "Receiving the package…"
     override val nfcReceived = "Done"
     override fun nfcReceivedCount(count: Int) = "Files received: $count"
-    override val nfcReceiveFailed = "Could not receive files. Make sure both phones are on the same network"
-    override val nfcNoNetwork = "The sender is not on a shared network — transfer is not possible"
+    override val nfcReceiveFailed = "Could not receive the package. Touch the phones together again"
+    override fun nfcConnecting(name: String) = "Connecting to $name…"
+    override val nfcSending = "Sending the package…"
+    override val nfcSendFailed = "Could not send the package. Touch the phones together again"
+    override val nfcNoNearbyPeer = "Sender not found nearby. Make sure Bluetooth is on for both phones"
+    override val nfcNearbyUnavailable = "Nearby transfer is unavailable: Google Play Services is missing"
+    override val nfcNothingToReceive = "The tag has no package — update FluxDrop on both phones"
     override val nfcEmptyPackage = "The sender's package is still empty"
     override val nfcTextCopied = "Text copied to clipboard"
     override val nfcNotAvailable = "NFC is not supported or disabled on this device"
     override val nfcNeedItems = "Add files, photos or text to the package first"
-    override val nfcFallbackLink = "No Wi-Fi: NFC will share the FluxDrop download link"
 
     override val settingsTitle = "Settings"
     override val deviceCard = "Device"

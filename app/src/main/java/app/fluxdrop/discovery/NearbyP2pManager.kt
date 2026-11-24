@@ -18,6 +18,7 @@ import com.google.android.gms.nearby.connection.Payload
 import com.google.android.gms.nearby.connection.PayloadCallback
 import com.google.android.gms.nearby.connection.PayloadTransferUpdate
 import com.google.android.gms.nearby.connection.Strategy
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -58,6 +59,9 @@ data class NearbyProgress(
     val text: String,
 )
 
+/** Итог запроса пакета: сколько элементов реально дошло. */
+data class PullSummary(val texts: Int, val files: Int)
+
 /** Что пришло по Nearby — разбирает ViewModel (буфер, история, сообщение). */
 sealed interface NearbyEvent {
     data class Text(val peerName: String, val text: String) : NearbyEvent
@@ -78,6 +82,10 @@ sealed interface NearbyItem {
  *
  * В эфир уходит имя вида "deviceId|Имя устройства" — по нему мы дедуплицируем
  * устройство с LAN-находкой и понимаем, доверенное ли оно.
+ *
+ * После касания NFC получатель не ждёт, пока ему что-то предложат: он находит
+ * отправителя по id из метки, соединяется и просит пакет ([pull]). Отправитель
+ * в ответ выкладывает очередь ([servePull]) — это и есть передача «в один тап».
  */
 class NearbyP2pManager(
     private val context: Context,
@@ -87,6 +95,8 @@ class NearbyP2pManager(
     private val isTrusted: (String) -> Boolean,
     private val onPeer: (NearbyPeer) -> Unit,
     private val onPeerLost: (String) -> Unit,
+    /** Метку только что прочитали: соединение по NFC принимаем сами. */
+    private val isNfcHandoff: () -> Boolean = { false },
 ) {
 
     private companion object {
@@ -94,9 +104,15 @@ class NearbyP2pManager(
         const val NAME_SEPARATOR = "|"
         const val TEXT_PREFIX = "FD/TEXT:"
         const val FILE_PREFIX = "FD/FILE:"
+        const val PULL_PREFIX = "FD/PULL"
+        const val DONE_PREFIX = "FD/DONE"
+        const val TOTAL_PREFIX = "FD/TOTAL:"
+        const val ERROR_PREFIX = "FD/ERR:"
         const val MAX_ENDPOINT_NAME = 120
         const val CONNECT_TIMEOUT_MS = 20_000L
+        const val DISCOVERY_TIMEOUT_MS = 22_000L
         const val PAYLOAD_TIMEOUT_MS = 180_000L
+        const val PULL_TIMEOUT_MS = 300_000L
         const val MAX_BYTES_PAYLOAD = 90_000
         const val REFRESH_MS = 5_000L
     }
@@ -121,6 +137,22 @@ class NearbyP2pManager(
     private val connectionWaiters = ConcurrentHashMap<String, CompletableDeferred<Boolean>>()
     private val payloadWaiters = ConcurrentHashMap<Long, CompletableDeferred<Boolean>>()
 
+    /** Ожидание ответа отправителя на запрос пакета: "done", "empty" или текст ошибки. */
+    private val controlWaiters = ConcurrentHashMap<String, CompletableDeferred<String>>()
+
+    /** Счётчики принятого во время запроса: [0] тексты, [1] файлы. */
+    private val pullCounters = ConcurrentHashMap<String, IntArray>()
+
+    /** Сколько всего элементов выкладывает отправитель: для полосы прогресса. */
+    private val pullTotals = ConcurrentHashMap<String, Int>()
+
+    /**
+     * Что отдавать, если получатель просит пакет после касания NFC.
+     * Ставит ViewModel: очередь живёт в нём, а не в графе.
+     */
+    @Volatile
+    var pullProvider: (() -> List<NearbyItem>)? = null
+
     private val _incoming = MutableStateFlow<NearbyRequest?>(null)
     val incoming: StateFlow<NearbyRequest?> = _incoming.asStateFlow()
 
@@ -132,6 +164,14 @@ class NearbyP2pManager(
 
     private val _connected = MutableStateFlow<Set<String>>(emptySet())
     val connected: StateFlow<Set<String>> = _connected.asStateFlow()
+
+    /** Пакет ушёл получателю, который пришёл по NFC: для «Отправлено» в шторке. */
+    private val _delivered = MutableStateFlow(0)
+    val delivered: StateFlow<Int> = _delivered.asStateFlow()
+
+    /** Пакет не дошёл по NFC: шторка должна сказать об этом, а не висеть. */
+    private val _failed = MutableStateFlow(0)
+    val failed: StateFlow<Int> = _failed.asStateFlow()
 
     @Volatile
     private var running = false
@@ -149,6 +189,8 @@ class NearbyP2pManager(
 
     // ── запуск / остановка ───────────────────────────────────────────────
 
+    /** @Synchronized: после касания NFC поиск стартует и из pull, и из движка. */
+    @Synchronized
     fun start() {
         val client = client ?: run {
             Diag.log("nearby", "Google Play Services недоступен — Nearby выключен")
@@ -221,6 +263,9 @@ class NearbyP2pManager(
         connections.clear()
         outgoing.clear()
         pendingFileNames.clear()
+        controlWaiters.clear()
+        pullCounters.clear()
+        pullTotals.clear()
         _connected.value = emptySet()
         _incoming.value = null
         _progress.value = null
@@ -285,6 +330,11 @@ class NearbyP2pManager(
             // Инициатор тоже получает onConnectionInitiated — молча принимаем свой же запрос.
             if (outgoing.remove(endpointId)) {
                 acceptInternal(endpointId, deviceId)
+            } else if (isNfcHandoff()) {
+                // Метку только что прочитали, значит человек сам поднёс телефон:
+                // не заставляем его ещё раз нажимать «Принять».
+                Diag.log("nearby", "NFC: принимаем соединение от $name без подтверждения")
+                acceptInternal(endpointId, deviceId)
             } else if (trusted) {
                 // Доверенному устройству отвечаем сразу, без шторки.
                 acceptInternal(endpointId, deviceId)
@@ -318,6 +368,11 @@ class NearbyP2pManager(
             val deviceId = connections.remove(endpointId) ?: devices[endpointId]
             _connected.value = connections.values.toSet()
             Diag.log("nearby", "отключились: $deviceId")
+            // Даём последнему пакету (например, «готово» после NFC) дойти первым.
+            scope.launch {
+                delay(700)
+                controlWaiters.remove(endpointId)?.complete("failed")
+            }
             if (deviceId != null) onPeerLost(deviceId)
         }
     }
@@ -369,55 +424,66 @@ class NearbyP2pManager(
                 if (!connect(client, endpointId)) error("Не удалось соединиться")
             }
 
-            items.forEachIndexed { index, item ->
-                val payload = when (item) {
-                    is NearbyItem.Text -> {
-                        val bytes = (TEXT_PREFIX + item.text).toByteArray()
-                        require(bytes.size <= MAX_BYTES_PAYLOAD) {
-                            "Текст больше ${MAX_BYTES_PAYLOAD / 1024} КБ — отправьте файлом"
-                        }
-                        Payload.fromBytes(bytes)
-                    }
-
-                    is NearbyItem.FileItem -> {
-                        // Имя файла передаём отдельно: Nearby сохраняет входящие под своим именем.
-                        deliver(client, endpointId, Payload.fromBytes((FILE_PREFIX + item.name).toByteArray()))
-                        Payload.fromFile(copyToCache(item.uri, item.name))
-                    }
-                }
-
-                val base = index.toFloat() / items.size
-                val step = 1f / items.size
-                _progress.value = NearbyProgress(
-                    peerName = names[endpointId] ?: "устройство",
-                    fraction = base,
-                    text = "Передача ${index + 1} из ${items.size}…",
-                )
-                onProgress(base, "Передача ${index + 1} из ${items.size}…")
-
-                if (!deliver(client, endpointId, payload)) {
-                    error("Передача прервалась на шаге ${index + 1}")
-                }
-
-                _progress.value = NearbyProgress(
-                    peerName = names[endpointId] ?: "устройство",
-                    fraction = base + step,
-                    text = "Готово",
-                )
-                onProgress(base + step, "Готово")
+            if (!sendToEndpoint(client, endpointId, items, onProgress)) {
+                error("Передача прервалась")
             }
 
             if (!isTrusted(deviceId)) {
                 // Если устройство не доверенное — закрываем сессию после передачи,
                 // чтобы при следующей отправке получателю снова показалась шторка с подтверждением.
                 delay(500)
-                connections.remove(endpointId)
-                runCatching { client.disconnectFromEndpoint(endpointId) }
+                disconnect(client, endpointId)
             }
         }.onFailure { error ->
             Diag.log("nearby", "send failed: $error")
             _progress.value = null
         }
+    }
+
+    /** Выкладывает элементы уже установленному соединению. true — всё доехало. */
+    private suspend fun sendToEndpoint(
+        client: ConnectionsClient,
+        endpointId: String,
+        items: List<NearbyItem>,
+        onProgress: (Float, String) -> Unit,
+    ): Boolean {
+        val peerName = names[endpointId] ?: "устройство"
+        items.forEachIndexed { index, item ->
+            val payload = when (item) {
+                is NearbyItem.Text -> {
+                    val bytes = (TEXT_PREFIX + item.text).toByteArray()
+                    require(bytes.size <= MAX_BYTES_PAYLOAD) {
+                        "Текст больше ${MAX_BYTES_PAYLOAD / 1024} КБ — отправьте файлом"
+                    }
+                    Payload.fromBytes(bytes)
+                }
+
+                is NearbyItem.FileItem -> {
+                    // Имя файла передаём отдельно: Nearby сохраняет входящие под своим именем.
+                    deliver(client, endpointId, Payload.fromBytes((FILE_PREFIX + item.name).toByteArray()))
+                    Payload.fromFile(copyToCache(item.uri, item.name))
+                }
+            }
+
+            val base = index.toFloat() / items.size
+            val step = 1f / items.size
+            _progress.value = NearbyProgress(
+                peerName = peerName,
+                fraction = base,
+                text = "Передача ${index + 1} из ${items.size}…",
+            )
+            onProgress(base, "Передача ${index + 1} из ${items.size}…")
+
+            if (!deliver(client, endpointId, payload)) return false
+
+            _progress.value = NearbyProgress(
+                peerName = peerName,
+                fraction = base + step,
+                text = "Готово",
+            )
+            onProgress(base + step, "Готово")
+        }
+        return true
     }
 
     /** Отправляет один payload и ждёт подтверждения или ошибки. */
@@ -453,6 +519,175 @@ class NearbyP2pManager(
         return ok
     }
 
+    // ── пакет по NFC: получатель просит, отправитель выкладывает ─────────
+
+    /**
+     * Получатель нашёл метку отправителя и забирает его пакет.
+     *
+     * Никакого «предложения» от отправителя нет: сначала ищем его в эфире
+     * по id (или имени) из метки, соединяемся и отправляем запрос. Дальше
+     * отправитель сам выкладывает очередь, а мы принимаем её обычным путём.
+     */
+    suspend fun pull(
+        deviceId: String,
+        name: String,
+        onAccepted: () -> Unit = {},
+    ): Result<PullSummary> = withContext(Dispatchers.IO) {
+        runCatching {
+            val client = client ?: error("blocked")
+            if (!running) start()
+
+            Diag.log("nearby", "NFC: ищем отправителя $name ($deviceId)")
+            val endpointId = awaitEndpoint(deviceId, name) ?: error("no-peer")
+
+            if (!connections.containsKey(endpointId)) {
+                if (!connect(client, endpointId)) error("no-peer")
+            }
+            onAccepted()
+            val peerName = names[endpointId] ?: name.ifBlank { "устройство" }
+            Diag.log("nearby", "NFC: соединение с $peerName, просим пакет")
+
+            val waiter = CompletableDeferred<String>()
+            controlWaiters[endpointId] = waiter
+            val counter = IntArray(2)
+            pullCounters[endpointId] = counter
+            try {
+                if (!deliver(client, endpointId, Payload.fromBytes(PULL_PREFIX.toByteArray()))) {
+                    error("no-answer")
+                }
+                val answer = withTimeoutOrNull(PULL_TIMEOUT_MS) { waiter.await() }
+                    ?: error("no-answer")
+                when (answer) {
+                    "done" -> PullSummary(texts = counter[0], files = counter[1])
+                    "empty" -> error("empty")
+                    else -> error("failed")
+                }
+            } finally {
+                controlWaiters.remove(endpointId)
+                pullCounters.remove(endpointId)
+                pullTotals.remove(endpointId)
+                if (!isTrusted(deviceId)) disconnect(client, endpointId)
+            }
+        }.onFailure { Diag.log("nearby", "pull failed: $it") }
+    }
+
+    /**
+     * Ждёт, пока отправитель появится в эфире. Nearby отдаёт находки не сразу,
+     * поэтому после касания приходится подождать пару секунд.
+     */
+    private suspend fun awaitEndpoint(deviceId: String, name: String): String? {
+        val startedAt = System.currentTimeMillis()
+        var nudged = false
+        while (System.currentTimeMillis() - startedAt < DISCOVERY_TIMEOUT_MS) {
+            connections.entries.firstOrNull { it.value.isNotBlank() && it.value == deviceId }
+                ?.key?.let { return it }
+            if (deviceId.isNotBlank()) endpoints[deviceId]?.let { return it }
+            if (name.isNotBlank()) {
+                names.entries.firstOrNull { it.value.equals(name, ignoreCase = true) }
+                    ?.key?.let { return it }
+            }
+            val elapsed = System.currentTimeMillis() - startedAt
+            if (!nudged && elapsed > 6_000L) {
+                // Поиск иногда «залипает» после переключения экрана — перезапускаем.
+                nudged = true
+                Diag.log("nearby", "поиск отправителя: перезапускаем discovery")
+                runCatching { client?.stopDiscovery() }
+                runCatching {
+                    client?.startDiscovery(
+                        SERVICE_ID,
+                        endpointCallback,
+                        DiscoveryOptions.Builder().setStrategy(strategy).build(),
+                    )
+                }
+            }
+            delay(400)
+        }
+        return null
+    }
+
+    /** Отправитель: выкладываем очередь тому, кто пришёл по метке. */
+    private fun servePull(endpointId: String) {
+        scope.launch(Dispatchers.IO) {
+            val connectionsClient = client ?: return@launch
+            val peerName = names[endpointId] ?: "устройство"
+            var sent = false
+            try {
+                val items = runCatching { pullProvider?.invoke() }.getOrNull().orEmpty()
+                Diag.log("nearby", "NFC: $peerName просит пакет (${items.size} эл.)")
+
+                if (items.isEmpty()) {
+                    deliver(
+                        connectionsClient,
+                        endpointId,
+                        Payload.fromBytes((ERROR_PREFIX + "empty").toByteArray()),
+                    )
+                    return@launch
+                }
+
+                // Говорим получателю, сколько всего элементов — иначе у него
+                // полоса прогресса стояла бы на нуле до самого конца.
+                deliver(
+                    connectionsClient,
+                    endpointId,
+                    Payload.fromBytes((TOTAL_PREFIX + items.size).toByteArray()),
+                )
+
+                sent = sendToEndpoint(connectionsClient, endpointId, items) { fraction, stage ->
+                    _progress.value = NearbyProgress(peerName, fraction, stage)
+                }
+                deliver(
+                    connectionsClient,
+                    endpointId,
+                    Payload.fromBytes(
+                        if (sent) DONE_PREFIX.toByteArray()
+                        else (ERROR_PREFIX + "failed").toByteArray()
+                    ),
+                )
+                Diag.log(
+                    "nearby",
+                    "NFC: пакет для $peerName ${if (sent) "отправлен" else "не ушёл"}",
+                )
+                if (sent) {
+                    _delivered.value += 1
+                    delay(300)
+                } else {
+                    _failed.value += 1
+                }
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (t: Throwable) {
+                // Ошибка в отдельной корутине не должна ронять процесс и оставлять
+                // получателя в вечном ожидании — говорим ему, что передача сорвалась.
+                Diag.log("nearby", "NFC: servePull failed: $t")
+                if (!sent) _failed.value += 1
+                runCatching {
+                    deliver(
+                        connectionsClient,
+                        endpointId,
+                        Payload.fromBytes((ERROR_PREFIX + "failed").toByteArray()),
+                    )
+                }
+            } finally {
+                _progress.value = null
+                disconnect(connectionsClient, endpointId)
+            }
+        }
+    }
+
+    private fun disconnect(client: ConnectionsClient, endpointId: String) {
+        connections.remove(endpointId)
+        _connected.value = connections.values.toSet()
+        runCatching { client.disconnectFromEndpoint(endpointId) }
+    }
+
+    /** Получатель во время запроса: доля принятого от объявленного отправителем. */
+    private fun updatePullProgress(endpointId: String, peerName: String) {
+        val total = pullTotals[endpointId]?.takeIf { it > 0 } ?: return
+        val counter = pullCounters[endpointId] ?: return
+        val done = (counter[0] + counter[1]).coerceAtMost(total)
+        _progress.value = NearbyProgress(peerName, done.toFloat() / total, "")
+    }
+
     private fun copyToCache(uri: Uri, name: String): File {
         val dir = File(context.cacheDir, "nearby").apply { mkdirs() }
         val safe = name.substringAfterLast('/').ifBlank { "file.bin" }
@@ -471,18 +706,49 @@ class NearbyP2pManager(
             when (payload.type) {
                 Payload.Type.BYTES -> {
                     val text = runCatching { String(payload.asBytes()!!) }.getOrNull().orEmpty()
-                    if (text.startsWith(FILE_PREFIX)) {
-                        val name = text.removePrefix(FILE_PREFIX).trim()
-                        if (name.isNotBlank()) pendingFileNames[endpointId] = name
-                    } else {
-                        val clean = text.removePrefix(TEXT_PREFIX)
-                        Diag.log("nearby", "получен текст от $peerName (${clean.length} симв.)")
-                        _events.value = NearbyEvent.Text(peerName, clean)
+                    when {
+                        // Получатель пришёл по NFC и просит пакет.
+                        text.startsWith(PULL_PREFIX) -> {
+                            Diag.log("nearby", "NFC: $peerName просит пакет")
+                            servePull(endpointId)
+                        }
+
+                        // Отправитель сказал, сколько всего будет элементов.
+                        text.startsWith(TOTAL_PREFIX) -> {
+                            val total = text.removePrefix(TOTAL_PREFIX).trim().toIntOrNull() ?: 0
+                            if (total > 0) pullTotals[endpointId] = total
+                        }
+
+                        // Отправитель закончил выкладывать пакет.
+                        text.startsWith(DONE_PREFIX) -> {
+                            controlWaiters.remove(endpointId)?.complete("done")
+                        }
+
+                        text.startsWith(ERROR_PREFIX) -> {
+                            controlWaiters.remove(endpointId)
+                                ?.complete(text.removePrefix(ERROR_PREFIX).trim())
+                        }
+
+                        text.startsWith(FILE_PREFIX) -> {
+                            val name = text.removePrefix(FILE_PREFIX).trim()
+                            if (name.isNotBlank()) pendingFileNames[endpointId] = name
+                        }
+
+                        else -> {
+                            val clean = text.removePrefix(TEXT_PREFIX)
+                            pullCounters[endpointId]?.let { it[0]++ }
+                            updatePullProgress(endpointId, peerName)
+                            Diag.log("nearby", "получен текст от $peerName (${clean.length} симв.)")
+                            _events.value = NearbyEvent.Text(peerName, clean)
+                        }
                     }
                 }
 
                 Payload.Type.FILE -> {
                     val uri = payload.asFile()?.asUri() ?: return
+                    // Считаем сразу: файл уже у нас, сохранение идёт своим чередом.
+                    pullCounters[endpointId]?.let { it[1]++ }
+                    updatePullProgress(endpointId, peerName)
                     scope.launch(Dispatchers.IO) {
                         val name = pendingFileNames.remove(endpointId)
                             ?: uri.lastPathSegment?.substringAfter('-')?.ifBlank { "file" }
@@ -521,6 +787,7 @@ class NearbyP2pManager(
                 PayloadTransferUpdate.Status.SUCCESS -> waiter?.complete(true)
                 PayloadTransferUpdate.Status.FAILURE -> {
                     waiter?.complete(false)
+                    controlWaiters.remove(endpointId)?.complete("failed")
                     _events.value = NearbyEvent.Failed(
                         names[endpointId] ?: "устройство",
                         "получатель не принял данные",
@@ -528,13 +795,8 @@ class NearbyP2pManager(
                 }
 
                 else -> {
-                    val total = update.totalBytes.takeIf { it > 0 } ?: return
-                    val peerName = names[endpointId] ?: "устройство"
-                    _progress.value = NearbyProgress(
-                        peerName = peerName,
-                        fraction = update.bytesTransferred.toFloat() / total,
-                        text = "Передача…",
-                    )
+                    // Внутрифайловый прогресс сюда не подмешиваем: он считается
+                    // по одному файлу и сбивал бы общую долю пакета.
                 }
             }
         }

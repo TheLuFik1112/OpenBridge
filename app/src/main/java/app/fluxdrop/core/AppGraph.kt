@@ -13,6 +13,7 @@ import app.fluxdrop.net.TransferClient
 import app.fluxdrop.net.TransferServer
 import app.fluxdrop.service.IncomingNotifier
 import app.fluxdrop.service.IncomingPresenter
+import app.fluxdrop.util.NfcHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -60,6 +61,9 @@ class AppGraph(val app: Application) {
             selfId = { identity.identity.id },
             selfName = { settings.deviceName.value },
             isTrusted = { id -> peers.trusted.value.any { it.id == id && !it.revoked } },
+            // Метку только что прочитали — значит человек сам поднёс телефон
+            // и получатель вправе забрать пакет без второго подтверждения.
+            isNfcHandoff = { NfcHelper.recentlyServed() },
             onPeer = { peer ->
                 peers.onDiscovered(
                     PeerInfo(id = peer.deviceId, name = peer.name, certFingerprint = peer.deviceId),

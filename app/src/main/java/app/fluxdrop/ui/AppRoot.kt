@@ -214,7 +214,8 @@ private fun AppContent(viewModel: AppViewModel) {
             )
         }
 
-        nearbyProgress?.let { progress ->
+        // Прогресс Nearby во время NFC уже виден в шторке — второй диалог не нужен.
+        if (!nfcSheetOpen) nearbyProgress?.let { progress ->
             NearbyProgressDialog(
                 progress = progress,
                 onDismiss = viewModel::dismissNearbyProgress,

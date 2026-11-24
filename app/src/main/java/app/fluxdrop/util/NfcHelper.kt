@@ -11,6 +11,8 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import app.fluxdrop.core.Diag
+import app.fluxdrop.core.IdentityStore
+import app.fluxdrop.data.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,19 +20,46 @@ import kotlinx.coroutines.flow.asStateFlow
 /**
  * NFC в FluxDrop работает в обе стороны одновременно и без режимов:
  *
- *  - отправка — HostApduService эмулирует Type 4 Tag с NDEF-ссылкой на портал
- *    (см. [FluxApduService]). Читает её сама система второго телефона, поэтому
- *    FluxDrop ничего не «включает» перед касанием;
+ *  - отправка — HostApduService эмулирует Type 4 Tag (см. [FluxApduService]).
+ *    В метке лежат два адреса: сначала свой `fluxdrop://nfc?...` с именем и id
+ *    устройства-отправителя, потом страница скачивания. Телефон с FluxDrop
+ *    откроет приложение, найдёт отправителя по Nearby и заберёт пакет;
+ *    телефон без приложения не сможет открыть первый адрес и уйдёт на второй —
+ *    в браузер со страницей скачивания;
  *  - приём — Android сам разбирает чужую метку и отдаёт ссылку в MainActivity
  *    как NDEF_DISCOVERED. Reader mode намеренно не используется: он занимает
  *    контроллер чтением и тогда телефон не может отвечать как карта.
+ *
+ * Локальный веб-портал по NFC больше не открывается: он остался отдельной
+ * функцией для QR-кода.
  */
 object NfcHelper {
 
-    private const val GITHUB_DOWNLOAD_URL = "https://github.com/TheLuFik1112/FluxDrop/releases/latest"
+    private const val GITHUB_DOWNLOAD_URL =
+        "https://github.com/TheLuFik1112/FluxDrop/releases/latest"
+
+    /** Схема, которую понимает только FluxDrop: браузер её открыть не может. */
+    private const val SCHEME = "fluxdrop"
+    private const val HOST = "nfc"
+
+    /** Отправитель из метки: id нужен для поиска по Nearby, имя — для показа. */
+    data class Sender(val deviceId: String, val name: String)
 
     @Volatile
-    private var payload: String? = null
+    private var senderId: String = ""
+
+    @Volatile
+    private var senderName: String = ""
+
+    /** В пакете есть что отправлять: пустая метка ведёт только на скачивание. */
+    @Volatile
+    private var packageReady: Boolean = false
+
+    @Volatile
+    private var lastServedAt: Long = 0L
+
+    @Volatile
+    private var primed: Boolean = false
 
     @Volatile
     private var cachedFile: ByteArray? = null
@@ -44,8 +73,65 @@ object NfcHelper {
 
     /** Вызывается из [FluxApduService], когда второй телефон дочитал NDEF-файл. */
     fun notifyServed() {
+        lastServedAt = System.currentTimeMillis()
         _served.value += 1
         Diag.log("nfc", "NDEF read by peer")
+    }
+
+    /**
+     * Метку только что прочитали. В это окно получатель вправе соединиться
+     * по Nearby без отдельного подтверждения — иначе после касания пришлось бы
+     * ещё раз нажимать «Принять» на телефоне отправителя.
+     */
+    fun recentlyServed(windowMs: Long = 120_000L): Boolean =
+        lastServedAt > 0L && System.currentTimeMillis() - lastServedAt <= windowMs
+
+    /**
+     * Кто мы для метки. Id берём из сертификата, имя — из настроек.
+     * Пустые значения не затирают уже известные.
+     */
+    fun updateSender(id: String? = null, name: String? = null) {
+        if (!id.isNullOrBlank() && id != senderId) {
+            senderId = id.trim()
+            invalidate()
+        }
+        if (name != null && name.trim() != senderName) {
+            senderName = name.trim()
+            invalidate()
+        }
+    }
+
+    /** Появился или опустел пакет: пустая метка не приглашает за файлами. */
+    fun updatePackage(ready: Boolean) {
+        if (ready != packageReady) {
+            packageReady = ready
+            invalidate()
+        }
+    }
+
+    /**
+     * Заполняет имя и id до первого касания. HCE-служба может быть запущена
+     * системой, когда приложение вообще не открывали, поэтому имя читаем сразу
+     * (это prefs), а сертификат — в фоне, чтобы не тормозить APDU.
+     */
+    fun prime(context: Context) {
+        if (primed) return
+        primed = true
+        runCatching {
+            val name = SettingsRepository(context).deviceName.value
+            updateSender(name = name)
+        }
+        val app = context.applicationContext
+        Thread {
+            runCatching {
+                val id = IdentityStore(app).identity.id
+                updateSender(id = id)
+                Diag.log("nfc", "sender id ready for tag")
+            }.onFailure { Diag.log("nfc", "sender id failed: $it") }
+        }.apply {
+            name = "fluxdrop-nfc-prime"
+            isDaemon = true
+        }.start()
     }
 
     fun isNfcEnabled(context: Context): Boolean {
@@ -54,29 +140,22 @@ object NfcHelper {
     }
 
     /**
-     * Публикуемая по NFC ссылка. null означает «нет локального адреса» —
-     * тогда отдаём страницу релизов, чтобы получатель всё равно смог скачать приложение.
-     */
-    fun updatePayload(url: String?) {
-        val clean = url?.trim()?.takeIf { it.isNotEmpty() }
-        payload = clean
-        cachedFile = null
-        cachedFileKey = null
-        Diag.log("nfc", "payload: ${clean ?: "release link"}")
-    }
-
-    fun shareUrl(): String = payload ?: GITHUB_DOWNLOAD_URL
-
-    /**
      * Готовый NDEF-файл формата Type 4 Tag: два байта NLEN + само сообщение.
      * Кешируется, потому что HCE читает его на каждый READ BINARY (иногда десятки раз).
      */
     fun buildNdefFile(): ByteArray {
-        val key = shareUrl()
+        val uri = senderUri()
+        val key = uri ?: "download"
         cachedFile?.let { if (cachedFileKey == key) return it }
 
-        val message = buildNdefMessage(key)
-        val bytes = message.toByteArray()
+        val records = ArrayList<NdefRecord>(2)
+        if (uri != null) records.add(NdefRecord.createUri(Uri.parse(uri)))
+        // Второй адрес — страница скачивания. Android берёт первую запись,
+        // которую может открыть хоть кто-то: браузер её не откроет и перейдёт
+        // к следующей.
+        records.add(NdefRecord.createUri(Uri.parse(GITHUB_DOWNLOAD_URL)))
+
+        val bytes = NdefMessage(records.toTypedArray()).toByteArray()
         val file = ByteArray(2 + bytes.size)
         file[0] = ((bytes.size ushr 8) and 0xFF).toByte()
         file[1] = (bytes.size and 0xFF).toByte()
@@ -87,15 +166,34 @@ object NfcHelper {
         return file
     }
 
-    /**
-     * Только URI-запись, без Android Application Record: AAR заставлял систему
-     * открывать магазин приложений, если FluxDrop не установлен. Без него телефон
-     * с FluxDrop открывает приложение (фильтр NDEF_DISCOVERED в манифесте),
-     * а телефон без приложения — обычный браузер с живой страницей портала.
-     */
-    private fun buildNdefMessage(url: String): NdefMessage = NdefMessage(
-        arrayOf(NdefRecord.createUri(Uri.parse(url)))
-    )
+    /** Адрес отправителя для метки; null — отправлять нечего, только скачивание. */
+    private fun senderUri(): String? {
+        if (!packageReady) return null
+        val name = senderName.ifBlank { "Android" }
+        if (senderId.isBlank() && name.isBlank()) return null
+        val builder = Uri.Builder()
+            .scheme(SCHEME)
+            .authority(HOST)
+            .appendQueryParameter("v", "1")
+            .appendQueryParameter("n", name.take(40))
+        if (senderId.isNotBlank()) builder.appendQueryParameter("i", senderId)
+        return builder.build().toString()
+    }
+
+    private fun invalidate() {
+        cachedFile = null
+        cachedFileKey = null
+    }
+
+    /** Разбор метки FluxDrop: `fluxdrop://nfc?v=1&i=<id>&n=<имя>`. */
+    fun parseSender(raw: String): Sender? {
+        val uri = runCatching { Uri.parse(raw) }.getOrNull() ?: return null
+        if (!uri.scheme.equals(SCHEME, ignoreCase = true)) return null
+        val id = uri.getQueryParameter("i").orEmpty().trim()
+        val name = uri.getQueryParameter("n").orEmpty().trim()
+        if (id.isBlank() && name.isBlank()) return null
+        return Sender(deviceId = id, name = name)
+    }
 
     // ── мелочи ───────────────────────────────────────────────────────────
 

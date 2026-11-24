@@ -95,7 +95,9 @@ fun NfcSheet(
                 )
             }
 
-            if (state.phase == NfcPhase.RECEIVING) {
+            if (state.fraction > 0f &&
+                (state.phase == NfcPhase.RECEIVING || state.phase == NfcPhase.TRANSFER)
+            ) {
                 Spacer(Modifier.height(14.dp))
                 Text(
                     text = "${(state.fraction * 100).toInt()}%",
@@ -111,7 +113,9 @@ fun NfcSheet(
 private fun NfcGlyph(phase: NfcPhase, fraction: Float) {
     val colors = MaterialTheme.colorScheme
     // Пульс только в ожидании: во время передачи он бы отвлекал.
-    val pulse = if (phase == NfcPhase.READY || phase == NfcPhase.RECEIVING) {
+    val pulse = if (phase == NfcPhase.READY || phase == NfcPhase.CONNECTING ||
+        phase == NfcPhase.RECEIVING
+    ) {
         val transition = rememberInfiniteTransition(label = "nfc-pulse")
         val value by transition.animateFloat(
             initialValue = 1f,
@@ -146,13 +150,30 @@ private fun NfcGlyph(phase: NfcPhase, fraction: Float) {
             contentAlignment = Alignment.Center,
         ) {
             when (phase) {
-                NfcPhase.RECEIVING -> CircularProgressIndicator(
-                    progress = { fraction.coerceIn(0f, 1f) },
+                NfcPhase.CONNECTING -> CircularProgressIndicator(
                     modifier = Modifier.size(84.dp),
                     strokeWidth = 5.dp,
-                    trackColor = colors.primary.copy(alpha = 0.16f),
                     color = colors.primary,
                 )
+
+                NfcPhase.RECEIVING, NfcPhase.TRANSFER ->
+                    // Пока отправитель не назвал размер пакета, честнее крутить
+                    // бесконечный индикатор, чем показывать замершие 0 %.
+                    if (fraction > 0f) {
+                        CircularProgressIndicator(
+                            progress = { fraction.coerceIn(0f, 1f) },
+                            modifier = Modifier.size(84.dp),
+                            strokeWidth = 5.dp,
+                            trackColor = colors.primary.copy(alpha = 0.16f),
+                            color = colors.primary,
+                        )
+                    } else {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(84.dp),
+                            strokeWidth = 5.dp,
+                            color = colors.primary,
+                        )
+                    }
 
                 NfcPhase.DONE, NfcPhase.SENT -> Icon(
                     Icons.Rounded.CheckCircle,
@@ -180,10 +201,12 @@ private fun NfcGlyph(phase: NfcPhase, fraction: Float) {
 }
 
 private fun headline(state: NfcState, strings: AppStrings): String = when (state.phase) {
+    NfcPhase.CONNECTING -> strings.nfcConnecting(state.peerName)
     NfcPhase.RECEIVING -> strings.nfcReceiving
+    NfcPhase.TRANSFER -> strings.nfcSending
     NfcPhase.DONE -> strings.nfcReceived
     NfcPhase.SENT -> strings.nfcSent
-    NfcPhase.ERROR -> strings.nfcReceiveFailed
+    NfcPhase.ERROR -> if (state.sending) strings.nfcSendFailed else strings.nfcReceiveFailed
     NfcPhase.READY -> if (state.hasItems) strings.nfcHoldToSend else strings.nfcNeedItems
 }
 
