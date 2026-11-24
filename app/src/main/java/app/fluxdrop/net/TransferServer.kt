@@ -183,6 +183,17 @@ class TransferServer(private val g: AppGraph) {
                 }
                 val file = g.portal.file(call.request.queryParameters["id"] ?: "")
                     ?: return@get call.respond(HttpStatusCode.NotFound)
+
+                // Текст из пакета живёт прямо в памяти — отдаём его как text/plain.
+                val text = file.text
+                if (text != null) {
+                    call.response.headers.append(
+                        HttpHeaders.ContentDisposition,
+                        "inline; filename=\"${file.name.replace("\"", "")}\"",
+                    )
+                    return@get call.respondText(text, ContentType.Text.Plain)
+                }
+
                 val uri = g.portal.uri(file) ?: return@get call.respond(HttpStatusCode.NotFound)
 
                 val total = withContext(Dispatchers.IO) {

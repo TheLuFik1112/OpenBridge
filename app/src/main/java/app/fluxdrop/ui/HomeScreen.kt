@@ -1,6 +1,7 @@
 package app.fluxdrop.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Nfc
 import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.Send
@@ -34,7 +36,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -57,15 +58,12 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.fluxdrop.core.QueueItem
 import app.fluxdrop.core.QueueKind
 import app.fluxdrop.core.formatBytes
 import app.fluxdrop.data.DiscoveredPeer
-import app.fluxdrop.util.NfcHelper
-import app.fluxdrop.util.NfcMode
 
 @Composable
 fun HomeScreen(
@@ -77,10 +75,6 @@ fun HomeScreen(
 ) {
     val strings = LocalStrings.current
     var showTextDialog by remember { mutableStateOf(false) }
-    // Используем remember с MutableState явно — чтобы объект NestedScrollConnection
-    // мог читать и писать значение напрямую через .value без захвата by-делегата.
-    val showNfcTopPanelState = remember { mutableStateOf(false) }
-    var showNfcTopPanel by showNfcTopPanelState
     val portalUrl by viewModel.portalUrl.collectAsState()
     val trustedIds by viewModel.trustedIds.collectAsState()
     val deviceName by viewModel.deviceName.collectAsState()
@@ -88,35 +82,33 @@ fun HomeScreen(
     val peers by viewModel.peers.collectAsState()
     val sending by viewModel.sending.collectAsState()
     val isEngineReady by viewModel.isEngineReady.collectAsState()
-    val nfcMode by viewModel.nfcMode.collectAsState()
 
     val sortedPeers = remember(peers) {
         peers.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.info.name })
     }
 
-    val context = androidx.compose.ui.platform.LocalContext.current
-    // Проверяем адаптер только при открытии панели или смене режима — не на каждый кадр.
-    val nfcEnabled = remember(showNfcTopPanel, nfcMode) { NfcHelper.isNfcEnabled(context) }
-
-    // NestedScrollConnection перехватывает момент, когда список прокручен
-    // в самый верх и пользователь тянет ВНИЗ (pull-down). Это единственный
-    // надёжный способ обнаружить pull-down в LazyColumn без конфликтов со скроллом.
+    // Свайп вверх в конце списка открывает NFC-окно. NestedScrollConnection
+    // видит ровно тот остаток прокрутки, который LazyColumn уже не смог съесть,
+    // поэтому обычный скролл срабатывание не ломает.
     val accumulatedDragPx = remember { mutableStateOf(0f) }
-    val nestedScrollConnection = remember(showNfcTopPanelState) {
+    val lastNfcOpenAt = remember { mutableStateOf(0L) }
+    val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPostScroll(
                 consumed: Offset,
                 available: Offset,
                 source: NestedScrollSource,
             ): Offset {
-                // available.y > 0: список достиг верха, пользователь тянет вниз (overscroll)
-                if (available.y > 0 && !showNfcTopPanelState.value) {
+                // available.y < 0: список в самом низу, палец тянет вверх.
+                if (available.y < 0f) {
                     accumulatedDragPx.value += available.y
-                    if (accumulatedDragPx.value >= 80f) {
+                    val now = System.currentTimeMillis()
+                    if (accumulatedDragPx.value <= -120f && now - lastNfcOpenAt.value > 1_200) {
                         accumulatedDragPx.value = 0f
-                        showNfcTopPanelState.value = true
+                        lastNfcOpenAt.value = now
+                        viewModel.openNfcSheet()
                     }
-                } else if (available.y <= 0) {
+                } else if (available.y > 0f) {
                     accumulatedDragPx.value = 0f
                 }
                 return Offset.Zero
@@ -134,20 +126,7 @@ fun HomeScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (showNfcTopPanel) {
-                item {
-                    NfcTopCard(
-                        strings = strings,
-                        mode = nfcMode,
-                        nfcEnabled = nfcEnabled,
-                        onShare = viewModel::startNfcShare,
-                        onReceive = viewModel::startNfcReceive,
-                        onDismiss = { showNfcTopPanel = false },
-                    )
-                }
-            }
-
-            item {
+            item(key = "status", contentType = "card") {
                 StatusCard(
                     strings = strings,
                     deviceName = deviceName.ifBlank { "FluxDrop" },
@@ -158,7 +137,7 @@ fun HomeScreen(
                 )
             }
 
-            item {
+            item(key = "queue", contentType = "card") {
                 QueueCard(
                     strings = strings,
                     queue = queue,
@@ -168,14 +147,15 @@ fun HomeScreen(
                     onAddText = { showTextDialog = true },
                     onRemove = viewModel::removeItem,
                     onClear = viewModel::clearQueue,
+                    onOpenNfc = viewModel::openNfcSheet,
                 )
             }
 
             sending?.let { state ->
-                item { SendingCard(strings, state) }
+                item(key = "sending", contentType = "card") { SendingCard(strings, state) }
             }
 
-            item {
+            item(key = "devices-title", contentType = "title") {
                 Text(
                     strings.devicesNearby,
                     style = MaterialTheme.typography.titleMedium,
@@ -184,7 +164,7 @@ fun HomeScreen(
             }
 
             if (peers.isEmpty()) {
-                item {
+                item(key = "devices-empty", contentType = "card") {
                     Surface(
                         shape = RoundedCornerShape(18.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -203,7 +183,7 @@ fun HomeScreen(
                 }
             }
 
-            items(sortedPeers, key = { it.info.id }) { peer ->
+            items(sortedPeers, key = { it.info.id }, contentType = { "peer" }) { peer ->
                 PeerRow(
                     strings = strings,
                     peer = peer,
@@ -213,7 +193,7 @@ fun HomeScreen(
                 )
             }
 
-            item { Spacer(Modifier.height(16.dp)) }
+            item(key = "bottom-spacer", contentType = "spacer") { Spacer(Modifier.height(16.dp)) }
         }
     }
 
@@ -226,110 +206,6 @@ fun HomeScreen(
                 showTextDialog = false
             },
         )
-    }
-}
-
-@Composable
-private fun NfcTopCard(
-    strings: AppStrings,
-    mode: NfcMode,
-    nfcEnabled: Boolean,
-    onShare: () -> Unit,
-    onReceive: () -> Unit,
-    onDismiss: () -> Unit,
-) {
-    Surface(
-        shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Rounded.Nfc,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(24.dp),
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        strings.nfcTitle,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                }
-                IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
-                    Icon(
-                        Icons.Rounded.Close,
-                        contentDescription = strings.btnCancel,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip(
-                    selected = mode == NfcMode.SHARE,
-                    onClick = onShare,
-                    enabled = nfcEnabled,
-                    label = { Text(strings.nfcShareMode) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Rounded.Send,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-                FilterChip(
-                    selected = mode == NfcMode.RECEIVE,
-                    onClick = onReceive,
-                    enabled = nfcEnabled,
-                    label = { Text(strings.nfcReceiveMode) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Rounded.Nfc,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-
-            Spacer(Modifier.height(10.dp))
-
-            Text(
-                text = when {
-                    !nfcEnabled -> strings.nfcNotAvailable
-                    mode == NfcMode.SHARE -> strings.nfcShareReady
-                    mode == NfcMode.RECEIVE -> strings.nfcReceiveReady
-                    else -> strings.nfcPickMode
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = if (nfcEnabled) {
-                    MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.85f)
-                } else {
-                    MaterialTheme.colorScheme.error
-                },
-                textAlign = TextAlign.Center,
-            )
-        }
     }
 }
 
@@ -425,6 +301,7 @@ private fun QueueCard(
     onAddText: () -> Unit,
     onRemove: (String) -> Unit,
     onClear: () -> Unit,
+    onOpenNfc: () -> Unit,
 ) {
     Surface(
         shape = RoundedCornerShape(22.dp),
@@ -553,6 +430,36 @@ private fun QueueCard(
                         Text(strings.btnText, style = MaterialTheme.typography.labelSmall)
                     }
                 }
+            }
+
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .clickable { onOpenNfc() }
+                    .padding(vertical = 10.dp, horizontal = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Rounded.Nfc,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    strings.nfcSwipeUp,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                Icon(
+                    Icons.Rounded.KeyboardArrowUp,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
             }
         }
     }

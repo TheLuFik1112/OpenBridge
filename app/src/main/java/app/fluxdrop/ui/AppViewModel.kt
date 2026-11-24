@@ -25,10 +25,10 @@ import app.fluxdrop.discovery.NearbyEvent
 import app.fluxdrop.discovery.NearbyItem
 import app.fluxdrop.discovery.NearbyProgress
 import app.fluxdrop.discovery.NearbyRequest
+import app.fluxdrop.net.NfcPortal
 import app.fluxdrop.net.PortalFile
 import app.fluxdrop.service.RadarService
 import app.fluxdrop.util.NfcHelper
-import app.fluxdrop.util.NfcMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -39,12 +39,25 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.coroutines.cancellation.CancellationException
 
 @Immutable
 data class SendState(
     val peerName: String,
     val fraction: Float,
     val text: String,
+)
+
+enum class NfcPhase { READY, RECEIVING, DONE, SENT, ERROR }
+
+/** Что рисует NFC-шторка. Никаких режимов — только ход передачи. */
+@Immutable
+data class NfcState(
+    val phase: NfcPhase = NfcPhase.READY,
+    val fraction: Float = 0f,
+    val files: Int = 0,
+    val texts: Int = 0,
+    val hasItems: Boolean = false,
 )
 
 /**
@@ -86,6 +99,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val developerMode = MutableStateFlow(false)
     val autoSendReports = MutableStateFlow(false)
     val appLanguage = MutableStateFlow("system")
+    val themeMode = MutableStateFlow(THEME_DARK)
     val strings = MutableStateFlow<AppStrings>(resolveStrings("system"))
 
     val peers = MutableStateFlow<List<DiscoveredPeer>>(emptyList())
@@ -170,6 +184,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             developerMode.value = s.developerMode.value
             autoSendReports.value = s.autoSendReports.value
             appLanguage.value = s.appLanguage.value
+            themeMode.value = s.themeMode.value
             strings.value = resolveStrings(s.appLanguage.value)
         }.onFailure { fail("Настройки", it) }
     }
@@ -210,6 +225,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             viewModelScope.launch(Dispatchers.IO) {
                 g.nearby.events.collect { event -> event?.let { handleNearbyEvent(it) } }
             }
+            bindNfc()
         }.onFailure { fail("Данные", it) }
     }
 
@@ -283,94 +299,122 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         message.value = "Запрос отклонён"
     }
 
-    private val _nfcIncoming = MutableStateFlow<String?>(null)
-    val nfcIncoming: StateFlow<String?> = _nfcIncoming.asStateFlow()
+    // ── NFC ──────────────────────────────────────────────────────────────
 
-    /** Текущая роль NFC: выключено / делимся / принимаем. */
-    private val _nfcMode = MutableStateFlow(NfcMode.OFF)
-    val nfcMode: StateFlow<NfcMode> = _nfcMode.asStateFlow()
+    /**
+     * Состояние нижней NFC-шторки. Режимов больше нет: отправка (HostApduService)
+     * и приём (NDEF_DISCOVERED) включены всегда, поэтому шторка только показывает,
+     * что происходит, и обновляет адрес портала перед касанием.
+     */
+    private val _nfcSheetOpen = MutableStateFlow(false)
+    val nfcSheetOpen: StateFlow<Boolean> = _nfcSheetOpen.asStateFlow()
 
-    /** Диагностический оверлей с FPS (включается в «Для разработчиков»). */
-    val fpsOverlay = MutableStateFlow(false)
+    private val _nfcState = MutableStateFlow(NfcState())
+    val nfcState: StateFlow<NfcState> = _nfcState.asStateFlow()
 
-    fun setFpsOverlay(enabled: Boolean) {
-        fpsOverlay.value = enabled
+    fun openNfcSheet() {
+        if (!NfcHelper.isNfcEnabled(context)) {
+            message.value = strings.value.nfcNotAvailable
+            return
+        }
+        if (_nfcState.value.phase != NfcPhase.RECEIVING) {
+            _nfcState.value = NfcState(hasItems = queue.value.isNotEmpty())
+        }
+        _nfcSheetOpen.value = true
+        // Свежий IP и токен: касание должно вести на живую страницу, а не на вчерашнюю.
+        viewModelScope.launch(Dispatchers.IO) { publishPortal() }
+    }
+
+    fun closeNfcSheet() {
+        _nfcSheetOpen.value = false
+    }
+
+    /** Касание вторым телефоном: ссылка с его NFC-метки. */
+    fun handleNfcReceived(raw: String) {
+        Diag.log("nfc", "incoming: $raw")
+        if (!NfcPortal.isPortalUrl(raw)) {
+            // Пришла страница релизов: у отправителя нет общего Wi-Fi.
+            message.value = strings.value.nfcNoNetwork
+            return
+        }
+        if (_nfcState.value.phase == NfcPhase.RECEIVING) return
+
+        _nfcState.value = NfcState(NfcPhase.RECEIVING)
+        _nfcSheetOpen.value = true
+        NfcHelper.vibrate(context)
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val received = NfcPortal.receive(context, raw) { fraction ->
+                    _nfcState.value = _nfcState.value.copy(
+                        phase = NfcPhase.RECEIVING,
+                        fraction = fraction,
+                    )
+                }
+                if (received.texts.isNotEmpty()) {
+                    copyToClipboard(received.texts.joinToString("\n\n"))
+                }
+                _nfcState.value = NfcState(
+                    phase = NfcPhase.DONE,
+                    fraction = 1f,
+                    files = received.files,
+                    texts = received.texts.size,
+                )
+                message.value = when {
+                    received.files > 0 -> strings.value.nfcReceivedCount(received.files)
+                    received.texts.isNotEmpty() -> strings.value.nfcTextCopied
+                    else -> strings.value.nfcEmptyPackage
+                }
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (t: Throwable) {
+                Diag.log("nfc", "receive failed: $t")
+                _nfcState.value = NfcState(NfcPhase.ERROR)
+                message.value = if (t.message == "empty") {
+                    strings.value.nfcEmptyPackage
+                } else {
+                    strings.value.nfcReceiveFailed
+                }
+            }
+        }
     }
 
     /**
-     * «Поделиться»: включаем веб-портал и публикуем очередь, чтобы NDEF-метка
-     * вела на живую страницу со скачиванием. Reader mode при этом выключен —
-     * иначе телефон не сможет отвечать как NFC-карта.
+     * Второй телефон дочитал нашу метку — показываем «Отправлено» и прячем шторку.
+     * Событие приходит из HCE-службы, поэтому подписка живёт в фоне.
      */
-    fun startNfcShare() {
-        if (_nfcMode.value == NfcMode.SHARE) {
-            stopNfc()
-            return
-        }
-        if (!NfcHelper.isNfcEnabled(context)) {
-            message.value = strings.value.nfcNotAvailable
-            return
-        }
-        if (!_isEngineReady.value) {
-            message.value = strings.value.statusPreparing
-            return
-        }
-        if (queue.value.none { it.kind != QueueKind.TEXT && it.uri != null }) {
-            message.value = strings.value.nfcNeedItems
-            return
-        }
-
-        _nfcMode.value = NfcMode.SHARE
+    private fun bindNfc() {
         viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                if (!portalEnabled.value) {
-                    portalEnabled.value = true
-                    g.settings.setPortalEnabled(true)
-                    g.portal.rotateToken()
+            // StateFlow сразу отдаёт текущее значение: без этой отметки после
+            // пересоздания Activity мы бы показали «Отправлено» ещё раз.
+            var handled = NfcHelper.served.value
+            NfcHelper.served.collect { count ->
+                if (count <= handled) {
+                    handled = count
+                    return@collect
                 }
-                publishPortal()
-                if (g.portal.url().contains("127.0.0.1")) {
-                    message.value = strings.value.nfcFallbackLink
+                handled = count
+                withContext(Dispatchers.Main) {
+                    _nfcState.value = NfcState(phase = NfcPhase.SENT, fraction = 1f)
+                    _nfcSheetOpen.value = true
+                    NfcHelper.vibrate(context)
                 }
-            }.onFailure { Diag.log("nfc", "share setup failed: $it") }
-        }
-    }
-
-    /** «Принять»: включаем reader mode на время, пока экран активен. */
-    fun startNfcReceive() {
-        if (_nfcMode.value == NfcMode.RECEIVE) {
-            stopNfc()
-            return
-        }
-        if (!NfcHelper.isNfcEnabled(context)) {
-            message.value = strings.value.nfcNotAvailable
-            return
-        }
-        _nfcMode.value = NfcMode.RECEIVE
-    }
-
-    fun stopNfc() {
-        _nfcMode.value = NfcMode.OFF
-    }
-
-    fun handleNfcReceived(data: String) {
-        Diag.log("nfc", "Incoming NFC transfer: $data")
-        _nfcIncoming.value = data
-    }
-
-    fun acceptNfc() {
-        val data = _nfcIncoming.value ?: return
-        _nfcIncoming.value = null
-        runCatching {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(data)).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                delay(2_400)
+                if (_nfcState.value.phase == NfcPhase.SENT) {
+                    _nfcSheetOpen.value = false
+                    _nfcState.value = NfcState()
+                }
             }
-            context.startActivity(intent)
         }
     }
 
-    fun declineNfc() {
-        _nfcIncoming.value = null
+    private suspend fun copyToClipboard(text: String) {
+        withContext(Dispatchers.Main) {
+            runCatching {
+                val manager = context.getSystemService(ClipboardManager::class.java)
+                manager?.setPrimaryClip(android.content.ClipData.newPlainText("FluxDrop", text))
+            }
+        }
     }
 
     /** Включает веб-портал (если выключен) и возвращает URL для показа QR-кода. */
@@ -723,6 +767,12 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) { g.settings.setAppLanguage(clean) }
     }
 
+    fun setThemeMode(mode: String) {
+        val clean = if (mode in listOf(THEME_DARK, THEME_LIGHT, THEME_SYSTEM)) mode else THEME_DARK
+        themeMode.value = clean
+        viewModelScope.launch(Dispatchers.IO) { g.settings.setThemeMode(clean) }
+    }
+
     fun setDeveloperMode(enabled: Boolean) {
         developerMode.value = enabled
         viewModelScope.launch(Dispatchers.IO) { g.settings.setDeveloperMode(enabled) }
@@ -779,19 +829,58 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Публикует пакет на веб-портал и обновляет NDEF-ссылку.
+     *
+     * Вызывается после любого изменения очереди, поэтому касание NFC всегда
+     * ведёт на живую страницу: телефон без FluxDrop скачивает файлы в браузере,
+     * телефон с FluxDrop — тем же списком через [NfcPortal]. Портал включается
+     * сам: отдельного «режима отправки» больше нет.
+     */
     private fun publishPortal() {
-        if (!portalEnabled.value) return
         runCatching {
-            val files = queue.value
-                .filter { it.kind != QueueKind.TEXT && it.uri != null }
-                .map { PortalFile(id = it.id, name = it.name, size = it.size, uri = it.uri.toString()) }
+            if (!portalEnabled.value) {
+                portalEnabled.value = true
+                g.settings.setPortalEnabled(true)
+            }
+
+            val files = queue.value.mapNotNull { item ->
+                if (item.kind == QueueKind.TEXT) {
+                    val text = item.text?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+                    PortalFile(
+                        id = item.id,
+                        name = textFileName(item),
+                        size = text.toByteArray(Charsets.UTF_8).size.toLong(),
+                        text = text,
+                    )
+                } else {
+                    val uri = item.uri ?: return@mapNotNull null
+                    PortalFile(
+                        id = item.id,
+                        name = item.name,
+                        size = item.size,
+                        uri = uri.toString(),
+                    )
+                }
+            }
             g.portal.publish(files)
 
-            // Держим NDEF-ссылку актуальной: касание должно вести на живую страницу,
-            // а не на страницу релизов. Без Wi-Fi (127.0.0.1) отдаём страницу релизов.
+            // Пустой пакет или отсутствие Wi-Fi — отдаём страницу релизов.
             val url = g.portal.url()
             portalUrl.value = url
-            NfcHelper.updatePayload(url.takeIf { !it.contains("127.0.0.1") })
+            NfcHelper.updatePayload(url.takeIf { files.isNotEmpty() && !it.contains("127.0.0.1") })
+            Diag.log("portal", "published ${files.size} item(s)")
         }.onFailure { Diag.log("portal", "publish failed: $it") }
+    }
+
+    /** Имя для текста из пакета: получатель сохранит его как обычный .txt. */
+    private fun textFileName(item: QueueItem): String {
+        val base = item.name
+            .removeSuffix("…")
+            .replace(Regex("[/\\\\:*?\"<>|\\u0000-\\u001F]"), "_")
+            .trim()
+            .take(40)
+            .ifBlank { "text" }
+        return "$base.txt"
     }
 }

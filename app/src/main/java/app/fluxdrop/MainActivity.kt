@@ -7,16 +7,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import app.fluxdrop.core.Diag
 import app.fluxdrop.ui.AppRoot
 import app.fluxdrop.ui.AppViewModel
-import app.fluxdrop.ui.FluxTheme
 import app.fluxdrop.util.NfcHelper
-import app.fluxdrop.util.NfcMode
-import kotlinx.coroutines.launch
 
 /**
  * Единственная задача Activity — показать первый кадр.
@@ -33,37 +27,12 @@ class MainActivity : ComponentActivity() {
         Diag.log("ui", "MainActivity.onCreate")
         enableEdgeToEdge()
 
+        // Тему выставляет сам AppRoot по настройке «Оформление».
         setContent {
-            FluxTheme {
-                AppRoot(viewModel)
-            }
-        }
-
-        // Reader mode живёт ровно столько, сколько экран активен, и только
-        // в режиме «Принять». В режиме «Поделиться» он выключен — иначе
-        // контроллер занят чтением и телефон не может эмулировать карту.
-        lifecycleScope.launch {
-            repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                try {
-                    viewModel.nfcMode.collect { mode -> applyNfcMode(mode) }
-                } finally {
-                    NfcHelper.stopReaderMode(this@MainActivity)
-                }
-            }
+            AppRoot(viewModel)
         }
 
         handleIntent(intent)
-    }
-
-    private fun applyNfcMode(mode: NfcMode) {
-        when (mode) {
-            NfcMode.RECEIVE -> NfcHelper.startReaderMode(this) { payload ->
-                viewModel.handleNfcReceived(payload)
-            }
-
-            NfcMode.SHARE, NfcMode.OFF -> NfcHelper.stopReaderMode(this)
-        }
-        Diag.log("nfc", "mode=$mode")
     }
 
     override fun onNewIntent(intent: Intent) {

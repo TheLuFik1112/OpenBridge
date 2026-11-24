@@ -17,6 +17,8 @@ data class PortalFile(
     val name: String,
     val size: Long,
     val uri: String? = null,
+    /** Текст из пакета: отдаётся как text/plain, без файла на диске. */
+    val text: String? = null,
 )
 
 /**
@@ -105,10 +107,12 @@ async function refresh() {
     const res = await fetch('/web/list?t=' + encodeURIComponent(token));
     const items = await res.json();
     if (!items.length) { list.innerHTML = '<li class="empty">Пока нет файлов для скачивания</li>'; return; }
-    list.innerHTML = items.map(f => '<li><span class="name">' + f.name +
-      '<br><span class="meta">' + human(f.size) + '</span></span>' +
+    const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    list.innerHTML = items.map(f => '<li><span class="name">' + esc(f.name) +
+      (f.text ? '<br><span class="meta">' + esc(f.text.slice(0, 140)) + '</span>' : '') +
+      '<br><span class="meta">' + (f.text ? 'Текст' : human(f.size)) + '</span></span>' +
       '<a class="btn" href="/web/get?t=' + encodeURIComponent(token) +
-      '&id=' + encodeURIComponent(f.id) + '">Скачать</a></li>').join('');
+      '&id=' + encodeURIComponent(f.id) + '">' + (f.text ? 'Открыть' : 'Скачать') + '</a></li>').join('');
   } catch (e) {
     list.innerHTML = '<li class="empty">Не удалось получить список</li>';
   }

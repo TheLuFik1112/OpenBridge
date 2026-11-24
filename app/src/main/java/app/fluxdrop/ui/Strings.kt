@@ -33,17 +33,18 @@ interface AppStrings {
     val btnCancel: String
 
     // NFC
-    val nfcSwipeHint: String
+    val nfcSwipeUp: String
     val nfcTitle: String
-    val nfcSubtitle: String
-    val nfcReady: String
-    val nfcSuccess: String
+    val nfcHoldToSend: String
+    val nfcSent: String
+    val nfcReceiving: String
+    val nfcReceived: String
+    fun nfcReceivedCount(count: Int): String
+    val nfcReceiveFailed: String
+    val nfcNoNetwork: String
+    val nfcEmptyPackage: String
+    val nfcTextCopied: String
     val nfcNotAvailable: String
-    val nfcShareMode: String
-    val nfcReceiveMode: String
-    val nfcPickMode: String
-    val nfcShareReady: String
-    val nfcReceiveReady: String
     val nfcNeedItems: String
     val nfcFallbackLink: String
 
@@ -54,6 +55,11 @@ interface AppStrings {
     val btnChange: String
     val renameDialogTitle: String
     val btnSave: String
+    val themeCard: String
+    val themeLabel: String
+    val themeDark: String
+    val themeLight: String
+    val themeSystem: String
     val languageCard: String
     val languageLabel: String
     val langSystem: String
@@ -125,18 +131,19 @@ object RuStrings : AppStrings {
     override val btnAdd = "Добавить"
     override val btnCancel = "Отмена"
 
-    override val nfcSwipeHint = "Свайп вниз для NFC передачи"
+    override val nfcSwipeUp = "Свайп вверх — передача по NFC"
     override val nfcTitle = "Приложите телефон"
-    override val nfcSubtitle = "Держите телефоны задними панелями друг к другу для быстрой передачи"
-    override val nfcReady = "Поиск устройства NFC…"
-    override val nfcSuccess = "Успешно передано!"
+    override val nfcHoldToSend = "Приложите телефон для отправки"
+    override val nfcSent = "Отправлено!"
+    override val nfcReceiving = "Получение файлов…"
+    override val nfcReceived = "Готово"
+    override fun nfcReceivedCount(count: Int) = "Получено файлов: $count"
+    override val nfcReceiveFailed = "Не удалось получить файлы. Проверьте, что телефоны в одной сети"
+    override val nfcNoNetwork = "У отправителя нет общей сети — передача невозможна"
+    override val nfcEmptyPackage = "В пакете отправителя пока ничего нет"
+    override val nfcTextCopied = "Текст скопирован в буфер обмена"
     override val nfcNotAvailable = "NFC недоступен или выключен на этом телефоне"
-    override val nfcShareMode = "Поделиться"
-    override val nfcReceiveMode = "Принять"
-    override val nfcPickMode = "Выберите режим: «Поделиться» на своём телефоне, «Принять» — на втором."
-    override val nfcShareReady = "Готово. Приложите телефон получателя — он получит ссылку на файлы из пакета."
-    override val nfcReceiveReady = "Сканирую. Приложите телефон, который делится файлами."
-    override val nfcNeedItems = "Сначала добавьте файлы или папку в пакет отправки"
+    override val nfcNeedItems = "Сначала добавьте файлы, фото или текст в пакет"
     override val nfcFallbackLink = "Нет Wi-Fi: по NFC уйдёт ссылка на скачивание FluxDrop"
 
     override val settingsTitle = "Настройки"
@@ -145,6 +152,11 @@ object RuStrings : AppStrings {
     override val btnChange = "Изменить"
     override val renameDialogTitle = "Имя устройства"
     override val btnSave = "Сохранить"
+    override val themeCard = "Оформление"
+    override val themeLabel = "Тема"
+    override val themeDark = "Чёрная (по умолчанию)"
+    override val themeLight = "Светлая"
+    override val themeSystem = "Как в системе"
     override val languageCard = "Язык / Language"
     override val languageLabel = "Язык интерфейса"
     override val langSystem = "Системный (по умолчанию)"
@@ -215,18 +227,19 @@ object EnStrings : AppStrings {
     override val btnAdd = "Add"
     override val btnCancel = "Cancel"
 
-    override val nfcSwipeHint = "Swipe down for NFC transfer"
+    override val nfcSwipeUp = "Swipe up — send over NFC"
     override val nfcTitle = "Hold devices together"
-    override val nfcSubtitle = "Hold phones back-to-back for instant NFC transfer"
-    override val nfcReady = "Waiting for NFC device…"
-    override val nfcSuccess = "Successfully transferred!"
+    override val nfcHoldToSend = "Hold your phone here to send"
+    override val nfcSent = "Sent!"
+    override val nfcReceiving = "Receiving files…"
+    override val nfcReceived = "Done"
+    override fun nfcReceivedCount(count: Int) = "Files received: $count"
+    override val nfcReceiveFailed = "Could not receive files. Make sure both phones are on the same network"
+    override val nfcNoNetwork = "The sender is not on a shared network — transfer is not possible"
+    override val nfcEmptyPackage = "The sender's package is still empty"
+    override val nfcTextCopied = "Text copied to clipboard"
     override val nfcNotAvailable = "NFC is not supported or disabled on this device"
-    override val nfcShareMode = "Share"
-    override val nfcReceiveMode = "Receive"
-    override val nfcPickMode = "Pick a mode: Share on this phone, Receive on the other one."
-    override val nfcShareReady = "Ready. Hold the other phone here — it will get a link to the queued files."
-    override val nfcReceiveReady = "Scanning. Hold the phone that is sharing files."
-    override val nfcNeedItems = "Add files or a folder to the send package first"
+    override val nfcNeedItems = "Add files, photos or text to the package first"
     override val nfcFallbackLink = "No Wi-Fi: NFC will share the FluxDrop download link"
 
     override val settingsTitle = "Settings"
@@ -235,6 +248,11 @@ object EnStrings : AppStrings {
     override val btnChange = "Change"
     override val renameDialogTitle = "Device Name"
     override val btnSave = "Save"
+    override val themeCard = "Appearance"
+    override val themeLabel = "Theme"
+    override val themeDark = "Black (default)"
+    override val themeLight = "Light"
+    override val themeSystem = "Follow system"
     override val languageCard = "Language"
     override val languageLabel = "Interface Language"
     override val langSystem = "System (Default)"

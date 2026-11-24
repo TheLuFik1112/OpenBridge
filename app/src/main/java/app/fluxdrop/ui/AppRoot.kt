@@ -1,6 +1,9 @@
 package app.fluxdrop.ui
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -14,8 +17,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -24,20 +25,21 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import kotlinx.coroutines.launch
 
 private data class Tab(
@@ -52,15 +54,37 @@ private val tabs = listOf(
     Tab(title = { it.tabSettings }, label = { it.tabSettings }, icon = Icons.Rounded.Settings),
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppRoot(viewModel: AppViewModel) {
+    val themeMode by viewModel.themeMode.collectAsState()
+    val dark = isDarkTheme(themeMode)
+    val view = LocalView.current
+    val context = LocalContext.current
+
+    // Чёрная тема по умолчанию: значки системных панелей должны быть светлыми,
+    // а в светлой теме — тёмными, иначе они теряются на фоне.
+    LaunchedEffect(dark) {
+        val window = context.findActivity()?.window ?: return@LaunchedEffect
+        WindowCompat.getInsetsController(window, view).apply {
+            isAppearanceLightStatusBars = !dark
+            isAppearanceLightNavigationBars = !dark
+        }
+    }
+
+    FluxTheme(mode = themeMode) {
+        AppContent(viewModel)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AppContent(viewModel: AppViewModel) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var qrPayload by remember { mutableStateOf<String?>(null) }
 
     // На корне держим только то, что действительно нужно всему экрану:
-    // строки, снекбар, диалоги поверх и оверлей. Всё остальное (очередь,
+    // строки, снекбар, шторки и диалоги поверх. Всё остальное (очередь,
     // пиры, отправка, история, доверенные) собирают сами экраны — иначе
     // любой маяк из сети перерисовывал весь pager целиком.
     val message by viewModel.message.collectAsState()
@@ -68,8 +92,8 @@ fun AppRoot(viewModel: AppViewModel) {
     val nearbyIncoming by viewModel.nearbyIncoming.collectAsState()
     val nearbyProgress by viewModel.nearbyProgress.collectAsState()
     val strings by viewModel.strings.collectAsState()
-    val nfcIncoming by viewModel.nfcIncoming.collectAsState()
-    val fpsOverlay by viewModel.fpsOverlay.collectAsState()
+    val nfcSheetOpen by viewModel.nfcSheetOpen.collectAsState()
+    val nfcState by viewModel.nfcState.collectAsState()
 
     // Движок стартует только после того, как кадр уже нарисован.
     LaunchedEffect(Unit) {
@@ -124,7 +148,7 @@ fun AppRoot(viewModel: AppViewModel) {
         ActivityResultContracts.OpenDocumentTree()
     ) { uri -> uri?.let { viewModel.addFolder(it) } }
 
-    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
+    val coroutineScope = rememberCoroutineScope()
     val pagerState = rememberPagerState { tabs.size }
     val selectedTab = pagerState.currentPage
 
@@ -174,6 +198,13 @@ fun AppRoot(viewModel: AppViewModel) {
             }
         }
 
+        if (nfcSheetOpen) {
+            NfcSheet(
+                state = nfcState,
+                onDismiss = viewModel::closeNfcSheet,
+            )
+        }
+
         nearbyIncoming?.let { request ->
             NearbyIncomingSheet(
                 request = request,
@@ -194,29 +225,6 @@ fun AppRoot(viewModel: AppViewModel) {
             QrDialog(payload = payload, onDismiss = { qrPayload = null })
         }
 
-        if (nfcIncoming != null) {
-            AlertDialog(
-                onDismissRequest = viewModel::declineNfc,
-                title = { Text(if (strings is RuStrings) "Входящая передача по NFC" else "Incoming NFC Transfer") },
-                text = {
-                    Text(
-                        if (strings is RuStrings) "Телефон рядом передал файлы через NFC. Принять передачу?"
-                        else "Nearby phone shared files via NFC. Accept transfer?"
-                    )
-                },
-                confirmButton = {
-                    Button(onClick = viewModel::acceptNfc) {
-                        Text(strings.btnAccept)
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = viewModel::declineNfc) {
-                        Text(strings.btnDecline)
-                    }
-                },
-            )
-        }
-
         crash?.let { pending ->
             CrashDialog(
                 crash = pending,
@@ -224,8 +232,14 @@ fun AppRoot(viewModel: AppViewModel) {
                 onDismiss = viewModel::dismissCrash,
             )
         }
-
-        // Диагностический счётчик кадров: пока он выключен, ничего не считается и не рисуется.
-        FpsOverlay(enabled = fpsOverlay)
     }
+}
+
+private fun Context.findActivity(): Activity? {
+    var current: Context = this
+    while (current is ContextWrapper) {
+        if (current is Activity) return current
+        current = current.baseContext
+    }
+    return null
 }

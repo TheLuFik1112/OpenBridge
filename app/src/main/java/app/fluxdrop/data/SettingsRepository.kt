@@ -20,6 +20,15 @@ class SettingsRepository(private val context: Context) {
     val autoSendReports = MutableStateFlow(prefs.getBoolean(KEY_AUTO_REPORTS, false))
     val appLanguage = MutableStateFlow(prefs.getString(KEY_LANGUAGE, "system") ?: "system")
 
+    /** Оформление: чёрная тема по умолчанию, светлую можно выбрать в настройках. */
+    val themeMode = MutableStateFlow(prefs.getString(KEY_THEME, THEME_DARK) ?: THEME_DARK)
+
+    fun setThemeMode(value: String) {
+        val clean = if (value in listOf(THEME_DARK, THEME_LIGHT, THEME_SYSTEM)) value else THEME_DARK
+        themeMode.value = clean
+        prefs.edit().putString(KEY_THEME, clean).apply()
+    }
+
     fun setAppLanguage(value: String) {
         val clean = if (value in listOf("system", "en", "ru")) value else "system"
         appLanguage.value = clean
@@ -84,5 +93,10 @@ class SettingsRepository(private val context: Context) {
         const val KEY_DEVELOPER = "developer_mode"
         const val KEY_AUTO_REPORTS = "auto_send_reports"
         const val KEY_LANGUAGE = "app_language"
+        const val KEY_THEME = "theme_mode"
+
+        const val THEME_DARK = "dark"
+        const val THEME_LIGHT = "light"
+        const val THEME_SYSTEM = "system"
     }
 }

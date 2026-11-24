@@ -63,7 +63,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
     val context = LocalContext.current
     val deviceName by viewModel.deviceName.collectAsState()
     val trusted by viewModel.trusted.collectAsState()
-    val fpsOverlay by viewModel.fpsOverlay.collectAsState()
+    val themeMode by viewModel.themeMode.collectAsState()
     val appLanguage by viewModel.appLanguage.collectAsState()
     val serviceEnabled by viewModel.serviceEnabled.collectAsState()
     val autoAccept by viewModel.autoAccept.collectAsState()
@@ -72,6 +72,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
 
     var renameOpen by rememberSaveable { mutableStateOf(false) }
     var langOpen by rememberSaveable { mutableStateOf(false) }
+    var themeOpen by rememberSaveable { mutableStateOf(false) }
     var statsOpen by rememberSaveable { mutableStateOf(false) }
     var logsOpen by rememberSaveable { mutableStateOf(false) }
     var overlayGranted by remember { mutableStateOf(hasOverlayPermission(context)) }
@@ -98,6 +99,26 @@ fun SettingsScreen(viewModel: AppViewModel) {
                         )
                     }
                     TextButton(onClick = { renameOpen = true }) { Text(strings.btnChange) }
+                }
+            }
+        }
+
+        item(key = "theme") {
+            SettingsCard(strings.themeCard) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(strings.themeLabel, style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            when (themeMode) {
+                                THEME_LIGHT -> strings.themeLight
+                                THEME_SYSTEM -> strings.themeSystem
+                                else -> strings.themeDark
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    TextButton(onClick = { themeOpen = true }) { Text(strings.btnChange) }
                 }
             }
         }
@@ -286,15 +307,6 @@ fun SettingsScreen(viewModel: AppViewModel) {
                     Spacer(Modifier.height(10.dp))
                     HorizontalDivider()
                     Spacer(Modifier.height(10.dp))
-                    SwitchRow(
-                        title = "FPS overlay",
-                        subtitle = "Show a live frame-rate counter on top of the UI",
-                        checked = fpsOverlay,
-                        onCheckedChange = viewModel::setFpsOverlay,
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    HorizontalDivider()
-                    Spacer(Modifier.height(10.dp))
                     Row(
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -342,6 +354,18 @@ fun SettingsScreen(viewModel: AppViewModel) {
                 }
             }
         }
+    }
+
+    if (themeOpen) {
+        ThemeDialog(
+            current = themeMode,
+            strings = strings,
+            onDismiss = { themeOpen = false },
+            onSelect = { mode ->
+                viewModel.setThemeMode(mode)
+                themeOpen = false
+            },
+        )
     }
 
     if (langOpen) {
@@ -403,6 +427,47 @@ fun SettingsScreen(viewModel: AppViewModel) {
             },
         )
     }
+}
+
+@Composable
+private fun ThemeDialog(
+    current: String,
+    strings: AppStrings,
+    onDismiss: () -> Unit,
+    onSelect: (String) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(strings.themeCard) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(
+                    THEME_DARK to strings.themeDark,
+                    THEME_LIGHT to strings.themeLight,
+                    THEME_SYSTEM to strings.themeSystem,
+                ).forEach { (mode, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onSelect(mode) }
+                            .padding(vertical = 10.dp, horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = current == mode,
+                            onClick = { onSelect(mode) },
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(label, style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(strings.btnCancel) }
+        },
+    )
 }
 
 @Composable

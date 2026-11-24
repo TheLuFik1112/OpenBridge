@@ -9,15 +9,18 @@ import app.fluxdrop.core.Diag
  * Позволяет любому современному Android-устройству (и iPhone) считать NDEF-сообщение
  * при простом касании, без необходимости запускать специальные режимы считывания.
  *
- * Если на втором телефоне есть FluxDrop — откроется приложение благодаря AAR (app.fluxdrop.p2p).
- * Если приложения нет — откроется браузер со ссылкой на скачивание.
+ * NDEF содержит только ссылку на портал. Если на втором телефоне есть FluxDrop —
+ * фильтр NDEF_DISCOVERED открывает приложение и оно само скачивает файлы.
+ * Если приложения нет — открывается браузер с той же живой страницей портала.
  *
- * Важно: работает только пока на этом телефоне НЕ включён reader mode
- * (см. [NfcMode] и комментарий в [NfcHelper]).
+ * Работает всегда, когда включён NFC: reader mode не используется (см. [NfcHelper]).
  */
 class FluxApduService : HostApduService() {
 
     private var selectedFile: SelectedFile = SelectedFile.NONE
+
+    /** Второй телефон уже дочитал NDEF до конца — сообщаем один раз за касание. */
+    private var ndefServed = false
 
     private enum class SelectedFile { NONE, CC, NDEF }
 
@@ -72,6 +75,13 @@ class FluxApduService : HostApduService() {
             System.arraycopy(fileData, offset, result, 0, readLen)
             result[result.size - 2] = 0x90.toByte()
             result[result.size - 1] = 0x00
+
+            if (selectedFile == SelectedFile.NDEF && !ndefServed &&
+                offset + readLen >= fileData.size
+            ) {
+                ndefServed = true
+                NfcHelper.notifyServed()
+            }
             return result
         }
 
@@ -80,6 +90,7 @@ class FluxApduService : HostApduService() {
 
     override fun onDeactivated(reason: Int) {
         selectedFile = SelectedFile.NONE
+        ndefServed = false
         Diag.log("nfc_hce", "Deactivated: $reason")
     }
 
