@@ -4,34 +4,33 @@
 
 ---
 
-Fast peer-to-peer file, photo, folder, and text transfer between devices: no internet required, no cloud, no accounts, and no registration. Devices discover each other on the local Wi-Fi network or connect directly via Google Nearby / Wi-Fi Direct when no router is available.
+Send files, photos, folders and text from one phone to another: no internet, no cloud, no accounts. Phones find each other on the same Wi-Fi or connect directly when there is no router.
 
-**Current version: 0.5.0** · Android 8.0+ (minSdk 26) · Kotlin + Jetpack Compose (Material 3)
+**Current version: 0.5.0** · Android 8.0+ · Kotlin + Jetpack Compose (Material 3)
+
+## How to use
+
+1. Add files, photos, folders or text to the package.
+2. Pick a device from the list and tap Send — or swipe down and hold the phones together, if both have NFC.
+3. To hand something to a PC or iPhone, tap QR on the home screen and scan it in the browser.
 
 ## Features
 
-- **Send Package:** Queue files, photos, folders, or clipboard text before selecting the recipient.
-- **Dedicated Photo Picker:** Fast selection of pictures with the dedicated "Photos" button.
-- **One-Tap NFC Transfer:** Swipe down on the home screen to open the "Hold devices together" panel and touch the phones back-to-back. The tag carries the sender's name and id: FluxDrop on the other phone finds that device over Nearby, connects and pulls the package by itself, so nothing is published on the local network. Without FluxDrop the tag falls through to the download page.
-- **Black by Default:** A true-black Material 3 theme, with a light option in Settings → Appearance. No dynamic color.
-- **One-Tap QR Code on Home Screen:** Instant QR code generation on the main screen to open the Web Portal in any browser (PC, iPhone, Android) without installing an app.
-- **Dual Discovery Channels:**
-  - **LAN:** UDP broadcast every 2 seconds with `MulticastLock`; works on any shared network or mobile hotspot.
-  - **Nearby:** Google Nearby Connections (BLE + Wi-Fi Direct) connects phones directly without internet or router.
-- **Enhanced Nearby Security:**
-  - Untrusted devices are disconnected after transfer so that incoming confirmation sheets re-appear for every new transfer.
-  - One-tap "Always Accept (Trusted)" button in the incoming sheet saves trusted devices.
-- **Incoming Sheet Overlay:** Incoming prompts appear over any app even when FluxDrop is minimized.
-- **High-Speed Resumable Transfers:** 16 MB chunks with SHA-256 integrity checks; interrupted transfers resume seamlessly.
-- **Full Localization:** English and Russian languages supported with automatic system language detection and manual language switching in Settings.
-- **Quick Settings Tile:** Send clipboard contents to the nearest trusted peer with a single tap.
-- **Crash Diagnostics:** Error logs and crash reports can be inspected or exported in developer settings.
+- **Send a package:** collect everything first, then choose the recipient.
+- **NFC in one touch:** swipe down on the home screen and hold the phones back to back. If the other phone has FluxDrop, the package arrives by itself; if not, it opens the download page.
+- **QR code:** show it from the home screen to open the package in any browser on a PC or iPhone — no app needed.
+- **Works without a router:** on the same Wi-Fi or phone to phone, even with no network around.
+- **Incoming requests on top:** a transfer request appears over any app, even when FluxDrop is in the background. Trusted devices are accepted automatically.
+- **Black theme:** true black by default, light theme in Settings → Appearance.
+- **Russian and English:** follows the system language, can be switched in Settings.
+- **Quick Settings tile:** send the clipboard with one tap.
+- **Resumable transfers:** an interrupted transfer continues where it stopped.
 
 ## Installation
 
 1. Go to [Releases](../../releases) and download the latest `FluxDrop-*.apk`.
 2. Open the file on your device and allow installation from this source.
-3. Grant necessary permissions (Notifications, Nearby devices / Location, Storage).
+3. Grant the permissions the app asks for (notifications, nearby devices, storage).
 
 ## License
 
