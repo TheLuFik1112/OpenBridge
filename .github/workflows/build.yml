@@ -30,20 +30,20 @@ jobs:
 
       - name: Rename APK
         run: |
-          VERSION=$(grep -oP 'APP_VERSION = "\K[0-9.]+' app/src/main/java/app/fluxdrop/core/Models.kt)
+          VERSION=$(grep -oP 'APP_VERSION = "\K[0-9.]+' app/src/main/java/app/openbridge/core/Models.kt)
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
-          cp app/build/outputs/apk/debug/app-debug.apk "app/build/outputs/apk/debug/FluxDrop-$VERSION.apk"
+          cp app/build/outputs/apk/debug/app-debug.apk "app/build/outputs/apk/debug/OpenBridge-$VERSION.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FluxDrop-debug
-          path: app/build/outputs/apk/debug/FluxDrop-*.apk
+          name: OpenBridge-debug
+          path: app/build/outputs/apk/debug/OpenBridge-*.apk
           if-no-files-found: error
 
       - name: Attach APK to release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: app/build/outputs/apk/debug/FluxDrop-*.apk
+          files: app/build/outputs/apk/debug/OpenBridge-*.apk
           fail_on_unmatched_files: true

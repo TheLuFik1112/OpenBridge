@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "FluxDrop"
+rootProject.name = "OpenBridge"
 include(":app")

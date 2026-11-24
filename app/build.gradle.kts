@@ -8,12 +8,12 @@ plugins {
 }
 
 android {
-    namespace = "app.fluxdrop"
+    namespace = "app.openbridge"
     compileSdk = 35
     buildToolsVersion = "35.0.0"
 
     defaultConfig {
-        applicationId = "app.fluxdrop.p2p"
+        applicationId = "app.openbridge"
         minSdk = 26
         targetSdk = 35
         versionCode = 16
@@ -22,11 +22,11 @@ android {
 
     signingConfigs {
         getByName("debug") {
-            storeFile = rootProject.file("keystore/fluxdrop-debug.p12")
+            storeFile = rootProject.file("keystore/openbridge-debug.p12")
             storeType = "PKCS12"
-            storePassword = "fluxdrop"
-            keyAlias = "fluxdrop-debug"
-            keyPassword = "fluxdrop"
+            storePassword = "openbridge"
+            keyAlias = "openbridge-debug"
+            keyPassword = "openbridge"
             enableV1Signing = true
             enableV2Signing = true
         }
