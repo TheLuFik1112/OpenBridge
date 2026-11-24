@@ -1,5 +1,7 @@
 package app.fluxdrop.ui
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,6 +23,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
@@ -241,7 +244,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
         item(key = "about") {
             SettingsCard(strings.aboutCard) {
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
                     shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -255,28 +258,37 @@ fun SettingsScreen(viewModel: AppViewModel) {
                                 taps = if (now - lastTapAt > 1_500) 1 else taps + 1
                                 lastTapAt = now
                                 if (taps >= 7) {
-                                taps = 0
-                                viewModel.setDeveloperMode(true)
-                                Toast.makeText(
-                                    context,
-                                    "Developer mode enabled",
-                                    Toast.LENGTH_SHORT,
-                                ).show()
-                            } else if (taps >= 4) {
-                                Toast.makeText(context, "${7 - taps}", Toast.LENGTH_SHORT).show()
+                                    taps = 0
+                                    viewModel.setDeveloperMode(true)
+                                    Toast.makeText(
+                                        context,
+                                        "Developer mode enabled",
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                } else if (taps >= 4) {
+                                    Toast.makeText(context, "${7 - taps}", Toast.LENGTH_SHORT).show()
+                                }
                             }
-                        }
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text("FluxDrop", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "FluxDrop",
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Spacer(Modifier.height(2.dp))
                             Text(
                                 "${strings.versionLabel} $APP_VERSION",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
                         if (developerMode) {
+                            Spacer(Modifier.width(8.dp))
                             Text(
                                 "dev",
                                 style = MaterialTheme.typography.labelSmall,
@@ -285,6 +297,11 @@ fun SettingsScreen(viewModel: AppViewModel) {
                         }
                     }
                 }
+
+                Spacer(Modifier.height(8.dp))
+                HorizontalDivider()
+                AboutLink(label = strings.aboutCard, url = REPO_URL)
+                AboutLink(label = strings.licenseLabel, url = LICENSE_URL)
             }
         }
 
@@ -610,3 +627,43 @@ private fun ActionRow(
         TextButton(onClick = onClick) { Text(action) }
     }
 }
+
+/** Ссылка в карточке «О приложении»: подпись слева, стрелка справа. */
+@Composable
+private fun AboutLink(label: String, url: String) {
+    val context = LocalContext.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable {
+                runCatching {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }
+            }
+            .padding(horizontal = 6.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Spacer(Modifier.width(8.dp))
+        Icon(
+            Icons.Rounded.OpenInNew,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(16.dp),
+        )
+    }
+}
+
+private const val REPO_URL = "https://github.com/TheLuFik1112/FluxDrop"
+private const val LICENSE_URL = "https://opensource.org/license/mit"

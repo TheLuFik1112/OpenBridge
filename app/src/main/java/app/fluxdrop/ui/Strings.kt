@@ -94,6 +94,7 @@ interface AppStrings {
     val btnRevoke: String
     val aboutCard: String
     val versionLabel: String
+    val licenseLabel: String
 
     // Sheet
     val nearbyIncomingDesc: String
@@ -194,6 +195,7 @@ object RuStrings : AppStrings {
     override val btnRevoke = "Отозвать"
     override val aboutCard = "О приложении"
     override val versionLabel = "Версия"
+    override val licenseLabel = "Лицензия"
 
     override val nearbyIncomingDesc = "Телефон рядом хочет передать данные напрямую без роутера через Nearby / Wi-Fi Direct."
     override val btnTrustAlways = "Всегда принимать (Доверенное)"
@@ -293,6 +295,7 @@ object EnStrings : AppStrings {
     override val btnRevoke = "Revoke"
     override val aboutCard = "About"
     override val versionLabel = "Version"
+    override val licenseLabel = "License"
 
     override val nearbyIncomingDesc = "Nearby device wants to transfer data directly without a router via Nearby / Wi-Fi Direct."
     override val btnTrustAlways = "Always accept (Trusted)"
