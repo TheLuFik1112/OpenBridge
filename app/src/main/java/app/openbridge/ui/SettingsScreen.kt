@@ -36,7 +36,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -484,10 +483,7 @@ private fun ThemeDialog(
                             .padding(vertical = 10.dp, horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RadioButton(
-                            selected = current == mode,
-                            onClick = { onSelect(mode) },
-                        )
+                        FlatCheckbox(checked = current == mode)
                         Spacer(Modifier.width(8.dp))
                         Text(label, style = MaterialTheme.typography.bodyLarge)
                     }
@@ -527,10 +523,7 @@ private fun LanguageDialog(
                             .padding(vertical = 10.dp, horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RadioButton(
-                            selected = current == code,
-                            onClick = { onSelect(code) },
-                        )
+                        FlatCheckbox(checked = current == code)
                         Spacer(Modifier.width(8.dp))
                         Text(label, style = MaterialTheme.typography.bodyLarge)
                     }
