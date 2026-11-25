@@ -34,6 +34,10 @@ class OpenBridgeApduService : HostApduService() {
     override fun processCommandApdu(commandApdu: ByteArray?, extras: Bundle?): ByteArray {
         if (commandApdu == null || commandApdu.size < 4) return STATUS_FAILED
 
+        // Дополнительная защита, если компонент успел получить APDU до того,
+        // как Android применил новое состояние enabled/disabled.
+        if (!NfcHelper.isTagActive()) return STATUS_FAILED
+
         val ins = commandApdu[1]
         val p1 = commandApdu[2]
         val p2 = commandApdu[3]

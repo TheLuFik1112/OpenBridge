@@ -38,6 +38,12 @@ class NfcSession(
     private val _state = MutableStateFlow(NfcState())
     val state: StateFlow<NfcState> = _state.asStateFlow()
 
+    init {
+        // Новая сессия (например, после пересоздания Activity) начинается
+        // с закрытой панели: старая метка не должна отвечать по инерции.
+        syncTag()
+    }
+
     fun openSheet() {
         if (!NfcHelper.isNfcEnabled(context)) {
             messages.value = strings.value.nfcNotAvailable
@@ -67,7 +73,7 @@ class NfcSession(
      * даже на касание, поэтому второе устройство ничего не откроет.
      */
     private fun syncTag() {
-        NfcHelper.setTagActive(_open.value && queue.items.value.isNotEmpty())
+        NfcHelper.setTagActive(context, _open.value && queue.items.value.isNotEmpty())
     }
 
     /**

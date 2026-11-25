@@ -1,7 +1,9 @@
 package app.openbridge.util
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.nfc.NdefMessage
 import android.nfc.NdefRecord
@@ -102,11 +104,23 @@ object NfcHelper {
     }
 
     /** Открылась или закрылась панель NFC: метка начинает или перестаёт отвечать. */
-    fun setTagActive(active: Boolean) {
+    fun setTagActive(context: Context, active: Boolean) {
         if (active != tagActive) {
             tagActive = active
             invalidate()
         }
+
+        // Когда NFC-панель закрыта, полностью выключаем HCE-компонент.
+        // Это важнее ответа STATUS_FAILED: Android тогда не видит телефон
+        // как NFC-метку и не показывает системное окно «пустая метка».
+        runCatching {
+            context.packageManager.setComponentEnabledSetting(
+                ComponentName(context, OpenBridgeApduService::class.java),
+                if (active) PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                else PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                PackageManager.DONT_KILL_APP,
+            )
+        }.onFailure { Diag.log("nfc", "toggle HCE failed: $it") }
     }
 
     /** В метке есть адрес отправителя: читателю есть что открыть. */
