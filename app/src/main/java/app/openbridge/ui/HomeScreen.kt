@@ -1,10 +1,13 @@
 package app.openbridge.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -25,6 +29,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
@@ -48,9 +53,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -82,10 +89,23 @@ fun HomeScreen(
     val sending by viewModel.sending.collectAsState()
     val isEngineReady by viewModel.isEngineReady.collectAsState()
     val nfcSheetOpen by viewModel.nfcSheetOpen.collectAsState()
+    val nfcState by viewModel.nfcState.collectAsState()
+    val scope = rememberCoroutineScope()
 
-    var nfcExpanded by remember { mutableStateOf(false) }
+    // Панель NFC живёт в списке только пока открыта: panelShown убирает её
+    // из LazyColumn после анимации, panelVisible задаёт цель анимации.
+    var panelShown by remember { mutableStateOf(nfcSheetOpen) }
+    var panelVisible by remember { mutableStateOf(nfcSheetOpen) }
+
     LaunchedEffect(nfcSheetOpen) {
-        if (nfcSheetOpen) nfcExpanded = true
+        if (nfcSheetOpen) {
+            panelShown = true
+            panelVisible = true
+        } else if (panelShown) {
+            panelVisible = false
+            kotlinx.coroutines.delay(220)
+            if (!panelVisible) panelShown = false
+        }
     }
 
     val sortedPeers = remember(peers) {
@@ -131,21 +151,50 @@ fun HomeScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (nfcExpanded) {
+            if (panelShown) {
                 item(key = "nfc-panel", contentType = "card") {
                     AnimatedVisibility(
-                        visible = nfcExpanded,
-                        enter = fadeIn() + expandVertically(),
-                        exit = fadeOut(),
+                        visible = panelVisible,
+                        enter = fadeIn(animationSpec = tween(180)) +
+                            expandVertically(
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                    stiffness = Spring.StiffnessMediumLow,
+                                ),
+                            ),
+                        exit = fadeOut(animationSpec = tween(140)) +
+                            shrinkVertically(animationSpec = tween(200)),
                     ) {
                         NfcPanel(
-                            state = viewModel.nfcState.value,
+                            state = nfcState,
                             strings = strings,
                             onCollapse = {
-                                nfcExpanded = false
+                                panelVisible = false
                                 viewModel.closeNfcSheet()
                             },
                             modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            } else {
+                item(key = "nfc-hint", contentType = "title") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.openNfcSheet() }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "↓",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = FlatAccent,
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = strings.nfcPullHint.uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = FlatTextMuted,
                         )
                     }
                 }
@@ -419,7 +468,7 @@ private fun QueueCard(
 }
 
 @Composable
-private fun QuickAction(
+private fun RowScope.QuickAction(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     label: String,
     onClick: () -> Unit,
@@ -495,6 +544,7 @@ private fun PeerRow(
             .fillMaxWidth()
             .background(FlatSurface, RoundedCornerShape(0.dp))
             .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+            .clickable(enabled = enabled, onClick = onSend)
             .padding(14.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -549,9 +599,13 @@ private fun PeerRow(
             Box(
                 modifier = Modifier
                     .border(
-                        androidx.compose.foundation.BorderStroke(1.dp, FlatBorder),
+                        androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (enabled) FlatAccent else FlatBorder,
+                        ),
                         RoundedCornerShape(0.dp),
                     )
+                    .clickable(enabled = enabled, onClick = onSend)
                     .padding(horizontal = 14.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {

@@ -21,6 +21,7 @@ import androidx.compose.material.icons.rounded.CallReceived
 import androidx.compose.material.icons.rounded.CallMade
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,7 +29,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.openbridge.core.HistoryEntry
@@ -100,67 +100,63 @@ fun HistoryScreen(viewModel: AppViewModel) {
 
 @Composable
 private fun HistoryRow(entry: HistoryEntry) {
-    val strings = LocalStrings.current
     val incoming = entry.direction == "in"
     val ok = entry.status == "ok"
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(0.dp))
             .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
-            .padding(14.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
-        Column {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = if (incoming) Icons.Rounded.CallReceived else Icons.Rounded.CallMade,
-                    contentDescription = null,
-                    tint = FlatAccent,
-                    modifier = Modifier.size(20.dp),
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        entry.peerName,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = FlatTextPrimary,
-                        maxLines = 1,
-                    )
-                    Text(
-                        entry.summary,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = FlatTextSecondary,
-                        maxLines = 1,
-                    )
-                }
-                Spacer(Modifier.width(8.dp))
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        timeLabel(entry.timestamp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = FlatTextSecondary,
-                    )
-                    Text(
-                        text = if (!ok) {
-                            if (strings is RuStrings) "не удалось" else "failed"
-                        } else if (entry.bytes > 0) {
-                            formatBytes(entry.bytes)
-                        } else {
-                            if (strings is RuStrings) "готово" else "done"
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (ok) FlatAccent else FlatError,
-                    )
-                }
-            }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = if (incoming) Icons.Rounded.CallReceived else Icons.Rounded.CallMade,
+                contentDescription = null,
+                tint = FlatAccent,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = entry.peerName.uppercase(),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = FlatTextPrimary,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(8.dp))
             Text(
                 text = if (ok) "[OK]" else "[ERR]",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = if (ok) FlatAccent else FlatError,
+            )
+        }
+
+        Spacer(Modifier.height(6.dp))
+        HorizontalDivider(thickness = 1.dp, color = FlatBorder)
+        Spacer(Modifier.height(6.dp))
+
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = entry.summary,
+                style = MaterialTheme.typography.bodySmall,
+                color = FlatTextSecondary,
+                maxLines = 1,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = buildString {
+                    if (entry.bytes > 0) append(formatBytes(entry.bytes)).append("  ")
+                    append(timeLabel(entry.timestamp))
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = FlatTextMuted,
             )
         }
     }

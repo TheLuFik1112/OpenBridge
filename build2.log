@@ -1,0 +1,671 @@
+﻿2026-11-25T13:25:32.3370299Z Current runner version: '2.338.2'
+2026-11-25T13:25:32.3398944Z ##[group]Runner Image Provisioner
+2026-11-25T13:25:32.3399938Z Hosted Compute Agent
+2026-11-25T13:25:32.3400620Z Version: 20261111.635
+2026-11-25T13:25:32.3401896Z Commit: b8a594ea514ff44cadb5342986c68b1eac6e22ed
+2026-11-25T13:25:32.3403137Z Build Date: 2026-11-11T01:49:01Z
+2026-11-25T13:25:32.3404397Z Worker ID: {ef369e3f-6b8f-4254-a54d-5767b6ec821d}
+2026-11-25T13:25:32.3405611Z Region: southcentralus
+2026-11-25T13:25:32.3406210Z Cloud: Azure
+2026-11-25T13:25:32.3406839Z ##[endgroup]
+2026-11-25T13:25:32.3408422Z ##[group]Operating System
+2026-11-25T13:25:32.3409079Z Ubuntu
+2026-11-25T13:25:32.3409705Z 26.04.1
+2026-11-25T13:25:32.3410262Z LTS
+2026-11-25T13:25:32.3410856Z ##[endgroup]
+2026-11-25T13:25:32.3411435Z ##[group]Runner Image
+2026-11-25T13:25:32.3412098Z Image: ubuntu-26.04
+2026-11-25T13:25:32.3412729Z Version: 20261116.202.1
+2026-11-25T13:25:32.3414245Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261116.202/images/ubuntu/Ubuntu2604-Readme.md
+2026-11-25T13:25:32.3416388Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261116.202
+2026-11-25T13:25:32.3417396Z ##[endgroup]
+2026-11-25T13:25:32.3418613Z ##[group]GITHUB_TOKEN Permissions
+2026-11-25T13:25:32.3420837Z Contents: write
+2026-11-25T13:25:32.3421704Z Metadata: read
+2026-11-25T13:25:32.3422277Z ##[endgroup]
+2026-11-25T13:25:32.3425294Z Secret source: Actions
+2026-11-25T13:25:32.3426313Z Cache mode: write
+2026-11-25T13:25:32.3427409Z Prepare workflow directory
+2026-11-25T13:25:32.3775284Z Prepare all required actions
+2026-11-25T13:25:32.3824517Z Getting action download info
+2026-11-25T13:25:32.6690215Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-11-25T13:25:32.7803297Z Download action repository 'actions/setup-java@v4' (SHA:cf277c60eb25467037889841efdb72551f06f6c3)
+2026-11-25T13:25:33.3092012Z Download action repository 'gradle/actions@v4' (SHA:ed408507eac070d1f99cc633dbcf757c94c7933a)
+2026-11-25T13:25:34.1147091Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-11-25T13:25:34.1953356Z Download action repository 'softprops/action-gh-release@v2' (SHA:3bb12739c298aeb8a4eeaf626c5b8d85266b0e65)
+2026-11-25T13:25:34.6541960Z Complete job name: build
+2026-11-25T13:25:34.7349154Z ##[group]Run actions/checkout@v4
+2026-11-25T13:25:34.7349769Z with:
+2026-11-25T13:25:34.7350001Z   repository: TheLuFik1112/OpenBridge
+2026-11-25T13:25:34.7352428Z   token: ***
+2026-11-25T13:25:34.7352638Z   ssh-strict: true
+2026-11-25T13:25:34.7352843Z   ssh-user: git
+2026-11-25T13:25:34.7353059Z   persist-credentials: true
+2026-11-25T13:25:34.7353299Z   clean: true
+2026-11-25T13:25:34.7353512Z   sparse-checkout-cone-mode: true
+2026-11-25T13:25:34.7353777Z   fetch-depth: 1
+2026-11-25T13:25:34.7353980Z   fetch-tags: false
+2026-11-25T13:25:34.7354368Z   show-progress: true
+2026-11-25T13:25:34.7354583Z   lfs: false
+2026-11-25T13:25:34.7354773Z   submodules: false
+2026-11-25T13:25:34.7355004Z   set-safe-directory: true
+2026-11-25T13:25:34.7355254Z   allow-unsafe-pr-checkout: false
+2026-11-25T13:25:34.7355752Z ##[endgroup]
+2026-11-25T13:25:35.0520310Z Syncing repository: TheLuFik1112/OpenBridge
+2026-11-25T13:25:35.0521874Z ##[group]Getting Git version info
+2026-11-25T13:25:35.0522862Z Working directory is '/home/runner/work/OpenBridge/OpenBridge'
+2026-11-25T13:25:35.0523846Z [command]/usr/bin/git version
+2026-11-25T13:25:35.0550875Z git version 2.56.1
+2026-11-25T13:25:35.0575639Z ##[endgroup]
+2026-11-25T13:25:35.0586414Z Temporarily overriding HOME='/home/runner/work/_temp/f64b0a58-47ee-45fb-a9ef-b1e0f5792cbd' before making global git config changes
+2026-11-25T13:25:35.0587840Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-25T13:25:35.0591855Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/OpenBridge/OpenBridge
+2026-11-25T13:25:35.0667218Z Deleting the contents of '/home/runner/work/OpenBridge/OpenBridge'
+2026-11-25T13:25:35.0671184Z ##[group]Initializing the repository
+2026-11-25T13:25:35.0676392Z [command]/usr/bin/git init /home/runner/work/OpenBridge/OpenBridge
+2026-11-25T13:25:35.0827631Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-25T13:25:35.0828878Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-25T13:25:35.0829953Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-25T13:25:35.0830849Z hint: call:
+2026-11-25T13:25:35.0831525Z hint:
+2026-11-25T13:25:35.0831945Z hint: 	git config --global init.defaultBranch <name>
+2026-11-25T13:25:35.0832288Z hint:
+2026-11-25T13:25:35.0832608Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-25T13:25:35.0833146Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-25T13:25:35.0833598Z hint:
+2026-11-25T13:25:35.0833807Z hint: 	git branch -m <name>
+2026-11-25T13:25:35.0834302Z hint:
+2026-11-25T13:25:35.0845806Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-25T13:25:35.0846770Z Initialized empty Git repository in /home/runner/work/OpenBridge/OpenBridge/.git/
+2026-11-25T13:25:35.0858338Z [command]/usr/bin/git remote add origin https://github.com/TheLuFik1112/OpenBridge
+2026-11-25T13:25:35.0919429Z ##[endgroup]
+2026-11-25T13:25:35.0920157Z ##[group]Disabling automatic garbage collection
+2026-11-25T13:25:35.0923916Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-25T13:25:35.0958768Z ##[endgroup]
+2026-11-25T13:25:35.0959476Z ##[group]Setting up auth
+2026-11-25T13:25:35.0966909Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-25T13:25:35.1003204Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-25T13:25:35.1508524Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-25T13:25:35.1542664Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-25T13:25:35.1813511Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-25T13:25:35.1848303Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-25T13:25:35.2114334Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-25T13:25:35.2152875Z ##[endgroup]
+2026-11-25T13:25:35.2162486Z ##[group]Fetching the repository
+2026-11-25T13:25:35.2163689Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +a8cc11dde3284975ececd0c11820978393c79de6:refs/remotes/origin/main
+2026-11-25T13:25:35.7520926Z From https://github.com/TheLuFik1112/OpenBridge
+2026-11-25T13:25:35.7521651Z  * [new ref]         a8cc11dde3284975ececd0c11820978393c79de6 -> origin/main
+2026-11-25T13:25:35.7527186Z ##[endgroup]
+2026-11-25T13:25:35.7528011Z ##[group]Determining the checkout info
+2026-11-25T13:25:35.7530786Z ##[endgroup]
+2026-11-25T13:25:35.7536725Z [command]/usr/bin/git sparse-checkout disable
+2026-11-25T13:25:35.7595945Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-25T13:25:35.7627055Z ##[group]Checking out the ref
+2026-11-25T13:25:35.7633573Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-11-25T13:25:35.7938988Z Switched to a new branch 'main'
+2026-11-25T13:25:35.7947371Z branch 'main' set up to track 'origin/main'.
+2026-11-25T13:25:35.7953533Z ##[endgroup]
+2026-11-25T13:25:35.8002853Z [command]/usr/bin/git log -1 --format=%H
+2026-11-25T13:25:35.8029062Z a8cc11dde3284975ececd0c11820978393c79de6
+2026-11-25T13:25:35.8328534Z ##[group]Run actions/setup-java@v4
+2026-11-25T13:25:35.8328852Z with:
+2026-11-25T13:25:35.8329054Z   distribution: temurin
+2026-11-25T13:25:35.8329284Z   java-version: 17
+2026-11-25T13:25:35.8329502Z   java-package: jdk
+2026-11-25T13:25:35.8329713Z   check-latest: false
+2026-11-25T13:25:35.8329926Z   server-id: github
+2026-11-25T13:25:35.8330144Z   server-username: GITHUB_ACTOR
+2026-11-25T13:25:35.8330405Z   server-password: GITHUB_TOKEN
+2026-11-25T13:25:35.8330655Z   overwrite-settings: true
+2026-11-25T13:25:35.8330886Z   job-status: success
+2026-11-25T13:25:35.8333235Z   token: ***
+2026-11-25T13:25:35.8333443Z ##[endgroup]
+2026-11-25T13:25:36.0127235Z ##[warning]setup-java v4 is deprecated and will no longer receive updates. Please migrate to actions/setup-java@v5.
+2026-11-25T13:25:36.0135788Z ##[group]Installed distributions
+2026-11-25T13:25:36.0173002Z Resolved Java 17.0.21+9 from tool-cache
+2026-11-25T13:25:36.0173582Z Setting Java 17.0.21+9 as the default
+2026-11-25T13:25:36.0184367Z (node:2414) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-25T13:25:36.0185780Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-25T13:25:36.0189179Z Creating toolchains.xml for JDK version 17 from temurin
+2026-11-25T13:25:36.0266531Z Writing to /home/runner/.m2/toolchains.xml
+2026-11-25T13:25:36.0267051Z 
+2026-11-25T13:25:36.0267265Z Java configuration:
+2026-11-25T13:25:36.0267684Z   Distribution: temurin
+2026-11-25T13:25:36.0268100Z   Version: 17.0.21+9
+2026-11-25T13:25:36.0268670Z   Path: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64
+2026-11-25T13:25:36.0269250Z 
+2026-11-25T13:25:36.0269792Z ##[endgroup]
+2026-11-25T13:25:36.0286027Z Creating settings.xml with server-id: github
+2026-11-25T13:25:36.0333163Z Writing to /home/runner/.m2/settings.xml
+2026-11-25T13:25:36.0675727Z ##[group]Run gradle/actions/setup-gradle@v4
+2026-11-25T13:25:36.0676294Z with:
+2026-11-25T13:25:36.0676635Z   gradle-version: 8.10.2
+2026-11-25T13:25:36.0677065Z   cache-disabled: false
+2026-11-25T13:25:36.0677457Z   cache-read-only: false
+2026-11-25T13:25:36.0677863Z   cache-write-only: false
+2026-11-25T13:25:36.0678289Z   cache-overwrite-existing: false
+2026-11-25T13:25:36.0678748Z   cache-cleanup: on-success
+2026-11-25T13:25:36.0679252Z   gradle-home-cache-includes: caches
+notifications
+
+2026-11-25T13:25:36.0679815Z   add-job-summary: always
+2026-11-25T13:25:36.0680250Z   add-job-summary-as-pr-comment: never
+2026-11-25T13:25:36.0680737Z   dependency-graph: disabled
+2026-11-25T13:25:36.0681275Z   dependency-graph-report-dir: dependency-graph-reports
+2026-11-25T13:25:36.0681920Z   dependency-graph-continue-on-failure: true
+2026-11-25T13:25:36.0682449Z   build-scan-publish: false
+2026-11-25T13:25:36.0682882Z   validate-wrappers: true
+2026-11-25T13:25:36.0683352Z   allow-snapshot-wrappers: false
+2026-11-25T13:25:36.0683839Z   gradle-home-cache-strict-match: false
+2026-11-25T13:25:36.0684505Z   workflow-job-context: null
+2026-11-25T13:25:36.0689178Z   github-token: ***
+2026-11-25T13:25:36.0689559Z env:
+2026-11-25T13:25:36.0690115Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64
+2026-11-25T13:25:36.0691032Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64
+2026-11-25T13:25:36.0691739Z ##[endgroup]
+2026-11-25T13:25:37.8627492Z Merged default JDK locations into /home/runner/.m2/toolchains.xml
+2026-11-25T13:25:37.8629649Z Preparing cache for cleanup.
+2026-11-25T13:25:37.8634968Z ##[group]Restore Gradle state from cache
+2026-11-25T13:25:38.0569106Z Cache hit for restore-key: gradle-home-v1|Linux-X64|build[620c74083efa5b88ef904c2356f72d31]-c4e4cb268b8f047a973b0e5484dae6c16c4dc526
+2026-11-25T13:25:39.1969801Z Received 14774682 of 23163290 (63.8%), 14.1 MBs/sec
+2026-11-25T13:25:40.1969225Z Received 18968986 of 23163290 (81.9%), 9.0 MBs/sec
+2026-11-25T13:25:40.9423451Z Received 23163290 of 23163290 (100.0%), 8.0 MBs/sec
+2026-11-25T13:25:40.9437962Z Cache Size: ~22 MB (23163290 B)
+2026-11-25T13:25:40.9463008Z [command]/usr/bin/tar -xf /home/runner/work/_temp/24761124-2ba2-4005-aafc-e62a0118ed09/cache.tzst -P -C /home/runner/work/OpenBridge/OpenBridge --use-compress-program unzstd
+2026-11-25T13:25:41.0878666Z Cache restored successfully
+2026-11-25T13:25:41.0906508Z Restored cache entry with key gradle-home-v1|Linux-X64|build[620c74083efa5b88ef904c2356f72d31]-a8cc11dde3284975ececd0c11820978393c79de6 to /home/runner/.gradle/caches,/home/runner/.gradle/notifications,/home/runner/.gradle/.setup-gradle in 3224ms
+2026-11-25T13:25:41.2604672Z Cache hit for: gradle-transforms-v1-2890c48fc27ab5fad76cb820821e52f8
+2026-11-25T13:25:41.2686584Z Cache hit for: gradle-dependencies-v1-fc840e01e1dfc6a7b04083b4dcb27473
+2026-11-25T13:25:41.2704605Z Cache hit for: gradle-generated-gradle-jars-v1-2745217bed79d67c9856a7ed393e27bf
+2026-11-25T13:25:41.2713010Z Cache hit for: gradle-instrumented-jars-v1-46948ce42a5551904734fb8c40ad2ce7
+2026-11-25T13:25:41.2886616Z Cache hit for: gradle-kotlin-dsl-v1-c69274b273386d9855d53f25b0bd7ecf
+2026-11-25T13:25:41.2889970Z Cache hit for: gradle-groovy-dsl-v1-3d7f3246028f385b5e76a45727685495
+2026-11-25T13:25:41.6180184Z Received 76440 of 76440 (100.0%), 0.3 MBs/sec
+2026-11-25T13:25:41.6181309Z Cache Size: ~0 MB (76440 B)
+2026-11-25T13:25:41.6210822Z [command]/usr/bin/tar -xf /home/runner/work/_temp/eddb46ab-ec7f-4af5-a27a-217b6f97f4af/cache.tzst -P -C /home/runner/work/OpenBridge/OpenBridge --use-compress-program unzstd
+2026-11-25T13:25:41.6349468Z Cache restored successfully
+2026-11-25T13:25:41.6351997Z Restored cache entry with key gradle-instrumented-jars-v1-46948ce42a5551904734fb8c40ad2ce7 to /home/runner/.gradle/caches/jars-*/*/ in 545ms
+2026-11-25T13:25:41.6909294Z Received 127187 of 127187 (100.0%), 0.5 MBs/sec
+2026-11-25T13:25:41.6909971Z Cache Size: ~0 MB (127187 B)
+2026-11-25T13:25:41.6925052Z Received 138370 of 138370 (100.0%), 0.5 MBs/sec
+2026-11-25T13:25:41.6925822Z Cache Size: ~0 MB (138370 B)
+2026-11-25T13:25:41.6964903Z [command]/usr/bin/tar -xf /home/runner/work/_temp/b10e21d1-a923-4322-b863-eccdb89240e1/cache.tzst -P -C /home/runner/work/OpenBridge/OpenBridge --use-compress-program unzstd
+2026-11-25T13:25:41.7005401Z [command]/usr/bin/tar -xf /home/runner/work/_temp/742d74e8-b341-478a-b7f1-67967405cbfd/cache.tzst -P -C /home/runner/work/OpenBridge/OpenBridge --use-compress-program unzstd
+2026-11-25T13:25:41.7453582Z Cache restored successfully
+2026-11-25T13:25:41.7485866Z Restored cache entry with key gradle-groovy-dsl-v1-3d7f3246028f385b5e76a45727685495 to /home/runner/.gradle/caches/*/groovy-dsl/*/ in 656ms
+2026-11-25T13:25:41.8024177Z Cache restored successfully
+2026-11-25T13:25:41.8058062Z Restored cache entry with key gradle-kotlin-dsl-v1-c69274b273386d9855d53f25b0bd7ecf to /home/runner/.gradle/caches/*/kotlin-dsl/accessors/*/,/home/runner/.gradle/caches/*/kotlin-dsl/scripts/*/ in 715ms
+2026-11-25T13:25:42.1008641Z Received 39709001 of 39709001 (100.0%), 55.0 MBs/sec
+2026-11-25T13:25:42.1009355Z Cache Size: ~38 MB (39709001 B)
+2026-11-25T13:25:42.1570808Z [command]/usr/bin/tar -xf /home/runner/work/_temp/48d69817-0915-4320-b901-a1c090a25e36/cache.tzst -P -C /home/runner/work/OpenBridge/OpenBridge --use-compress-program unzstd
+2026-11-25T13:25:42.4057914Z Received 83886080 of 271476077 (30.9%), 79.7 MBs/sec
+2026-11-25T13:25:42.4326331Z Received 54525952 of 204132184 (26.7%), 51.7 MBs/sec
+2026-11-25T13:25:42.6007945Z Cache restored successfully
+2026-11-25T13:25:42.6105645Z Restored cache entry with key gradle-generated-gradle-jars-v1-2745217bed79d67c9856a7ed393e27bf to /home/runner/.gradle/caches/8.10.2/generated-gradle-jars/gradle-api-8.10.2.jar in 1521ms
+2026-11-25T13:25:43.3112006Z Received 204132184 of 204132184 (100.0%), 103.3 MBs/sec
+2026-11-25T13:25:43.3115159Z Cache Size: ~195 MB (204132184 B)
+2026-11-25T13:25:43.3397118Z [command]/usr/bin/tar -xf /home/runner/work/_temp/bb0c8d63-3a72-410b-9441-8918a5da0c1f/cache.tzst -P -C /home/runner/work/OpenBridge/OpenBridge --use-compress-program unzstd
+2026-11-25T13:25:43.4070721Z Received 230686720 of 271476077 (85.0%), 109.7 MBs/sec
+2026-11-25T13:25:43.9086488Z Received 271476077 of 271476077 (100.0%), 103.3 MBs/sec
+2026-11-25T13:25:43.9087491Z Cache Size: ~259 MB (271476077 B)
+2026-11-25T13:25:43.9114628Z [command]/usr/bin/tar -xf /home/runner/work/_temp/b9c3dab1-f31d-4ead-b5aa-c6c55ff5dba5/cache.tzst -P -C /home/runner/work/OpenBridge/OpenBridge --use-compress-program unzstd
+2026-11-25T13:25:44.4956070Z Cache restored successfully
+2026-11-25T13:25:44.5086916Z Restored cache entry with key gradle-dependencies-v1-fc840e01e1dfc6a7b04083b4dcb27473 to /home/runner/.gradle/caches/modules-*/files-*/*/*/*/* in 3418ms
+2026-11-25T13:25:45.1113665Z Cache restored successfully
+2026-11-25T13:25:45.1199661Z Restored cache entry with key gradle-transforms-v1-2890c48fc27ab5fad76cb820821e52f8 to /home/runner/.gradle/caches/transforms-4/*/,/home/runner/.gradle/caches/*/transforms/*/ in 4028ms
+2026-11-25T13:25:45.1282403Z ##[endgroup]
+2026-11-25T13:25:45.1333540Z ##[group]All Gradle Wrapper jars are valid
+2026-11-25T13:25:45.1334642Z 
+2026-11-25T13:25:45.1335176Z ##[endgroup]
+2026-11-25T13:25:45.2317690Z ##[group]Provision Gradle 8.10.2
+2026-11-25T13:25:49.4087068Z Cache hit for: gradle-8.10.2
+2026-11-25T13:25:50.5583438Z Received 83886080 of 136494016 (61.5%), 80.0 MBs/sec
+2026-11-25T13:25:51.1014991Z Received 136494016 of 136494016 (100.0%), 84.3 MBs/sec
+2026-11-25T13:25:51.1017506Z Cache Size: ~130 MB (136494016 B)
+2026-11-25T13:25:51.1041990Z [command]/usr/bin/tar -xf /home/runner/work/_temp/2cb92902-af03-4d82-9227-d5198e79b332/cache.tzst -P -C /home/runner/work/OpenBridge/OpenBridge --use-compress-program unzstd
+2026-11-25T13:25:51.3167028Z Cache restored successfully
+2026-11-25T13:25:51.3225186Z Restored Gradle distribution gradle-8.10.2 from cache to /home/runner/work/_temp/.gradle-actions/gradle-installations/downloads/gradle-8.10.2-bin.zip
+2026-11-25T13:25:51.3243963Z [command]/usr/bin/unzip -o -q /home/runner/work/_temp/.gradle-actions/gradle-installations/downloads/gradle-8.10.2-bin.zip
+2026-11-25T13:25:52.4013139Z Extracted Gradle 8.10.2 to /home/runner/work/_temp/.gradle-actions/gradle-installations/installs/gradle-8.10.2
+2026-11-25T13:25:52.4015706Z Provisioned Gradle executable /home/runner/work/_temp/.gradle-actions/gradle-installations/installs/gradle-8.10.2/bin/gradle
+2026-11-25T13:25:52.4017297Z ##[endgroup]
+2026-11-25T13:25:52.4361847Z ##[group]Run gradle assembleDebug --stacktrace --no-daemon
+2026-11-25T13:25:52.4362446Z [36;1mgradle assembleDebug --stacktrace --no-daemon[0m
+2026-11-25T13:25:52.4397662Z shell: /usr/bin/bash -e {0}
+2026-11-25T13:25:52.4397971Z env:
+2026-11-25T13:25:52.4398338Z   JAVA_HOME: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64
+2026-11-25T13:25:52.4398926Z   JAVA_HOME_17_X64: /opt/hostedtoolcache/Java_Temurin-Hotspot_jdk/17.0.21-9/x64
+2026-11-25T13:25:52.4399420Z   GRADLE_ACTION_ID: gradle/actions/setup-gradle
+2026-11-25T13:25:52.4399783Z   GRADLE_USER_HOME: /home/runner/.gradle
+2026-11-25T13:25:52.4400122Z   GRADLE_BUILD_ACTION_SETUP_COMPLETED: true
+2026-11-25T13:25:52.4400471Z   GRADLE_BUILD_ACTION_CACHE_RESTORED: true
+2026-11-25T13:25:52.4400992Z   DEVELOCITY_INJECTION_INIT_SCRIPT_NAME: gradle-actions.inject-develocity.init.gradle
+2026-11-25T13:25:52.4401525Z   DEVELOCITY_INJECTION_CUSTOM_VALUE: gradle-actions
+2026-11-25T13:25:52.4401924Z   GITHUB_DEPENDENCY_GRAPH_ENABLED: false
+2026-11-25T13:25:52.4402247Z ##[endgroup]
+2026-11-25T13:25:53.2686716Z To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.10.2/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+2026-11-25T13:25:54.8691920Z Daemon will be stopped at the end of the build 
+2026-11-25T13:26:04.3687198Z > Task :app:preBuild UP-TO-DATE
+2026-11-25T13:26:04.3688176Z > Task :app:preDebugBuild UP-TO-DATE
+2026-11-25T13:26:04.4676498Z > Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+2026-11-25T13:26:04.4705457Z > Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+2026-11-25T13:26:04.9668419Z > Task :app:checkDebugAarMetadata
+2026-11-25T13:26:04.9685868Z > Task :app:generateDebugResValues FROM-CACHE
+2026-11-25T13:26:05.0666633Z > Task :app:mapDebugSourceSetPaths
+2026-11-25T13:26:05.0667586Z > Task :app:generateDebugResources
+2026-11-25T13:26:06.6685292Z > Task :app:packageDebugResources
+2026-11-25T13:26:07.5785206Z > Task :app:createDebugCompatibleScreenManifests
+2026-11-25T13:26:07.5814806Z > Task :app:extractDeepLinksDebug FROM-CACHE
+2026-11-25T13:26:07.7697984Z > Task :app:mergeDebugResources
+2026-11-25T13:26:07.7719313Z > Task :app:processDebugMainManifest FROM-CACHE
+2026-11-25T13:26:07.7735643Z > Task :app:parseDebugLocalResources
+2026-11-25T13:26:07.7736609Z > Task :app:processDebugManifest FROM-CACHE
+2026-11-25T13:26:07.7737522Z > Task :app:processDebugManifestForPackage FROM-CACHE
+2026-11-25T13:26:08.0709126Z > Task :app:javaPreCompileDebug FROM-CACHE
+2026-11-25T13:26:08.0734930Z > Task :app:mergeDebugShaders
+2026-11-25T13:26:08.0745491Z > Task :app:compileDebugShaders NO-SOURCE
+2026-11-25T13:26:08.0774692Z > Task :app:generateDebugAssets UP-TO-DATE
+2026-11-25T13:26:08.1674689Z > Task :app:mergeDebugAssets
+2026-11-25T13:26:08.1675400Z > Task :app:compressDebugAssets FROM-CACHE
+2026-11-25T13:26:08.7705186Z > Task :app:l8DexDesugarLibDebug FROM-CACHE
+2026-11-25T13:26:08.9665655Z > Task :app:processDebugResources
+2026-11-25T13:26:09.5675527Z > Task :app:desugarDebugFileDependencies FROM-CACHE
+2026-11-25T13:26:10.3705085Z > Task :app:mergeDebugJniLibFolders
+2026-11-25T13:26:10.4668976Z > Task :app:checkDebugDuplicateClasses
+2026-11-25T13:26:10.5673951Z > Task :app:mergeDebugNativeLibs
+2026-11-25T13:26:11.6671063Z > Task :app:mergeExtDexDebug FROM-CACHE
+2026-11-25T13:26:11.7685266Z > Task :app:mergeLibDexDebug FROM-CACHE
+2026-11-25T13:26:11.7686043Z > Task :app:validateSigningDebug
+2026-11-25T13:26:11.7754910Z > Task :app:writeDebugAppMetadata
+2026-11-25T13:26:11.8670632Z > Task :app:writeDebugSigningConfigVersions
+2026-11-25T13:26:11.8671464Z 
+2026-11-25T13:26:11.8676431Z > Task :app:stripDebugDebugSymbols
+2026-11-25T13:26:11.8677933Z Unable to strip the following libraries, packaging them as they are: libandroidx.graphics.path.so.
+2026-11-25T13:26:24.7665443Z 
+2026-11-25T13:26:24.7693245Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/AppRoot.kt:282:28 Smart cast to 'app.openbridge.discovery.NearbyProgress' is impossible, because 'nearbyProgress' is a delegated property.
+2026-11-25T13:26:24.7695489Z > Task :app:compileDebugKotlin FAILED
+2026-11-25T13:26:24.7755695Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/FlatUi.kt:72:14 Unresolved reference 'clip'.
+2026-11-25T13:26:24.7782206Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/FlatUi.kt:98:14 Unresolved reference 'clip'.
+2026-11-25T13:26:24.7784550Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/FlatUi.kt:124:14 Unresolved reference 'clip'.
+2026-11-25T13:26:24.7786540Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/FlatUi.kt:129:18 Unresolved reference 'offset'.
+2026-11-25T13:26:24.7788551Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/HomeScreen.kt:393:43 Unresolved reference 'Close'.
+2026-11-25T13:26:24.7790664Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/HomeScreen.kt:430:14 Unresolved reference 'weight'.
+2026-11-25T13:26:24.7792796Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/NearbyIncomingSheet.kt:128:13 Unresolved reference 'TextButton'.
+2026-11-25T13:26:24.7795651Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/NearbyIncomingSheet.kt:128:47 @Composable invocations can only happen from the context of a @Composable function
+2026-11-25T13:26:24.7797958Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Qr.kt:50:9 Unresolved reference 'Box'.
+2026-11-25T13:26:24.7799874Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Qr.kt:53:18 Unresolved reference 'background'.
+2026-11-25T13:26:24.7802561Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Qr.kt:60:13 @Composable invocations can only happen from the context of a @Composable function
+2026-11-25T13:26:24.7805148Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/SettingsScreen.kt:248:17 Unresolved reference 'Box'.
+2026-11-25T13:26:24.7807331Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/SettingsScreen.kt:251:26 Unresolved reference 'background'.
+2026-11-25T13:26:24.7809892Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/SettingsScreen.kt:255:21 @Composable invocations can only happen from the context of a @Composable function
+2026-11-25T13:26:24.7812444Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:13:39 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.7814746Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:43:9 No parameter with name 'fontSize' found.
+2026-11-25T13:26:24.7816618Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:43:27 No parameter with name 'fontWeight' found.
+2026-11-25T13:26:24.7818751Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:43:57 No parameter with name 'letterSpacing' found.
+2026-11-25T13:26:24.7820745Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:44:9 No parameter with name 'fontFamily' found.
+2026-11-25T13:26:24.7822725Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:44:32 No parameter with name 'textTransform' found.
+2026-11-25T13:26:24.7844984Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:44:32 No value passed for parameter 'spanStyle'.
+2026-11-25T13:26:24.7846946Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:44:32 No value passed for parameter 'paragraphStyle'.
+2026-11-25T13:26:24.7849179Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:44:48 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.7851030Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:47:9 No parameter with name 'fontSize' found.
+2026-11-25T13:26:24.7852870Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:47:27 No parameter with name 'fontWeight' found.
+2026-11-25T13:26:24.7854933Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:47:57 No parameter with name 'letterSpacing' found.
+2026-11-25T13:26:24.7856792Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:48:9 No parameter with name 'fontFamily' found.
+2026-11-25T13:26:24.7858644Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:48:32 No parameter with name 'textTransform' found.
+2026-11-25T13:26:24.7860487Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:48:32 No value passed for parameter 'spanStyle'.
+2026-11-25T13:26:24.7862382Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:48:32 No value passed for parameter 'paragraphStyle'.
+2026-11-25T13:26:24.7864546Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:48:48 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.7866700Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:51:9 No parameter with name 'fontSize' found.
+2026-11-25T13:26:24.7868635Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:51:27 No parameter with name 'fontWeight' found.
+2026-11-25T13:26:24.7870767Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:51:57 No parameter with name 'letterSpacing' found.
+2026-11-25T13:26:24.7872609Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:52:9 No parameter with name 'fontFamily' found.
+2026-11-25T13:26:24.7874638Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:52:32 No parameter with name 'textTransform' found.
+2026-11-25T13:26:24.7876391Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:52:32 No value passed for parameter 'spanStyle'.
+2026-11-25T13:26:24.7878218Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:52:32 No value passed for parameter 'paragraphStyle'.
+2026-11-25T13:26:24.7879997Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:52:48 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.7881824Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:55:9 No parameter with name 'fontSize' found.
+2026-11-25T13:26:24.7883707Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:55:27 No parameter with name 'fontWeight' found.
+2026-11-25T13:26:24.7892273Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:55:57 No parameter with name 'letterSpacing' found.
+2026-11-25T13:26:24.7894464Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:56:9 No parameter with name 'fontFamily' found.
+2026-11-25T13:26:24.7896448Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:56:32 No parameter with name 'textTransform' found.
+2026-11-25T13:26:24.7898420Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:56:32 No value passed for parameter 'spanStyle'.
+2026-11-25T13:26:24.7900770Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:56:32 No value passed for parameter 'paragraphStyle'.
+2026-11-25T13:26:24.7902696Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:56:48 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.7904695Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:59:9 No parameter with name 'fontSize' found.
+2026-11-25T13:26:24.7906614Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:59:27 No parameter with name 'fontWeight' found.
+2026-11-25T13:26:24.7908586Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:59:57 No parameter with name 'letterSpacing' found.
+2026-11-25T13:26:24.7910586Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:60:9 No parameter with name 'fontFamily' found.
+2026-11-25T13:26:24.7912389Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:60:32 No parameter with name 'textTransform' found.
+2026-11-25T13:26:24.7915493Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:60:32 No value passed for parameter 'spanStyle'.
+2026-11-25T13:26:24.7917392Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:60:32 No value passed for parameter 'paragraphStyle'.
+2026-11-25T13:26:24.7919177Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:60:48 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.7921038Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:63:9 No parameter with name 'fontSize' found.
+2026-11-25T13:26:24.7946446Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:63:27 No parameter with name 'fontWeight' found.
+2026-11-25T13:26:24.7948400Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:63:57 No parameter with name 'letterSpacing' found.
+2026-11-25T13:26:24.7950341Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:64:9 No parameter with name 'fontFamily' found.
+2026-11-25T13:26:24.7952294Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:64:32 No parameter with name 'textTransform' found.
+2026-11-25T13:26:24.7954353Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:64:32 No value passed for parameter 'spanStyle'.
+2026-11-25T13:26:24.7956286Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:64:32 No value passed for parameter 'paragraphStyle'.
+2026-11-25T13:26:24.7958175Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:64:48 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.7960186Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:67:9 No parameter with name 'fontSize' found.
+2026-11-25T13:26:24.7962117Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:67:27 No parameter with name 'fontWeight' found.
+2026-11-25T13:26:24.7994352Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:67:57 No parameter with name 'letterSpacing' found.
+2026-11-25T13:26:24.7996465Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:68:9 No parameter with name 'fontFamily' found.
+2026-11-25T13:26:24.7998470Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:68:32 No parameter with name 'textTransform' found.
+2026-11-25T13:26:24.8000413Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:68:32 No value passed for parameter 'spanStyle'.
+2026-11-25T13:26:24.8002618Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:68:32 No value passed for parameter 'paragraphStyle'.
+2026-11-25T13:26:24.8004702Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:68:48 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.8006599Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:71:9 No parameter with name 'fontSize' found.
+2026-11-25T13:26:24.8008484Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:71:27 No parameter with name 'fontWeight' found.
+2026-11-25T13:26:24.8010479Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:71:57 No parameter with name 'letterSpacing' found.
+2026-11-25T13:26:24.8012405Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:72:9 No parameter with name 'fontFamily' found.
+2026-11-25T13:26:24.8014561Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:72:32 No parameter with name 'textTransform' found.
+2026-11-25T13:26:24.8016476Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:72:32 No value passed for parameter 'spanStyle'.
+2026-11-25T13:26:24.8018422Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:72:32 No value passed for parameter 'paragraphStyle'.
+2026-11-25T13:26:24.8046591Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:72:48 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.8048591Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:75:9 No parameter with name 'fontSize' found.
+2026-11-25T13:26:24.8050895Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:75:27 No parameter with name 'fontWeight' found.
+2026-11-25T13:26:24.8052912Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:75:57 No parameter with name 'letterSpacing' found.
+2026-11-25T13:26:24.8055150Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:76:9 No parameter with name 'fontFamily' found.
+2026-11-25T13:26:24.8057145Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:76:32 No parameter with name 'textTransform' found.
+2026-11-25T13:26:24.8059166Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:76:32 No value passed for parameter 'spanStyle'.
+2026-11-25T13:26:24.8061201Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:76:32 No value passed for parameter 'paragraphStyle'.
+2026-11-25T13:26:24.8063204Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:76:48 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.8065429Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:79:9 No parameter with name 'fontSize' found.
+2026-11-25T13:26:24.8067560Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:79:27 No parameter with name 'fontWeight' found.
+2026-11-25T13:26:24.8069549Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:79:59 No parameter with name 'letterSpacing' found.
+2026-11-25T13:26:24.8071528Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:80:9 No parameter with name 'fontFamily' found.
+2026-11-25T13:26:24.8073503Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:80:32 No parameter with name 'textTransform' found.
+2026-11-25T13:26:24.8085986Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:80:32 No value passed for parameter 'spanStyle'.
+2026-11-25T13:26:24.8088275Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:80:32 No value passed for parameter 'paragraphStyle'.
+2026-11-25T13:26:24.8090252Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:80:48 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.8092142Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:83:9 No parameter with name 'fontSize' found.
+2026-11-25T13:26:24.8094301Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:83:27 No parameter with name 'fontWeight' found.
+2026-11-25T13:26:24.8096294Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:83:59 No parameter with name 'letterSpacing' found.
+2026-11-25T13:26:24.8098281Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:84:9 No parameter with name 'fontFamily' found.
+2026-11-25T13:26:24.8100256Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:84:32 No parameter with name 'textTransform' found.
+2026-11-25T13:26:24.8102226Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:84:32 No value passed for parameter 'spanStyle'.
+2026-11-25T13:26:24.8104337Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:84:32 No value passed for parameter 'paragraphStyle'.
+2026-11-25T13:26:24.8106024Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:84:48 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.8107696Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:87:9 No parameter with name 'fontSize' found.
+2026-11-25T13:26:24.8110182Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:87:27 No parameter with name 'fontWeight' found.
+2026-11-25T13:26:24.8112124Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:87:59 No parameter with name 'letterSpacing' found.
+2026-11-25T13:26:24.8125423Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:88:9 No parameter with name 'fontFamily' found.
+2026-11-25T13:26:24.8127474Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:88:32 No parameter with name 'textTransform' found.
+2026-11-25T13:26:24.8129424Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:88:32 No value passed for parameter 'spanStyle'.
+2026-11-25T13:26:24.8131404Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:88:32 No value passed for parameter 'paragraphStyle'.
+2026-11-25T13:26:24.8133354Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:88:48 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.8135431Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:91:9 No parameter with name 'fontSize' found.
+2026-11-25T13:26:24.8137359Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:91:27 No parameter with name 'fontWeight' found.
+2026-11-25T13:26:24.8139302Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:91:57 No parameter with name 'letterSpacing' found.
+2026-11-25T13:26:24.8141239Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:92:9 No parameter with name 'fontFamily' found.
+2026-11-25T13:26:24.8143149Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:92:32 No parameter with name 'textTransform' found.
+2026-11-25T13:26:24.8226122Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:92:32 No value passed for parameter 'spanStyle'.
+2026-11-25T13:26:24.8228156Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:92:32 No value passed for parameter 'paragraphStyle'.
+2026-11-25T13:26:24.8230076Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:92:48 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.8231903Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:95:9 No parameter with name 'fontSize' found.
+2026-11-25T13:26:24.8233769Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:95:27 No parameter with name 'fontWeight' found.
+2026-11-25T13:26:24.8235806Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:95:57 No parameter with name 'letterSpacing' found.
+2026-11-25T13:26:24.8237719Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:96:9 No parameter with name 'fontFamily' found.
+2026-11-25T13:26:24.8239587Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:96:32 No parameter with name 'textTransform' found.
+2026-11-25T13:26:24.8241443Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:96:32 No value passed for parameter 'spanStyle'.
+2026-11-25T13:26:24.8243297Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:96:32 No value passed for parameter 'paragraphStyle'.
+2026-11-25T13:26:24.8245313Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:96:48 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.8247412Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:99:9 No parameter with name 'fontSize' found.
+2026-11-25T13:26:24.8249388Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:99:27 No parameter with name 'fontWeight' found.
+2026-11-25T13:26:24.8251288Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:99:57 No parameter with name 'letterSpacing' found.
+2026-11-25T13:26:24.8253247Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:100:9 No parameter with name 'fontFamily' found.
+2026-11-25T13:26:24.8265106Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:100:32 No parameter with name 'textTransform' found.
+2026-11-25T13:26:24.8267119Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:100:32 No value passed for parameter 'spanStyle'.
+2026-11-25T13:26:24.8269346Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:100:32 No value passed for parameter 'paragraphStyle'.
+2026-11-25T13:26:24.8271339Z e: file:///home/runner/work/OpenBridge/OpenBridge/app/src/main/java/app/openbridge/ui/Theme.kt:100:48 Unresolved reference 'TextTransform'.
+2026-11-25T13:26:24.8674696Z 
+2026-11-25T13:26:24.8675908Z gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/__run-1795613157467.json
+2026-11-25T13:26:24.8695115Z FAILURE: Build failed with an exception.
+2026-11-25T13:26:24.8735470Z 
+2026-11-25T13:26:24.8745076Z * What went wrong:
+2026-11-25T13:26:24.8751223Z Execution failed for task ':app:compileDebugKotlin'.
+2026-11-25T13:26:24.8764802Z 29 actionable tasks: 18 executed, 11 from cache
+2026-11-25T13:26:24.8766310Z > A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+2026-11-25T13:26:24.8767754Z    > Compilation error. See log for more details
+2026-11-25T13:26:24.8768194Z 
+2026-11-25T13:26:24.8768363Z * Try:
+2026-11-25T13:26:24.8768916Z > Run with --info or --debug option to get more log output.
+2026-11-25T13:26:24.8769982Z > Run with --scan to get full insights.
+2026-11-25T13:26:24.8770654Z > Get more help at https://help.gradle.org.
+2026-11-25T13:26:24.8771089Z 
+2026-11-25T13:26:24.8771282Z * Exception is:
+2026-11-25T13:26:24.8772192Z org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:compileDebugKotlin'.
+2026-11-25T13:26:24.8773981Z 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.lambda$executeIfValid$1(ExecuteActionsTaskExecuter.java:130)
+2026-11-25T13:26:24.8775726Z 	at org.gradle.internal.Try$Failure.ifSuccessfulOrElse(Try.java:293)
+2026-11-25T13:26:24.8777236Z 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:128)
+2026-11-25T13:26:24.8779234Z 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+2026-11-25T13:26:24.8781215Z 	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+2026-11-25T13:26:24.8783223Z 	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+2026-11-25T13:26:24.8785419Z 	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+2026-11-25T13:26:24.8787186Z 	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+2026-11-25T13:26:24.8788889Z 	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+2026-11-25T13:26:24.8790657Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+2026-11-25T13:26:24.8792355Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+2026-11-25T13:26:24.8843768Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+2026-11-25T13:26:24.8845984Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+2026-11-25T13:26:24.8848172Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+2026-11-25T13:26:24.8850103Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+2026-11-25T13:26:24.8851823Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+2026-11-25T13:26:24.8853431Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+2026-11-25T13:26:24.8855357Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+2026-11-25T13:26:24.8856931Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+2026-11-25T13:26:24.8858559Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+2026-11-25T13:26:24.8860143Z 	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+2026-11-25T13:26:24.8861854Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+2026-11-25T13:26:24.8863915Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+2026-11-25T13:26:24.8866215Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+2026-11-25T13:26:24.8868145Z 	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
+2026-11-25T13:26:24.8870000Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+2026-11-25T13:26:24.8872511Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+2026-11-25T13:26:24.8884934Z 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
+2026-11-25T13:26:24.8886487Z 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
+2026-11-25T13:26:24.8888061Z 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+2026-11-25T13:26:24.8889661Z 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+2026-11-25T13:26:24.8891993Z Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionException: A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+2026-11-25T13:26:24.8894777Z 	at org.gradle.workers.internal.DefaultWorkerExecutor$WorkItemExecution.waitForCompletion(DefaultWorkerExecutor.java:287)
+2026-11-25T13:26:24.8896862Z 	at org.gradle.internal.work.DefaultAsyncWorkTracker.lambda$waitForItemsAndGatherFailures$2(DefaultAsyncWorkTracker.java:130)
+2026-11-25T13:26:24.8898155Z 	at org.gradle.internal.Factories$1.create(Factories.java:31)
+2026-11-25T13:26:24.8899405Z 	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocks(DefaultWorkerLeaseService.java:335)
+2026-11-25T13:26:24.8900941Z 	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLocks(DefaultWorkerLeaseService.java:318)
+2026-11-25T13:26:24.8902474Z 	at org.gradle.internal.work.DefaultWorkerLeaseService.withoutLock(DefaultWorkerLeaseService.java:323)
+2026-11-25T13:26:24.8904530Z 	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:126)
+2026-11-25T13:26:24.8906687Z 	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForItemsAndGatherFailures(DefaultAsyncWorkTracker.java:92)
+2026-11-25T13:26:24.8908537Z 	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForAll(DefaultAsyncWorkTracker.java:78)
+2026-11-25T13:26:24.8910238Z 	at org.gradle.internal.work.DefaultAsyncWorkTracker.waitForCompletion(DefaultAsyncWorkTracker.java:66)
+2026-11-25T13:26:24.8912063Z 	at org.gradle.api.internal.tasks.execution.TaskExecution$3.run(TaskExecution.java:252)
+2026-11-25T13:26:24.8913958Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:29)
+2026-11-25T13:26:24.8916150Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:26)
+2026-11-25T13:26:24.8917728Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+2026-11-25T13:26:24.8918889Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+2026-11-25T13:26:24.8919962Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+2026-11-25T13:26:24.8921064Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+2026-11-25T13:26:24.8922131Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:47)
+2026-11-25T13:26:24.8923117Z 	at org.gradle.api.internal.tasks.execution.TaskExecution.executeAction(TaskExecution.java:229)
+2026-11-25T13:26:24.8924332Z 	at org.gradle.api.internal.tasks.execution.TaskExecution.executeActions(TaskExecution.java:212)
+2026-11-25T13:26:24.8947424Z 	at org.gradle.api.internal.tasks.execution.TaskExecution.executeWithPreviousOutputFiles(TaskExecution.java:195)
+2026-11-25T13:26:24.8949136Z 	at org.gradle.api.internal.tasks.execution.TaskExecution.execute(TaskExecution.java:162)
+2026-11-25T13:26:24.8950619Z 	at org.gradle.internal.execution.steps.ExecuteStep.executeInternal(ExecuteStep.java:105)
+2026-11-25T13:26:24.8951989Z 	at org.gradle.internal.execution.steps.ExecuteStep.access$000(ExecuteStep.java:44)
+2026-11-25T13:26:24.8957151Z 	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:59)
+2026-11-25T13:26:24.8958466Z 	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:56)
+2026-11-25T13:26:24.8960151Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+2026-11-25T13:26:24.8962372Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+2026-11-25T13:26:24.8965606Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+2026-11-25T13:26:24.8967454Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+2026-11-25T13:26:24.8969293Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+2026-11-25T13:26:24.8971147Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+2026-11-25T13:26:24.8972361Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+2026-11-25T13:26:24.8973146Z 	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:56)
+2026-11-25T13:26:24.8973809Z 	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:44)
+2026-11-25T13:26:24.8974986Z 	at org.gradle.internal.execution.steps.CancelExecutionStep.execute(CancelExecutionStep.java:42)
+2026-11-25T13:26:24.8975855Z 	at org.gradle.internal.execution.steps.TimeoutStep.executeWithoutTimeout(TimeoutStep.java:75)
+2026-11-25T13:26:24.8976701Z 	at org.gradle.internal.execution.steps.TimeoutStep.execute(TimeoutStep.java:55)
+2026-11-25T13:26:24.8977921Z 	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:50)
+2026-11-25T13:26:24.8978927Z 	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:28)
+2026-11-25T13:26:24.8980068Z 	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:67)
+2026-11-25T13:26:24.8981120Z 	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:37)
+2026-11-25T13:26:24.8982198Z 	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:61)
+2026-11-25T13:26:24.8983217Z 	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:26)
+2026-11-25T13:26:24.8984993Z 	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:69)
+2026-11-25T13:26:24.8987026Z 	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:46)
+2026-11-25T13:26:24.8988710Z 	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:40)
+2026-11-25T13:26:24.8990241Z 	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:29)
+2026-11-25T13:26:24.8991826Z 	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCache(BuildCacheStep.java:189)
+2026-11-25T13:26:24.8992687Z 	at org.gradle.internal.execution.steps.BuildCacheStep.executeAndStoreInCache(BuildCacheStep.java:145)
+2026-11-25T13:26:24.8993539Z 	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$executeWithCache$4(BuildCacheStep.java:101)
+2026-11-25T13:26:24.8994614Z 	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$executeWithCache$5(BuildCacheStep.java:101)
+2026-11-25T13:26:24.8995263Z 	at org.gradle.internal.Try$Success.map(Try.java:175)
+2026-11-25T13:26:24.8996193Z 	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithCache(BuildCacheStep.java:85)
+2026-11-25T13:26:24.9001542Z 	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$execute$0(BuildCacheStep.java:74)
+2026-11-25T13:26:24.9002469Z 	at org.gradle.internal.Either$Left.fold(Either.java:115)
+2026-11-25T13:26:24.9003058Z 	at org.gradle.internal.execution.caching.CachingState.fold(CachingState.java:62)
+2026-11-25T13:26:24.9003745Z 	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:73)
+2026-11-25T13:26:24.9004831Z 	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:48)
+2026-11-25T13:26:24.9006076Z 	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:46)
+2026-11-25T13:26:24.9006983Z 	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:35)
+2026-11-25T13:26:24.9007825Z 	at org.gradle.internal.execution.steps.SkipUpToDateStep.executeBecause(SkipUpToDateStep.java:75)
+2026-11-25T13:26:24.9008684Z 	at org.gradle.internal.execution.steps.SkipUpToDateStep.lambda$execute$2(SkipUpToDateStep.java:53)
+2026-11-25T13:26:24.9009462Z 	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:53)
+2026-11-25T13:26:24.9010192Z 	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:35)
+2026-11-25T13:26:24.9011132Z 	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:37)
+2026-11-25T13:26:24.9012294Z 	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:27)
+2026-11-25T13:26:24.9013483Z 	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:49)
+2026-11-25T13:26:24.9015160Z 	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:27)
+2026-11-25T13:26:24.9016474Z 	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:71)
+2026-11-25T13:26:24.9017494Z 	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:39)
+2026-11-25T13:26:24.9018383Z 	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:65)
+2026-11-25T13:26:24.9019160Z 	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:36)
+2026-11-25T13:26:24.9019887Z 	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:107)
+2026-11-25T13:26:24.9020556Z 	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:56)
+2026-11-25T13:26:24.9021480Z 	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:64)
+2026-11-25T13:26:24.9022662Z 	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:43)
+2026-11-25T13:26:24.9023817Z 	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.executeWithNonEmptySources(AbstractSkipEmptyWorkStep.java:125)
+2026-11-25T13:26:24.9025061Z 	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:61)
+2026-11-25T13:26:24.9025966Z 	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:36)
+2026-11-25T13:26:24.9026994Z 	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
+2026-11-25T13:26:24.9028073Z 	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:36)
+2026-11-25T13:26:24.9029071Z 	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:23)
+2026-11-25T13:26:24.9030002Z 	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:75)
+2026-11-25T13:26:24.9030858Z 	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:41)
+2026-11-25T13:26:24.9031923Z 	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.lambda$execute$0(AssignMutableWorkspaceStep.java:35)
+2026-11-25T13:26:24.9032812Z 	at org.gradle.api.internal.tasks.execution.TaskExecution$4.withWorkspace(TaskExecution.java:289)
+2026-11-25T13:26:24.9033666Z 	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:31)
+2026-11-25T13:26:24.9034863Z 	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:22)
+2026-11-25T13:26:24.9035744Z 	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:40)
+2026-11-25T13:26:24.9036528Z 	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:23)
+2026-11-25T13:26:24.9037507Z 	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.lambda$execute$2(ExecuteWorkBuildOperationFiringStep.java:67)
+2026-11-25T13:26:24.9038644Z 	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:67)
+2026-11-25T13:26:24.9039740Z 	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:39)
+2026-11-25T13:26:24.9040660Z 	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:46)
+2026-11-25T13:26:24.9041408Z 	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:34)
+2026-11-25T13:26:24.9042117Z 	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:48)
+2026-11-25T13:26:24.9042800Z 	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:35)
+2026-11-25T13:26:24.9043739Z 	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:61)
+2026-11-25T13:26:24.9045043Z 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:127)
+2026-11-25T13:26:24.9046059Z 	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+2026-11-25T13:26:24.9047065Z 	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+2026-11-25T13:26:24.9048123Z 	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+2026-11-25T13:26:24.9049162Z 	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+2026-11-25T13:26:24.9050130Z 	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+2026-11-25T13:26:24.9051063Z 	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+2026-11-25T13:26:24.9051998Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+2026-11-25T13:26:24.9052893Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+2026-11-25T13:26:24.9053757Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+2026-11-25T13:26:24.9055092Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+2026-11-25T13:26:24.9056234Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+2026-11-25T13:26:24.9057248Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+2026-11-25T13:26:24.9058136Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+2026-11-25T13:26:24.9059030Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+2026-11-25T13:26:24.9060107Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+2026-11-25T13:26:24.9061158Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+2026-11-25T13:26:24.9062192Z 	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+2026-11-25T13:26:24.9063137Z 	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+2026-11-25T13:26:24.9064348Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+2026-11-25T13:26:24.9065867Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+2026-11-25T13:26:24.9067930Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+2026-11-25T13:26:24.9069837Z 	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
+2026-11-25T13:26:24.9071654Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+2026-11-25T13:26:24.9073714Z 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+2026-11-25T13:26:24.9075720Z 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
+2026-11-25T13:26:24.9077160Z 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
+2026-11-25T13:26:24.9078590Z 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+2026-11-25T13:26:24.9079434Z 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+2026-11-25T13:26:24.9080290Z Caused by: org.jetbrains.kotlin.gradle.tasks.CompilationErrorException: Compilation error. See log for more details
+2026-11-25T13:26:24.9081184Z 	at org.jetbrains.kotlin.gradle.tasks.TasksUtilsKt.throwExceptionIfCompilationFailed(tasksUtils.kt:21)
+2026-11-25T13:26:24.9082036Z 	at org.jetbrains.kotlin.compilerRunner.GradleKotlinCompilerWork.run(GradleKotlinCompilerWork.kt:119)
+2026-11-25T13:26:24.9083090Z 	at org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction.execute(GradleCompilerRunnerWithWorkers.kt:76)
+2026-11-25T13:26:24.9084293Z 	at org.gradle.workers.internal.DefaultWorkerServer.execute(DefaultWorkerServer.java:63)
+2026-11-25T13:26:24.9085082Z 	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:66)
+2026-11-25T13:26:24.9085887Z 	at org.gradle.workers.internal.NoIsolationWorkerFactory$1$1.create(NoIsolationWorkerFactory.java:62)
+2026-11-25T13:26:24.9086703Z 	at org.gradle.internal.classloader.ClassLoaderUtils.executeInClassloader(ClassLoaderUtils.java:100)
+2026-11-25T13:26:24.9087548Z 	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.lambda$execute$0(NoIsolationWorkerFactory.java:62)
+2026-11-25T13:26:24.9088281Z 	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:44)
+2026-11-25T13:26:24.9088878Z 	at org.gradle.workers.internal.AbstractWorker$1.call(AbstractWorker.java:41)
+2026-11-25T13:26:24.9089737Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+2026-11-25T13:26:24.9090867Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+2026-11-25T13:26:24.9091871Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+2026-11-25T13:26:24.9092758Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+2026-11-25T13:26:24.9093856Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+2026-11-25T13:26:24.9094977Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+2026-11-25T13:26:24.9095881Z 	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+2026-11-25T13:26:24.9096748Z 	at org.gradle.workers.internal.AbstractWorker.executeWrappedInBuildOperation(AbstractWorker.java:41)
+2026-11-25T13:26:24.9097575Z 	at org.gradle.workers.internal.NoIsolationWorkerFactory$1.execute(NoIsolationWorkerFactory.java:59)
+2026-11-25T13:26:24.9098391Z 	at org.gradle.workers.internal.DefaultWorkerExecutor.lambda$submitWork$0(DefaultWorkerExecutor.java:174)
+2026-11-25T13:26:24.9105230Z 	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runExecution(DefaultConditionalExecutionQueue.java:194)
+2026-11-25T13:26:24.9107359Z 	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.access$700(DefaultConditionalExecutionQueue.java:127)
+2026-11-25T13:26:24.9109373Z 	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner$1.run(DefaultConditionalExecutionQueue.java:169)
+2026-11-25T13:26:24.9110894Z 	at org.gradle.internal.Factories$1.create(Factories.java:31)
+2026-11-25T13:26:24.9112153Z 	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:263)
+2026-11-25T13:26:24.9113837Z 	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:127)
+2026-11-25T13:26:24.9115778Z 	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:132)
+2026-11-25T13:26:24.9117915Z 	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.runBatch(DefaultConditionalExecutionQueue.java:164)
+2026-11-25T13:26:24.9119878Z 	at org.gradle.internal.work.DefaultConditionalExecutionQueue$ExecutionRunner.run(DefaultConditionalExecutionQueue.java:133)
+2026-11-25T13:26:24.9121114Z 	... 2 more
+2026-11-25T13:26:24.9121354Z 
+2026-11-25T13:26:24.9121361Z 
+2026-11-25T13:26:24.9121544Z BUILD FAILED in 32s
+2026-11-25T13:26:25.3110235Z ##[error]Process completed with exit code 1.
+2026-11-25T13:26:25.3311252Z Post job cleanup.
+2026-11-25T13:26:25.5789991Z In post-action step
+2026-11-25T13:26:25.5804467Z ##[group]Stopping Gradle daemons
+2026-11-25T13:26:25.5805624Z Stopping Gradle daemons for /home/runner/work/_temp/.gradle-actions/gradle-installations/installs/gradle-8.10.2
+2026-11-25T13:26:25.5822156Z [command]/home/runner/work/_temp/.gradle-actions/gradle-installations/installs/gradle-8.10.2/bin/gradle --stop
+2026-11-25T13:26:26.3424904Z No Gradle daemons are running.
+2026-11-25T13:26:26.3556234Z ##[endgroup]
+2026-11-25T13:26:26.3558636Z Not performing cache-cleanup due to build failure
+2026-11-25T13:26:26.3559888Z ##[group]Caching Gradle state
+2026-11-25T13:26:27.7177908Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/OpenBridge/OpenBridge --files-from manifest.txt --use-compress-program zstdmt
+2026-11-25T13:26:30.7409449Z Sent 2832950 of 204159542 (1.4%), 2.7 MBs/sec
+2026-11-25T13:26:31.2340031Z Sent 204159542 of 204159542 (100.0%), 130.5 MBs/sec
+2026-11-25T13:26:31.4249245Z Saved cache entry with key gradle-transforms-v1-853863df8980dc4318b8fc068570c0ea from /home/runner/.gradle/caches/transforms-4/*/,/home/runner/.gradle/caches/*/transforms/*/ in 4265ms
+2026-11-25T13:26:32.3141385Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/OpenBridge/OpenBridge --files-from manifest.txt --use-compress-program zstdmt
+2026-11-25T13:26:33.4992414Z Sent 28578980 of 28578980 (100.0%), 30.5 MBs/sec
+2026-11-25T13:26:33.6701605Z Saved cache entry with key gradle-home-v1|Linux-X64|build[620c74083efa5b88ef904c2356f72d31]-a8cc11dde3284975ececd0c11820978393c79de6 from /home/runner/.gradle/caches,/home/runner/.gradle/notifications,/home/runner/.gradle/.setup-gradle in 1369ms
+2026-11-25T13:26:33.6703057Z ##[endgroup]
+2026-11-25T13:26:33.6710176Z Generating Job Summary
+2026-11-25T13:26:33.6724832Z Completed post-action step
+2026-11-25T13:26:33.7037344Z Post job cleanup.
+2026-11-25T13:26:33.8441096Z (node:2832) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-11-25T13:26:33.8442378Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-25T13:26:33.8734812Z Post job cleanup.
+2026-11-25T13:26:33.9678474Z [command]/usr/bin/git version
+2026-11-25T13:26:33.9724725Z git version 2.56.1
+2026-11-25T13:26:33.9775411Z Temporarily overriding HOME='/home/runner/work/_temp/e52a9456-19e8-4194-a1c5-b2ca70bd8810' before making global git config changes
+2026-11-25T13:26:33.9790780Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-25T13:26:33.9792376Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/OpenBridge/OpenBridge
+2026-11-25T13:26:33.9852385Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-25T13:26:33.9897552Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-25T13:26:34.0232913Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-25T13:26:34.0275194Z http.https://github.com/.extraheader
+2026-11-25T13:26:34.0296677Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-11-25T13:26:34.0347816Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-25T13:26:34.0659184Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-25T13:26:34.0696899Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-25T13:26:34.1129663Z Cleaning up orphan processes
+2026-11-25T13:26:34.1551915Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-java@v4, gradle/actions/setup-gradle@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

@@ -32,6 +32,7 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -167,8 +168,10 @@ private fun AppContent(viewModel: AppViewModel) {
 
     CompositionLocalProvider(LocalStrings provides strings) {
         Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 TopAppBar(
+                    containerColor = FlatBackground,
                     title = {
                         Text(
                             text = tabs[selectedTab].label(strings).uppercase(),
@@ -180,21 +183,17 @@ private fun AppContent(viewModel: AppViewModel) {
                 )
             },
             bottomBar = {
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(0.dp))
-                        .border(
-                            androidx.compose.foundation.BorderStroke(1.dp, FlatBorder),
-                            RoundedCornerShape(0.dp),
-                        )
-                        .height(64.dp),
+                        .background(FlatBackground),
                 ) {
+                    HorizontalDivider(thickness = 1.dp, color = FlatBorder)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 8.dp)
-                            .fillMaxHeight(),
+                            .height(64.dp)
+                            .padding(horizontal = 8.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -207,11 +206,7 @@ private fun AppContent(viewModel: AppViewModel) {
                                         coroutineScope.launch {
                                             pagerState.animateScrollToPage(index)
                                         }
-                                    }
-                                    .background(
-                                        if (selected) FlatAccent else Color.Transparent,
-                                        RoundedCornerShape(0.dp),
-                                    ),
+                                    },
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center,
                             ) {
@@ -277,9 +272,9 @@ private fun AppContent(viewModel: AppViewModel) {
             )
         }
 
-        if (nearbyProgress != null) {
+        nearbyProgress?.let { progress ->
             NearbyProgressDialog(
-                progress = nearbyProgress,
+                progress = progress,
                 onDismiss = viewModel::dismissNearbyProgress,
             )
         }

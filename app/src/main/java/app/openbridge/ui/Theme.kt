@@ -8,11 +8,11 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextTransform
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.openbridge.R
 
 /** Значения совпадают с app.openbridge.data.SettingsRepository. */
 const val THEME_DARK = "dark"
@@ -33,71 +33,73 @@ val FlatTextSecondary: Color = Color(0xFF8A8A8A)
 val FlatTextMuted: Color = Color(0xFF555555)
 
 // Flat тема. Минимум Material 3: вся поверхность плоская, без скруглений и теней.
-// TODO: заменить FontFamily.Monospace fallback на сам шрифт Ioskeley Mono —
-// файлы ожидаются в res/font/ioskeylemonnl_regular.ttf,
-// res/font/ioskeylemonnl_medium.ttf, res/font/ioskeylemonnl_bold.ttf.
-private val FlatFont = FontFamily.Monospace
+// Ioskeley Mono — основной шрифт всего интерфейса.
+private val FlatFont = FontFamily(
+    Font(R.font.ioskeylemonnl_regular, FontWeight.Normal),
+    Font(R.font.ioskeylemonnl_medium, FontWeight.Medium),
+    Font(R.font.ioskeylemonnl_bold, FontWeight.Bold),
+)
 
 private val FlatTypography = Typography(
     displayLarge = TextStyle(
         fontSize = 30.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont, textTransform = TextTransform.Uppercase,
+        fontFamily = FlatFont,
     ),
     displayMedium = TextStyle(
         fontSize = 24.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont, textTransform = TextTransform.Uppercase,
+        fontFamily = FlatFont,
     ),
     displaySmall = TextStyle(
         fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont, textTransform = TextTransform.Uppercase,
+        fontFamily = FlatFont,
     ),
     headlineLarge = TextStyle(
         fontSize = 24.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp,
-        fontFamily = FlatFont, textTransform = TextTransform.Uppercase,
+        fontFamily = FlatFont,
     ),
     headlineMedium = TextStyle(
         fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont, textTransform = TextTransform.Uppercase,
+        fontFamily = FlatFont,
     ),
     headlineSmall = TextStyle(
         fontSize = 16.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont, textTransform = TextTransform.Uppercase,
+        fontFamily = FlatFont,
     ),
     titleLarge = TextStyle(
         fontSize = 18.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont, textTransform = TextTransform.Uppercase,
+        fontFamily = FlatFont,
     ),
     titleMedium = TextStyle(
         fontSize = 16.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont, textTransform = TextTransform.Uppercase,
+        fontFamily = FlatFont,
     ),
     titleSmall = TextStyle(
         fontSize = 14.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont, textTransform = TextTransform.Uppercase,
+        fontFamily = FlatFont,
     ),
     bodyLarge = TextStyle(
         fontSize = 15.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp,
-        fontFamily = FlatFont, textTransform = TextTransform.Normal,
+        fontFamily = FlatFont,
     ),
     bodyMedium = TextStyle(
         fontSize = 14.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp,
-        fontFamily = FlatFont, textTransform = TextTransform.Normal,
+        fontFamily = FlatFont,
     ),
     bodySmall = TextStyle(
         fontSize = 12.sp, fontWeight = FontWeight.Normal, letterSpacing = 0.5.sp,
-        fontFamily = FlatFont, textTransform = TextTransform.Normal,
+        fontFamily = FlatFont,
     ),
     labelLarge = TextStyle(
         fontSize = 14.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp,
-        fontFamily = FlatFont, textTransform = TextTransform.Uppercase,
+        fontFamily = FlatFont,
     ),
     labelMedium = TextStyle(
         fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont, textTransform = TextTransform.Uppercase,
+        fontFamily = FlatFont,
     ),
     labelSmall = TextStyle(
         fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont, textTransform = TextTransform.Uppercase,
+        fontFamily = FlatFont,
     ),
 )
 
