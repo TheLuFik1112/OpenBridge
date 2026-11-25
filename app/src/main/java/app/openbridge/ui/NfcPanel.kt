@@ -2,6 +2,7 @@ package app.openbridge.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,9 +19,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -52,16 +57,31 @@ fun NfcPanel(
             state.texts > 0 -> strings.nfcTextCopied
             else -> null
         }
-        NfcPhase.READY -> if (state.hasItems) "" else strings.nfcEmptyPackage
+        NfcPhase.READY -> if (state.hasItems) strings.nfcSwipeUpHint else strings.nfcEmptyPackage
         NfcPhase.ERROR -> null
         else -> ""
     }
     val showProgress = phase == NfcPhase.RECEIVING || phase == NfcPhase.TRANSFER
     val fraction = state.fraction.coerceIn(0f, 1f)
 
+    var dragTotal by remember { mutableStateOf(0f) }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
+            // Смахнуть вверх — закрыть панель, как в обычной шторке.
+            .pointerInput(Unit) {
+                detectVerticalDragGestures(
+                    onDragEnd = { dragTotal = 0f },
+                    onDragCancel = { dragTotal = 0f },
+                ) { _, drag ->
+                    dragTotal += drag
+                    if (dragTotal < -48f) {
+                        dragTotal = 0f
+                        onCollapse()
+                    }
+                }
+            }
             .background(FlatAccentDimBg, RoundedCornerShape(0.dp))
             .border(
                 androidx.compose.foundation.BorderStroke(1.dp, FlatBorder),
@@ -106,14 +126,34 @@ fun NfcPanel(
             }
         }
 
-        if (showProgress && fraction > 0f) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "${(fraction * 100).toInt()}%",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = FlatAccent,
-            )
+        if (showProgress) {
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(6.dp)
+                        .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
+                        .border(
+                            androidx.compose.foundation.BorderStroke(1.dp, FlatBorder),
+                            RoundedCornerShape(0.dp),
+                        ),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(fraction)
+                            .height(6.dp)
+                            .background(FlatAccent, RoundedCornerShape(0.dp)),
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "${(fraction * 100).toInt()}%",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = FlatAccent,
+                )
+            }
         }
 
         Spacer(Modifier.height(10.dp))

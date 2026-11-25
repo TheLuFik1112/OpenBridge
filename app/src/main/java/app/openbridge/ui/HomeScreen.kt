@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -58,7 +59,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -112,30 +115,30 @@ fun HomeScreen(
         peers.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.info.name })
     }
 
-    // Свайп ВНИЗ в начале списка открывает NFC-панель. NestedScrollConnection
-    // видит ровно тот остаток прокрутки, который LazyColumn уже не смог съесть,
-    // поэтому обычный скролл не ломает управление.
+    // Свайп ВНИЗ в самом начале списка открывает NFC-панель.
+    // Ловим onPreScroll только когда список уже не может прокрутиться вверх,
+    // иначе обычный скролл перестал бы работать. Заодно гасим overscroll,
+    // чтобы список не «резинился» под пальцем.
+    val listState = rememberLazyListState()
+    val thresholdPx = with(LocalDensity.current) { 64.dp.toPx() }
     val accumulatedPullPx = remember { mutableStateOf(0f) }
     val lastNfcOpenAt = remember { mutableStateOf(0L) }
-    val nestedScrollConnection = remember {
+    val nestedScrollConnection = remember(listState, thresholdPx) {
         object : NestedScrollConnection {
-            override fun onPostScroll(
-                consumed: Offset,
-                available: Offset,
-                source: NestedScrollSource,
-            ): Offset {
-                if (available.y > 0f) {
-                    accumulatedPullPx.value += available.y
-                    val now = System.currentTimeMillis()
-                    if (accumulatedPullPx.value >= 120f && now - lastNfcOpenAt.value > 900) {
-                        accumulatedPullPx.value = 0f
-                        lastNfcOpenAt.value = now
-                        viewModel.openNfcSheet()
-                    }
-                } else if (available.y < 0f) {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val down = available.y > 0f
+                if (!down || listState.canScrollBackward) {
                     accumulatedPullPx.value = 0f
+                    return Offset.Zero
                 }
-                return Offset.Zero
+                accumulatedPullPx.value += available.y
+                val now = System.currentTimeMillis()
+                if (accumulatedPullPx.value >= thresholdPx && now - lastNfcOpenAt.value > 700) {
+                    accumulatedPullPx.value = 0f
+                    lastNfcOpenAt.value = now
+                    viewModel.openNfcSheet()
+                }
+                return Offset(0f, available.y)
             }
         }
     }
@@ -147,6 +150,7 @@ fun HomeScreen(
             .nestedScroll(nestedScrollConnection),
     ) {
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),

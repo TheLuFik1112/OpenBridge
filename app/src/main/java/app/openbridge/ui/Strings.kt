@@ -52,6 +52,7 @@ interface AppStrings {
     val nfcNeedItems: String
     val nfcHide: String
     val nfcPullHint: String
+    val nfcSwipeUpHint: String
 
     // Settings
     val settingsTitle: String
@@ -156,6 +157,7 @@ object RuStrings : AppStrings {
     override val nfcNeedItems = "Сначала добавьте файлы, фото или текст в пакет"
     override val nfcHide = "Скрыть панель NFC"
     override val nfcPullHint = "Потяните вниз для NFC"
+    override val nfcSwipeUpHint = "Смахните вверх, чтобы скрыть"
 
     override val settingsTitle = "Настройки"
     override val deviceCard = "Устройство"
@@ -258,6 +260,7 @@ object EnStrings : AppStrings {
     override val nfcNeedItems = "Add files, photos or text to the package first"
     override val nfcHide = "Hide NFC panel"
     override val nfcPullHint = "Pull down for NFC"
+    override val nfcSwipeUpHint = "Swipe up to hide"
 
     override val settingsTitle = "Settings"
     override val deviceCard = "Device"
