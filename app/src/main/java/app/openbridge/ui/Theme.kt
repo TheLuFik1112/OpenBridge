@@ -6,6 +6,10 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -20,19 +24,87 @@ const val THEME_LIGHT = "light"
 const val THEME_SYSTEM = "system"
 
 // ── Flat technical palette ────────────────────────────────────────────────
-val FlatBackground: Color = Color(0xFF0A0A0A)
-val FlatSurface: Color = Color(0xFF111111)
-val FlatSurfaceElevated: Color = Color(0xFF161616)
-val FlatBorder: Color = Color(0xFF242424)
-val FlatBorderActive: Color = Color(0xFF3A3A3A)
-val FlatAccent: Color = Color(0xFFFF3B1D)
-val FlatError: Color = Color(0xFFFF4A26)
-val FlatAccentDimBg: Color = Color(0xFF1F100D)
-val FlatTextPrimary: Color = Color(0xFFF2F2F2)
-val FlatTextSecondary: Color = Color(0xFF8A8A8A)
-val FlatTextMuted: Color = Color(0xFF555555)
+// Две палитры с одинаковыми ролями: экраны берут цвета только отсюда,
+// поэтому светлая тема переключается целиком, без тёмных закоулков.
 
-// Flat тема. Минимум Material 3: вся поверхность плоская, без скруглений и теней.
+@Immutable
+data class FlatPalette(
+    val background: Color,
+    val surface: Color,
+    val surfaceElevated: Color,
+    val border: Color,
+    val borderActive: Color,
+    val accent: Color,
+    val error: Color,
+    val accentDimBg: Color,
+    val textPrimary: Color,
+    val textSecondary: Color,
+    val textMuted: Color,
+)
+
+val FlatDarkPalette = FlatPalette(
+    background = Color(0xFF0A0A0A),
+    surface = Color(0xFF111111),
+    surfaceElevated = Color(0xFF161616),
+    border = Color(0xFF242424),
+    borderActive = Color(0xFF3A3A3A),
+    accent = Color(0xFFFF3B1D),
+    error = Color(0xFFFF4A26),
+    accentDimBg = Color(0xFF1F100D),
+    textPrimary = Color(0xFFF2F2F2),
+    textSecondary = Color(0xFF8A8A8A),
+    textMuted = Color(0xFF555555),
+)
+
+val FlatLightPalette = FlatPalette(
+    background = Color(0xFFF4F4F4),
+    surface = Color(0xFFFFFFFF),
+    surfaceElevated = Color(0xFFEDEDED),
+    border = Color(0xFFD8D8D8),
+    borderActive = Color(0xFFB5B5B5),
+    accent = Color(0xFFE8330F),
+    error = Color(0xFFD92D1A),
+    accentDimBg = Color(0xFFFFE8E3),
+    textPrimary = Color(0xFF0A0A0A),
+    textSecondary = Color(0xFF5C5C5C),
+    textMuted = Color(0xFF9A9A9A),
+)
+
+val LocalFlatPalette = staticCompositionLocalOf { FlatDarkPalette }
+
+val FlatBackground: Color
+    @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.background
+
+val FlatSurface: Color
+    @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.surface
+
+val FlatSurfaceElevated: Color
+    @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.surfaceElevated
+
+val FlatBorder: Color
+    @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.border
+
+val FlatBorderActive: Color
+    @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.borderActive
+
+val FlatAccent: Color
+    @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.accent
+
+val FlatError: Color
+    @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.error
+
+val FlatAccentDimBg: Color
+    @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.accentDimBg
+
+val FlatTextPrimary: Color
+    @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.textPrimary
+
+val FlatTextSecondary: Color
+    @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.textSecondary
+
+val FlatTextMuted: Color
+    @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.textMuted
+
 // Ioskeley Mono — основной шрифт всего интерфейса.
 private val FlatFont = FontFamily(
     Font(R.font.ioskeylemonnl_regular, FontWeight.Normal),
@@ -104,69 +176,69 @@ private val FlatTypography = Typography(
 )
 
 private val FlatDarkColors = darkColorScheme(
-    primary = FlatAccent,
-    onPrimary = FlatBackground,
-    primaryContainer = FlatAccentDimBg,
-    onPrimaryContainer = FlatAccent,
-    secondary = FlatBorderActive,
-    onSecondary = FlatTextPrimary,
-    secondaryContainer = FlatSurfaceElevated,
-    onSecondaryContainer = FlatTextPrimary,
-    tertiary = FlatBorderActive,
-    onTertiary = FlatTextPrimary,
-    tertiaryContainer = FlatSurfaceElevated,
-    onTertiaryContainer = FlatTextPrimary,
-    background = FlatBackground,
-    onBackground = FlatTextPrimary,
-    surface = FlatSurface,
-    onSurface = FlatTextPrimary,
-    surfaceVariant = FlatSurfaceElevated,
-    onSurfaceVariant = FlatTextSecondary,
-    surfaceContainerLowest = FlatSurface,
+    primary = FlatDarkPalette.accent,
+    onPrimary = FlatDarkPalette.background,
+    primaryContainer = FlatDarkPalette.accentDimBg,
+    onPrimaryContainer = FlatDarkPalette.accent,
+    secondary = FlatDarkPalette.borderActive,
+    onSecondary = FlatDarkPalette.textPrimary,
+    secondaryContainer = FlatDarkPalette.surfaceElevated,
+    onSecondaryContainer = FlatDarkPalette.textPrimary,
+    tertiary = FlatDarkPalette.borderActive,
+    onTertiary = FlatDarkPalette.textPrimary,
+    tertiaryContainer = FlatDarkPalette.surfaceElevated,
+    onTertiaryContainer = FlatDarkPalette.textPrimary,
+    background = FlatDarkPalette.background,
+    onBackground = FlatDarkPalette.textPrimary,
+    surface = FlatDarkPalette.surface,
+    onSurface = FlatDarkPalette.textPrimary,
+    surfaceVariant = FlatDarkPalette.surfaceElevated,
+    onSurfaceVariant = FlatDarkPalette.textSecondary,
+    surfaceContainerLowest = FlatDarkPalette.surface,
     surfaceContainerLow = Color(0xFF0D0D0D),
-    surfaceContainer = FlatSurface,
-    surfaceContainerHigh = FlatSurfaceElevated,
+    surfaceContainer = FlatDarkPalette.surface,
+    surfaceContainerHigh = FlatDarkPalette.surfaceElevated,
     surfaceContainerHighest = Color(0xFF1C1C1C),
-    surfaceTint = FlatAccent,
-    outline = FlatBorder,
-    outlineVariant = FlatBorder,
-    error = FlatAccent,
-    onError = FlatBackground,
-    errorContainer = FlatAccentDimBg,
-    onErrorContainer = FlatAccent,
+    surfaceTint = FlatDarkPalette.accent,
+    outline = FlatDarkPalette.border,
+    outlineVariant = FlatDarkPalette.border,
+    error = FlatDarkPalette.accent,
+    onError = FlatDarkPalette.background,
+    errorContainer = FlatDarkPalette.accentDimBg,
+    onErrorContainer = FlatDarkPalette.accent,
 )
 
 private val FlatLightColors = lightColorScheme(
-    primary = Color(0xFFFF3B1D),
-    onPrimary = Color(0xFF0A0A0A),
-    primaryContainer = Color(0xFF1F100D),
-    onPrimaryContainer = Color(0xFFFF3B1D),
-    secondary = Color(0xFF3A3A3A),
-    onSecondary = Color(0xFFF2F2F2),
-    secondaryContainer = Color(0xFF161616),
-    onSecondaryContainer = Color(0xFFF2F2F2),
-    tertiary = Color(0xFF3A3A3A),
-    onTertiary = Color(0xFFF2F2F2),
-    tertiaryContainer = Color(0xFF161616),
-    onTertiaryContainer = Color(0xFFF2F2F2),
-    background = Color(0xFFF5F5F5),
-    onBackground = Color(0xFF0A0A0A),
-    surface = Color(0xFFFFFFFF),
-    onSurface = Color(0xFF0A0A0A),
-    surfaceVariant = Color(0xFF161616),
-    onSurfaceVariant = Color(0xFF8A8A8A),
-    surfaceContainerLowest = Color(0xFFFFFFFF),
-    surfaceContainerLow = Color(0xFFF5F5F5),
-    surfaceContainer = Color(0xFFFFFFFF),
-    surfaceContainerHigh = Color(0xFFECECEC),
+    primary = FlatLightPalette.accent,
+    onPrimary = FlatLightPalette.surface,
+    primaryContainer = FlatLightPalette.accentDimBg,
+    onPrimaryContainer = FlatLightPalette.accent,
+    secondary = FlatLightPalette.borderActive,
+    onSecondary = FlatLightPalette.textPrimary,
+    secondaryContainer = FlatLightPalette.surfaceElevated,
+    onSecondaryContainer = FlatLightPalette.textPrimary,
+    tertiary = FlatLightPalette.borderActive,
+    onTertiary = FlatLightPalette.textPrimary,
+    tertiaryContainer = FlatLightPalette.surfaceElevated,
+    onTertiaryContainer = FlatLightPalette.textPrimary,
+    background = FlatLightPalette.background,
+    onBackground = FlatLightPalette.textPrimary,
+    surface = FlatLightPalette.surface,
+    onSurface = FlatLightPalette.textPrimary,
+    surfaceVariant = FlatLightPalette.surfaceElevated,
+    onSurfaceVariant = FlatLightPalette.textSecondary,
+    surfaceContainerLowest = FlatLightPalette.surface,
+    surfaceContainerLow = FlatLightPalette.background,
+    surfaceContainer = FlatLightPalette.surface,
+    surfaceContainerHigh = FlatLightPalette.surfaceElevated,
     surfaceContainerHighest = Color(0xFFE3E3E3),
-    surfaceTint = Color(0xFFFF3B1D),
-    outline = Color(0xFF242424),
-    outlineVariant = Color(0xFF242424),
-    error = Color(0xFFFF3B1D),
-    onError = Color(0xFF0A0A0A),
-    errorContainer = Color(0xFF1F100D),
-    onErrorContainer = Color(0xFFFF3B1D),
+    surfaceTint = FlatLightPalette.accent,
+    outline = FlatLightPalette.border,
+    outlineVariant = FlatLightPalette.border,
+    error = FlatLightPalette.error,
+    onError = FlatLightPalette.surface,
+    errorContainer = FlatLightPalette.accentDimBg,
+    onErrorContainer = FlatLightPalette.error,
 )
 
 @Composable
@@ -178,12 +250,18 @@ fun isDarkTheme(mode: String): Boolean = when (mode) {
 
 /**
  * Flat technical UI: deep matte black surfaces, 1.dp outlines, red-orange accent.
+ * Светлая тема — та же геометрия, но светлые поверхности и тёмный текст.
  */
 @Composable
-fun OpenBridgeTheme(mode: String = THEME_DARK, content: @Composable () -> Unit) {
-    MaterialTheme(
-        colorScheme = if (isDarkTheme(mode)) FlatDarkColors else FlatLightColors,
-        typography = FlatTypography,
-        content = content,
-    )
+fun OpenBridgeTheme(mode: String = THEME_SYSTEM, content: @Composable () -> Unit) {
+    val dark = isDarkTheme(mode)
+    CompositionLocalProvider(
+        LocalFlatPalette provides if (dark) FlatDarkPalette else FlatLightPalette,
+    ) {
+        MaterialTheme(
+            colorScheme = if (dark) FlatDarkColors else FlatLightColors,
+            typography = FlatTypography,
+            content = content,
+        )
+    }
 }

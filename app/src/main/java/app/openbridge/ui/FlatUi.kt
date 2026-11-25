@@ -84,7 +84,7 @@ fun FlatPrimaryButton(
             text = text.uppercase(),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            color = Color(0xFF0A0A0A),
+            color = MaterialTheme.colorScheme.onPrimary,
         )
     }
 }
@@ -135,7 +135,10 @@ fun FlatToggle(
                 .offset(x = if (checked) 28.dp else 2.dp)
                 .width(18.dp)
                 .height(18.dp)
-                .background(if (checked) Color(0xFF0A0A0A) else FlatTextMuted, RoundedCornerShape(0.dp)),
+                .background(
+                    if (checked) MaterialTheme.colorScheme.onPrimary else FlatTextMuted,
+                    RoundedCornerShape(0.dp),
+                ),
         )
     }
 }
@@ -163,7 +166,7 @@ fun FlatCheckbox(
             Icon(
                 imageVector = Icons.Rounded.Check,
                 contentDescription = null,
-                tint = Color(0xFF0A0A0A),
+                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(16.dp),
             )
         }

@@ -11,7 +11,6 @@ import app.openbridge.core.QueueItem
 import app.openbridge.core.QueueKind
 import app.openbridge.discovery.NearbyItem
 import app.openbridge.net.PortalFile
-import app.openbridge.util.NfcHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -139,14 +138,8 @@ class PackageQueue(
         }
     }
 
-    /** Метка NFC должна знать, есть ли что забирать. */
-    fun syncTag() {
-        NfcHelper.updatePackage(items.value.isNotEmpty())
-    }
-
     /** Очередь изменилась — обновляем метку NFC и веб-портал. */
     private suspend fun publish() {
-        syncTag()
         runCatching {
             if (!settings.portalEnabled.value) {
                 portalUrl.value = null

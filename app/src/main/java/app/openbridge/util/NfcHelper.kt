@@ -35,9 +35,6 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 object NfcHelper {
 
-    private const val GITHUB_DOWNLOAD_URL =
-        "https://github.com/TheLuFik1112/OpenBridge/releases/latest"
-
     /** Схема, которую понимает только OpenBridge: браузер её открыть не может. */
     private const val SCHEME = "openbridge"
     private const val HOST = "nfc"
@@ -51,9 +48,13 @@ object NfcHelper {
     @Volatile
     private var senderName: String = ""
 
-    /** В пакете есть что отправлять: пустая метка ведёт только на скачивание. */
+    /**
+     * Метка отвечает, только пока на телефоне открыта панель NFC и в пакете
+     * есть что отдать. Закрытая панель = пустая метка: второе устройство
+     * ничего не откроет.
+     */
     @Volatile
-    private var packageReady: Boolean = false
+    private var tagActive: Boolean = false
 
     @Volatile
     private var lastServedAt: Long = 0L
@@ -101,13 +102,16 @@ object NfcHelper {
         }
     }
 
-    /** Появился или опустел пакет: пустая метка не приглашает за файлами. */
-    fun updatePackage(ready: Boolean) {
-        if (ready != packageReady) {
-            packageReady = ready
+    /** Открылась или закрылась панель NFC: метка начинает или перестаёт отвечать. */
+    fun setTagActive(active: Boolean) {
+        if (active != tagActive) {
+            tagActive = active
             invalidate()
         }
     }
+
+    /** В метке есть адрес отправителя: читателю есть что открыть. */
+    fun isTagActive(): Boolean = senderUri() != null
 
     /**
      * Заполняет имя и id до первого касания. HCE-служба может быть запущена
@@ -145,16 +149,20 @@ object NfcHelper {
      */
     fun buildNdefFile(): ByteArray {
         val uri = senderUri()
-        val key = uri ?: "download"
+        val key = uri ?: "empty"
         cachedFile?.let { if (cachedFileKey == key) return it }
 
-        val records = ArrayList<NdefRecord>(2)
-        if (uri != null) records.add(NdefRecord.createUri(Uri.parse(uri)))
-        // Второй адрес — страница скачивания. Android берёт первую запись,
-        // которую может открыть хоть кто-то: браузер её не откроет и перейдёт
-        // к следующей.
-        records.add(NdefRecord.createUri(Uri.parse(GITHUB_DOWNLOAD_URL)))
+        // Панель закрыта — папка NDEF пустая: ни приложения, ни браузера,
+        // ни страницы скачивания. Касание двух телефонов без пакета молчит.
+        if (uri == null) {
+            val empty = byteArrayOf(0x00, 0x00)
+            cachedFileKey = key
+            cachedFile = empty
+            return empty
+        }
 
+        val records = ArrayList<NdefRecord>(2)
+        records.add(NdefRecord.createUri(Uri.parse(uri)))
         val bytes = NdefMessage(records.toTypedArray()).toByteArray()
         val file = ByteArray(2 + bytes.size)
         file[0] = ((bytes.size ushr 8) and 0xFF).toByte()
@@ -166,9 +174,9 @@ object NfcHelper {
         return file
     }
 
-    /** Адрес отправителя для метки; null — отправлять нечего, только скачивание. */
+    /** Адрес отправителя для метки; null — панель закрыта, метка пустая. */
     private fun senderUri(): String? {
-        if (!packageReady) return null
+        if (!tagActive) return null
         val name = senderName.ifBlank { "Android" }
         if (senderId.isBlank() && name.isBlank()) return null
         val builder = Uri.Builder()

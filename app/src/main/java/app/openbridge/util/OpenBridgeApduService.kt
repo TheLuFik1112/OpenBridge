@@ -84,7 +84,7 @@ class OpenBridgeApduService : HostApduService() {
             result[result.size - 1] = 0x00
 
             if (selectedFile == SelectedFile.NDEF && !ndefServed &&
-                offset + readLen >= fileData.size
+                offset + readLen >= fileData.size && NfcHelper.isTagActive()
             ) {
                 ndefServed = true
                 NfcHelper.notifyServed()

@@ -24,7 +24,7 @@ class AppSettings(
     val developerMode = MutableStateFlow(false)
     val autoSendReports = MutableStateFlow(false)
     val appLanguage = MutableStateFlow("system")
-    val themeMode = MutableStateFlow(THEME_DARK)
+    val themeMode = MutableStateFlow(THEME_SYSTEM)
 
     /** Читает prefs с диска. Только из фонового потока. */
     fun load() {
@@ -92,7 +92,7 @@ class AppSettings(
         if (lang in LANGUAGES) lang else LANGUAGE_SYSTEM
 
     private fun sanitizeTheme(mode: String): String =
-        if (mode in THEMES) mode else THEME_DARK
+        if (mode in THEMES) mode else THEME_SYSTEM
 
     companion object {
         const val THEME_DARK = "dark"

@@ -21,10 +21,10 @@ class SettingsRepository(private val context: Context) {
     val appLanguage = MutableStateFlow(prefs.getString(KEY_LANGUAGE, "system") ?: "system")
 
     /** Оформление: чёрная тема по умолчанию, светлую можно выбрать в настройках. */
-    val themeMode = MutableStateFlow(prefs.getString(KEY_THEME, THEME_DARK) ?: THEME_DARK)
+    val themeMode = MutableStateFlow(prefs.getString(KEY_THEME, THEME_SYSTEM) ?: THEME_SYSTEM)
 
     fun setThemeMode(value: String) {
-        val clean = if (value in listOf(THEME_DARK, THEME_LIGHT, THEME_SYSTEM)) value else THEME_DARK
+        val clean = if (value in listOf(THEME_DARK, THEME_LIGHT, THEME_SYSTEM)) value else THEME_SYSTEM
         themeMode.value = clean
         prefs.edit().putString(KEY_THEME, clean).apply()
     }

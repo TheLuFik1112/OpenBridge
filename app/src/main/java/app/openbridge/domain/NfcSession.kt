@@ -48,17 +48,26 @@ class NfcSession(
             messages.value = strings.value.nfcNeedItems
             return
         }
-        queue.syncTag()
         if (_state.value.phase != NfcPhase.RECEIVING &&
             _state.value.phase != NfcPhase.CONNECTING
         ) {
             _state.value = NfcState(hasItems = true)
         }
         _open.value = true
+        syncTag()
     }
 
     fun close() {
         _open.value = false
+        syncTag()
+    }
+
+    /**
+     * Метка живёт только пока панель открыта: закрытая панель не отвечает
+     * даже на касание, поэтому второе устройство ничего не откроет.
+     */
+    private fun syncTag() {
+        NfcHelper.setTagActive(_open.value && queue.items.value.isNotEmpty())
     }
 
     /**
@@ -101,6 +110,12 @@ class NfcSession(
      * События приходят из HCE-службы и Nearby, поэтому подписки живут в фоне.
      */
     fun attach() {
+        // Очередь меняется при открытой панели — метка должна замолчать,
+        // если пакет опустел.
+        scope.launch(Dispatchers.IO) {
+            queue.items.collect { syncTag() }
+        }
+
         scope.launch(Dispatchers.IO) {
             // StateFlow сразу отдаёт текущее значение: без этой отметки после
             // пересоздания Activity мы бы показали «Отправлено» ещё раз.
