@@ -106,7 +106,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    TextButton(onClick = { renameOpen = true }) { Text(strings.btnChange) }
+                    FlatTextAction(text = strings.btnChange, onClick = { renameOpen = true })
                 }
             }
         }
@@ -126,7 +126,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    TextButton(onClick = { themeOpen = true }) { Text(strings.btnChange) }
+                    FlatTextAction(text = strings.btnChange, onClick = { themeOpen = true })
                 }
             }
         }
@@ -146,7 +146,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    TextButton(onClick = { langOpen = true }) { Text(strings.btnChange) }
+                    FlatTextAction(text = strings.btnChange, onClick = { langOpen = true })
                 }
             }
         }
@@ -407,6 +407,8 @@ fun SettingsScreen(viewModel: AppViewModel) {
     if (renameOpen) {
         var value by remember(deviceName) { mutableStateOf(deviceName) }
         AlertDialog(
+            shape = RoundedCornerShape(0.dp),
+            containerColor = FlatSurface,
             onDismissRequest = { renameOpen = false },
             title = { Text(strings.renameDialogTitle) },
             text = {
@@ -438,6 +440,8 @@ fun SettingsScreen(viewModel: AppViewModel) {
 
     if (statsOpen) {
         AlertDialog(
+            shape = RoundedCornerShape(0.dp),
+            containerColor = FlatSurface,
             onDismissRequest = { statsOpen = false },
             title = { Text("Server Stats") },
             text = {
@@ -461,6 +465,8 @@ private fun ThemeDialog(
     onSelect: (String) -> Unit,
 ) {
     AlertDialog(
+        shape = RoundedCornerShape(0.dp),
+        containerColor = FlatSurface,
         onDismissRequest = onDismiss,
         title = { Text(strings.themeCard) },
         text = {
@@ -502,6 +508,8 @@ private fun LanguageDialog(
     onSelect: (String) -> Unit,
 ) {
     AlertDialog(
+        shape = RoundedCornerShape(0.dp),
+        containerColor = FlatSurface,
         onDismissRequest = onDismiss,
         title = { Text(strings.languageCard) },
         text = {
@@ -546,6 +554,8 @@ private fun LogsDialog(viewModel: AppViewModel, onDismiss: () -> Unit) {
     }
 
     AlertDialog(
+        shape = RoundedCornerShape(0.dp),
+        containerColor = FlatSurface,
         onDismissRequest = onDismiss,
         title = { Text("Logs") },
         text = {

@@ -632,10 +632,13 @@ private fun PeerRow(
 private fun TextDialog(strings: AppStrings, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
     androidx.compose.material3.AlertDialog(
+        shape = RoundedCornerShape(0.dp),
+        containerColor = FlatSurface,
         onDismissRequest = onDismiss,
         title = { Text(strings.textDialogTitle) },
         text = {
             androidx.compose.material3.OutlinedTextField(
+                shape = RoundedCornerShape(0.dp),
                 value = text,
                 onValueChange = { text = it },
                 minLines = 4,

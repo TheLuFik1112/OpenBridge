@@ -34,6 +34,8 @@ fun CrashDialog(
     onDismiss: () -> Unit,
 ) {
     AlertDialog(
+        shape = RoundedCornerShape(0.dp),
+        containerColor = FlatSurface,
         onDismissRequest = onDismiss,
         icon = {
             Box(

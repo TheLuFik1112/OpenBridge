@@ -194,6 +194,25 @@ fun FlatProgress(
     }
 }
 
+/** Акцентное текстовое действие в стиле терминала — без Material-кнопки. */
+@Composable
+fun FlatTextAction(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.Bold,
+        color = if (enabled) FlatAccent else FlatTextMuted,
+        modifier = modifier
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(vertical = 8.dp, horizontal = 4.dp),
+    )
+}
+
 @Composable
 fun AccentCallout(
     text: String,

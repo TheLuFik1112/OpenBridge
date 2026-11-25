@@ -124,6 +124,8 @@ fun NearbyProgressDialog(
     onDismiss: () -> Unit,
 ) {
     androidx.compose.material3.AlertDialog(
+        shape = RoundedCornerShape(0.dp),
+        containerColor = FlatSurface,
         onDismissRequest = onDismiss,
         confirmButton = {
             TextButton(onClick = onDismiss) { Text("Скрыть") }
