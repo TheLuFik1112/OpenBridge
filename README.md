@@ -4,7 +4,6 @@
 
 ---
 
-![OpenBridge icon](download/Frame 1.svg)
 
 Send files, photos, folders and text from one phone to another: no internet, no cloud, no accounts. Phones find each other on the same Wi-Fi or connect directly when there is no router.
 
