@@ -39,6 +39,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -171,7 +172,10 @@ private fun AppContent(viewModel: AppViewModel) {
             containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 TopAppBar(
-                    containerColor = FlatBackground,
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = FlatBackground,
+                        titleContentColor = FlatTextPrimary,
+                    ),
                     title = {
                         Text(
                             text = tabs[selectedTab].label(strings).uppercase(),
