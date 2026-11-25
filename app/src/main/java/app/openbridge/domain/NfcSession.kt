@@ -225,6 +225,8 @@ class NfcSession(
                     summary.texts > 0 -> strings.value.nfcTextCopied
                     else -> strings.value.nfcEmptyPackage
                 }
+                delay(NFC_RESULT_DISPLAY_MS)
+                if (_state.value.phase == NfcPhase.DONE) close()
             } catch (cancel: CancellationException) {
                 throw cancel
             } catch (t: Throwable) {
@@ -280,6 +282,8 @@ class NfcSession(
                 } else {
                     strings.value.nfcReceiveFailed
                 }
+                delay(NFC_RESULT_DISPLAY_MS)
+                if (_state.value.phase == NfcPhase.ERROR) close()
             }
         }
     }
@@ -296,5 +300,6 @@ class NfcSession(
     private companion object {
         /** Сколько ждём получателя после чтения метки, прежде чем закрыть панель. */
         const val NFC_HANDOFF_TIMEOUT_MS = 25_000L
+        const val NFC_RESULT_DISPLAY_MS = 1_800L
     }
 }

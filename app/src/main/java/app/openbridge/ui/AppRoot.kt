@@ -167,6 +167,9 @@ private fun AppContent(viewModel: AppViewModel) {
     val coroutineScope = rememberCoroutineScope()
     val pagerState = rememberPagerState { tabs.size }
     val selectedTab = pagerState.currentPage
+    LaunchedEffect(pagerState.currentPage) {
+        viewModel.closeNfcSheet()
+    }
 
     CompositionLocalProvider(LocalStrings provides strings) {
         Scaffold(

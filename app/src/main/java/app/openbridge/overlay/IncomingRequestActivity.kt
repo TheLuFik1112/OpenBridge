@@ -13,7 +13,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -65,7 +64,6 @@ class IncomingRequestActivity : ComponentActivity() {
                 val stage by graph.incoming.stage(transferId).collectAsState()
                 val sheetState = rememberModalBottomSheetState(
                     skipPartiallyExpanded = true,
-                    confirmValueChange = { it != SheetValue.Hidden },
                 )
                 val scope = rememberCoroutineScope()
 
@@ -78,9 +76,12 @@ class IncomingRequestActivity : ComponentActivity() {
                 }
 
                 LaunchedEffect(stage) {
-                    if (stage is IncomingStage.Done || stage is IncomingStage.Failed) {
-                        delay(900)
-                        close()
+                    when (stage) {
+                        IncomingStage.Connecting,
+                        is IncomingStage.Transferring,
+                        IncomingStage.Done,
+                        is IncomingStage.Failed -> close()
+                        IncomingStage.Awaiting -> Unit
                     }
                 }
 

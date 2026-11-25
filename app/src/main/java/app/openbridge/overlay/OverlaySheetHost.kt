@@ -101,6 +101,7 @@ class OverlaySheetHost(
                         SheetOverlay(
                             offer = offer,
                             stage = stageState.value,
+                            onClose = ::close,
                             onAccept = { always ->
                                 stageState.value = IncomingStage.Connecting
                                 onAccept(offer.transferId, always)
@@ -146,9 +147,6 @@ class OverlaySheetHost(
 
     fun updateStage(stage: IncomingStage) {
         main.post { stageState.value = stage }
-        if (stage is IncomingStage.Done) {
-            main.postDelayed({ close() }, 1_200)
-        }
     }
 
     fun close() {
@@ -168,6 +166,7 @@ class OverlaySheetHost(
 private fun SheetOverlay(
     offer: TransferOffer,
     stage: IncomingStage,
+    onClose: () -> Unit,
     onAccept: (Boolean) -> Unit,
     onDecline: () -> Unit,
 ) {
@@ -176,6 +175,15 @@ private fun SheetOverlay(
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) { visible = true }
+
+    LaunchedEffect(stage) {
+        if (stage is IncomingStage.Done || stage is IncomingStage.Failed) {
+            delay(900)
+            visible = false
+            delay(220)
+            onClose()
+        }
+    }
 
     fun animateOut(then: () -> Unit) {
         scope.launch {
