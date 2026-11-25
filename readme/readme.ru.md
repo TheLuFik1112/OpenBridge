@@ -4,11 +4,13 @@
 
 ---
 
-![Иконка OpenBridge](download/Frame 1.svg)
+<p align="center">
+  <img src="../icon/openbridge.svg" alt="OpenBridge" width="96" height="96">
+</p>
 
 Передавайте файлы, фото, папки и текст с телефона на телефон: без интернета, без облака, без аккаунтов. Телефоны находят друг друга в одной Wi-Fi сети или соединяются напрямую, если роутера рядом нет.
 
-**Текущая версия: 0.5.0** · Android 8.0+ · Kotlin + Jetpack Compose (Material 3)
+**Текущая версия: 0.6.0** · Android 8.0+ · Kotlin + Jetpack Compose (Material 3)
 
 ## Как пользоваться
 

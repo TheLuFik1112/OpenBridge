@@ -4,10 +4,13 @@
 
 ---
 
+<p align="center">
+  <img src="icon/openbridge.svg" alt="OpenBridge" width="96" height="96">
+</p>
 
 Send files, photos, folders and text from one phone to another: no internet, no cloud, no accounts. Phones find each other on the same Wi-Fi or connect directly when there is no router.
 
-**Current version: 0.5.0** · Android 8.0+ · Kotlin + Jetpack Compose (Material 3)
+**Current version: 0.6.0** · Android 8.0+ · Kotlin + Jetpack Compose (Material 3)
 
 ## How to use
 
