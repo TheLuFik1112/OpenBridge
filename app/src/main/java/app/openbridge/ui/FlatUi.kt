@@ -12,8 +12,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -132,6 +134,60 @@ fun FlatToggle(
                 .width(18.dp)
                 .height(18.dp)
                 .background(if (checked) Color(0xFF0A0A0A) else FlatTextMuted, RoundedCornerShape(0.dp)),
+        )
+    }
+}
+
+@Composable
+fun FlatCheckbox(
+    checked: Boolean,
+    enabled: Boolean = true,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .size(22.dp)
+            .background(if (checked) FlatAccent else Color.Transparent, RoundedCornerShape(0.dp))
+            .border(
+                androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (checked) FlatAccent else if (enabled) FlatBorderActive else FlatBorder,
+                ),
+                RoundedCornerShape(0.dp),
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (checked) {
+            Icon(
+                imageVector = androidx.compose.material.icons.Icons.Rounded.Check,
+                contentDescription = null,
+                tint = Color(0xFF0A0A0A),
+                modifier = Modifier.size(16.dp),
+            )
+        }
+    }
+}
+
+/** Плоский индикатор прогресса: рамка + заливка без градиентов и скруглений. */
+@Composable
+fun FlatProgress(
+    fraction: Float,
+    modifier: Modifier = Modifier,
+    height: Int = 6,
+) {
+    val safe = fraction.coerceIn(0f, 1f)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(height.dp)
+            .background(FlatSurface, RoundedCornerShape(0.dp))
+            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp)),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(safe)
+                .height(height.dp)
+                .background(FlatAccent, RoundedCornerShape(0.dp)),
         )
     }
 }

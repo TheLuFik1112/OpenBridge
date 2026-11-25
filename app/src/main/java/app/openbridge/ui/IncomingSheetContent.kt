@@ -1,7 +1,7 @@
 package app.openbridge.ui
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
@@ -28,14 +27,9 @@ import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Shield
-import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,9 +38,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.openbridge.core.FileMeta
@@ -58,7 +52,8 @@ import app.openbridge.core.totalBytes
 
 /**
  * Общий контент входящей шторки.
- * Хостится либо в ModalBottomSheet (прозрачная Activity), либо в overlay-окне.
+ * Хостится либо в прозрачной Activity, либо в overlay-окне.
+ * Flat: 1.dp рамка, акцентная полоса сверху, без скруглений и теней.
  */
 @Composable
 fun IncomingSheetContent(
@@ -76,60 +71,73 @@ fun IncomingSheetContent(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(0.dp))
+            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
             .navigationBarsPadding()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 18.dp),
     ) {
-        if (showHandle) {
-            Box(
-                Modifier
-                    .padding(top = 10.dp, bottom = 2.dp)
-                    .size(width = 36.dp, height = 4.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
-                    .align(Alignment.CenterHorizontally),
-            )
-        }
+        // Вместо круглого «хэндла» — акцентная полоса во всю ширину.
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 0.dp)
+                .height(2.dp)
+                .background(FlatAccent, RoundedCornerShape(0.dp)),
+        )
 
         Row(
-            Modifier.fillMaxWidth().padding(top = 12.dp),
+            Modifier.fillMaxWidth().padding(top = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-                modifier = Modifier.size(44.dp),
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
+                    .border(
+                        androidx.compose.foundation.BorderStroke(1.dp, FlatBorder),
+                        RoundedCornerShape(0.dp),
+                    ),
+                contentAlignment = Alignment.Center,
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = offer.sender.name.trim().take(1).uppercase().ifEmpty { "?" },
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                }
+                Text(
+                    text = offer.sender.name.trim().take(1).uppercase().ifEmpty { "?" },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = FlatAccent,
+                )
             }
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
+                    text = "ВХОДЯЩАЯ ПЕРЕДАЧА",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = FlatTextSecondary,
+                )
+                Text(
                     text = offer.sender.name,
                     style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = FlatTextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "${offer.sender.platform.uppercase()} • рядом • ${offer.sender.id.take(8)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = "${offer.sender.platform.uppercase()} · РЯДОМ",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = FlatTextMuted,
                     maxLines = 1,
                 )
             }
             IconButton(onClick = onDecline, enabled = !busy) {
-                Icon(Icons.Rounded.Close, contentDescription = "Отклонить")
+                Icon(
+                    Icons.Rounded.Close,
+                    contentDescription = "Отклонить",
+                    tint = FlatTextSecondary,
+                )
             }
         }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
             text = when (val payload = offer.payload) {
                 is Payload.Text -> "Хочет отправить текст из буфера"
@@ -137,45 +145,46 @@ fun IncomingSheetContent(
                 is Payload.Mixed -> "Хочет отправить файлы и текст"
             },
             style = MaterialTheme.typography.bodyLarge,
+            color = FlatTextPrimary,
         )
         Spacer(Modifier.height(12.dp))
 
         PreviewCard(offer.payload, stage)
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(8.dp))
 
         Row(
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
                 .toggleable(
                     value = alwaysAccept,
                     enabled = !busy,
                     role = Role.Checkbox,
                     onValueChange = { alwaysAccept = it },
                 )
-                .padding(vertical = 6.dp, horizontal = 4.dp),
+                .padding(vertical = 8.dp, horizontal = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Checkbox(checked = alwaysAccept, onCheckedChange = null, enabled = !busy)
-            Spacer(Modifier.width(8.dp))
+            FlatCheckbox(checked = alwaysAccept, enabled = !busy)
+            Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    "Всегда принимать от «${offer.sender.name}»",
+                    text = "Всегда принимать от «${offer.sender.name}»",
                     style = MaterialTheme.typography.bodyMedium,
+                    color = FlatTextPrimary,
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Rounded.Shield,
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = FlatTextMuted,
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        "Ключ устройства сохранится, следующие передачи — без подтверждения",
+                        text = "Ключ устройства сохранится, следующие передачи — без подтверждения",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = FlatTextMuted,
                         maxLines = 2,
                     )
                 }
@@ -183,44 +192,35 @@ fun IncomingSheetContent(
         }
 
         Row(Modifier.padding(top = 14.dp, bottom = 16.dp)) {
-            OutlinedButton(
+            FlatSecondaryButton(
+                text = "Отклонить",
                 onClick = onDecline,
                 enabled = !busy,
-                modifier = Modifier.weight(1f).height(56.dp),
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                Text("Отклонить", style = MaterialTheme.typography.titleSmall)
-            }
-            Spacer(Modifier.width(12.dp))
-            Button(
+                modifier = Modifier.weight(1f).height(52.dp),
+            )
+            Spacer(Modifier.width(10.dp))
+            FlatPrimaryButton(
+                text = when (stage) {
+                    IncomingStage.Awaiting -> "Принять"
+                    IncomingStage.Done -> "Готово"
+                    is IncomingStage.Failed -> "Закрыть"
+                    else -> "Отмена"
+                },
                 onClick = { if (failed) onDecline() else onAccept(alwaysAccept) },
                 enabled = !busy,
-                modifier = Modifier.weight(1.45f).height(56.dp),
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                AnimatedContent(targetState = stage, label = "accept") { current ->
-                    when (current) {
-                        IncomingStage.Awaiting -> Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Rounded.Check, contentDescription = null, modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(8.dp))
-                            Text("Принять", style = MaterialTheme.typography.titleSmall)
-                        }
-                        IncomingStage.Done -> Text("Готово", style = MaterialTheme.typography.titleSmall)
-                        is IncomingStage.Failed -> Text("Закрыть", style = MaterialTheme.typography.titleSmall)
-                        else -> Text("Отмена", style = MaterialTheme.typography.titleSmall)
-                    }
-                }
-            }
+                modifier = Modifier.weight(1.45f).height(52.dp),
+            )
         }
     }
 }
 
 @Composable
 private fun PreviewCard(payload: Payload, stage: IncomingStage) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        modifier = Modifier.fillMaxWidth(),
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
+            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp)),
     ) {
         Column(Modifier.padding(14.dp)) {
             when (payload) {
@@ -238,21 +238,19 @@ private fun PreviewCard(payload: Payload, stage: IncomingStage) {
                 val fraction = if (stage.totalBytes > 0) {
                     (stage.doneBytes.toFloat() / stage.totalBytes).coerceIn(0f, 1f)
                 } else 0f
-                LinearProgressIndicator(
-                    progress = { fraction },
-                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape),
-                )
+                FlatProgress(fraction = fraction)
                 Spacer(Modifier.height(6.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(
-                        "${formatBytes(stage.doneBytes)} из ${formatBytes(stage.totalBytes)}",
+                        text = "${formatBytes(stage.doneBytes)} / ${formatBytes(stage.totalBytes)}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = FlatTextSecondary,
                     )
                     Text(
-                        "${(fraction * 100).toInt()}%",
+                        text = "${(fraction * 100).toInt()}%",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold,
+                        color = FlatAccent,
                     )
                 }
             }
@@ -260,9 +258,9 @@ private fun PreviewCard(payload: Payload, stage: IncomingStage) {
             if (stage is IncomingStage.Failed) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    stage.reason,
+                    text = stage.reason,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
+                    color = FlatError,
                 )
             }
         }
@@ -275,7 +273,7 @@ private fun TextPreview(text: String) {
         Icon(
             Icons.Rounded.ContentCopy,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = FlatAccent,
             modifier = Modifier.size(20.dp),
         )
         Spacer(Modifier.width(10.dp))
@@ -283,14 +281,15 @@ private fun TextPreview(text: String) {
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyMedium,
+                color = FlatTextPrimary,
                 maxLines = 4,
                 overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                "Буфер обмена • ${text.length} симв.",
+                text = "БУФЕР ОБМЕНА · ${text.length} СИМВ.",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = FlatTextMuted,
             )
         }
     }
@@ -308,21 +307,22 @@ private fun FilesPreview(files: List<FileMeta>, compact: Boolean = false) {
         Icon(
             Icons.Rounded.Folder,
             contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
+            tint = FlatAccent,
             modifier = Modifier.size(18.dp),
         )
         Spacer(Modifier.width(8.dp))
         Text(
-            "${files.size} файл(ов) • ${formatBytes(files.sumOf { it.size })}",
+            text = "${files.size} ФАЙЛ(ОВ) · ${formatBytes(files.sumOf { it.size })}",
             style = MaterialTheme.typography.bodyMedium,
+            color = FlatTextPrimary,
         )
     }
     if (!compact) {
         Spacer(Modifier.height(4.dp))
         Text(
-            files.take(3).joinToString(" · ") { it.name },
+            text = files.take(3).joinToString(" · ") { it.name },
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = FlatTextMuted,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -331,19 +331,19 @@ private fun FilesPreview(files: List<FileMeta>, compact: Boolean = false) {
 
 @Composable
 private fun FileThumb(file: FileMeta) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        modifier = Modifier.size(64.dp),
+    Box(
+        modifier = Modifier
+            .size(64.dp)
+            .background(FlatSurface, RoundedCornerShape(0.dp))
+            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp)),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Icon(
-                imageVector = iconFor(file),
-                contentDescription = file.name,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.size(26.dp),
-            )
-        }
+        Icon(
+            imageVector = iconFor(file),
+            contentDescription = file.name,
+            tint = FlatTextSecondary,
+            modifier = Modifier.size(24.dp),
+        )
     }
 }
 
