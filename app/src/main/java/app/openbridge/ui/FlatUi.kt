@@ -56,7 +56,7 @@ fun SectionHeader(
     modifier: Modifier = Modifier,
 ) {
     Text(
-        text = "// $index — ${title.uppercase()}",
+        text = "$index — ${title.uppercase()}",
         style = MaterialTheme.typography.labelMedium,
         color = FlatAccent,
         fontFamily = FontFamily.Monospace,
