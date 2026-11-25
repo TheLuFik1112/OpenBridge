@@ -33,10 +33,9 @@ val FlatTextSecondary: Color = Color(0xFF8A8A8A)
 val FlatTextMuted: Color = Color(0xFF555555)
 
 // Flat тема. Минимум Material 3: вся поверхность плоская, без скруглений и теней.
-// TODO: заменить FontFamily.Monospace fallback на IoskeleyMono из
-// https://github.com/ahatem/IoskeleyMono — файлы ожидаются как
-// res/font/ioskeley_mono_regular.ttf, res/font/ioskeley_mono_medium.ttf,
-// res/font/ioskeley_mono_bold.ttf.
+// TODO: заменить FontFamily.Monospace fallback на сам шрифт Ioskeley Mono —
+// файлы ожидаются в res/font/ioskeylemonnl_regular.ttf,
+// res/font/ioskeylemonnl_medium.ttf, res/font/ioskeylemonnl_bold.ttf.
 private val FlatFont = FontFamily.Monospace
 
 private val FlatTypography = Typography(
