@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -159,7 +161,7 @@ fun FlatCheckbox(
     ) {
         if (checked) {
             Icon(
-                imageVector = androidx.compose.material.icons.Icons.Rounded.Check,
+                imageVector = Icons.Rounded.Check,
                 contentDescription = null,
                 tint = Color(0xFF0A0A0A),
                 modifier = Modifier.size(16.dp),
