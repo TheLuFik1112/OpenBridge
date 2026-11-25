@@ -1,0 +1,126 @@
+package app.openbridge.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Nfc
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+
+/**
+ * Верхняя панель NFC: открывается свайпом вниз на экране отправки и
+ * «проталкивает» содержимое вниз. Вместо Material-3 BottomSheet — flat,
+ * бистро-стильная панель с 1.dp рамкой и вертикальной акцентной полосой.
+ */
+@Composable
+fun NfcPanel(
+    state: NfcState,
+    strings: AppStrings,
+    onCollapse: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val phase = state.phase
+    val title: String = when (phase) {
+        NfcPhase.CONNECTING -> strings.nfcConnecting(state.peerName)
+        NfcPhase.RECEIVING -> strings.nfcReceiving
+        NfcPhase.TRANSFER -> strings.nfcSending
+        NfcPhase.DONE -> strings.nfcReceived
+        NfcPhase.SENT -> strings.nfcSent
+        NfcPhase.ERROR -> if (state.sending) strings.nfcSendFailed else strings.nfcReceiveFailed
+        NfcPhase.READY -> if (state.hasItems) strings.nfcHoldToSend else strings.nfcNeedItems
+    }
+    val subtitle: String? = when (phase) {
+        NfcPhase.DONE -> when {
+            state.files > 0 -> strings.nfcReceivedCount(state.files)
+            state.texts > 0 -> strings.nfcTextCopied
+            else -> null
+        }
+        NfcPhase.READY -> if (state.hasItems) "" else strings.nfcEmptyPackage
+        NfcPhase.ERROR -> null
+        else -> ""
+    }
+    val showProgress = phase == NfcPhase.RECEIVING || phase == NfcPhase.TRANSFER
+    val fraction = state.fraction.coerceIn(0f, 1f)
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(FlatAccentDimBg, RoundedCornerShape(0.dp))
+            .border(
+                androidx.compose.foundation.BorderStroke(1.dp, FlatBorder),
+                RoundedCornerShape(0.dp),
+            )
+            .padding(start = 10.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
+                    .border(
+                        androidx.compose.foundation.BorderStroke(1.dp, FlatBorder),
+                        RoundedCornerShape(0.dp),
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Nfc,
+                    contentDescription = null,
+                    tint = FlatAccent,
+                    modifier = Modifier.size(30.dp),
+                )
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = title.uppercase(),
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = FlatAccent,
+                    maxLines = 2,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = subtitle.orEmpty(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = FlatTextSecondary,
+                    maxLines = 2,
+                )
+            }
+        }
+
+        if (showProgress && fraction > 0f) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "${(fraction * 100).toInt()}%",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = FlatAccent,
+            )
+        }
+
+        Spacer(Modifier.height(10.dp))
+        FlatSecondaryButton(
+            text = strings.nfcHide,
+            onClick = onCollapse,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}

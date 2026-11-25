@@ -50,6 +50,7 @@ interface AppStrings {
     val nfcTextCopied: String
     val nfcNotAvailable: String
     val nfcNeedItems: String
+    val nfcHide: String
 
     // Settings
     val settingsTitle: String
@@ -152,6 +153,7 @@ object RuStrings : AppStrings {
     override val nfcTextCopied = "Текст скопирован в буфер обмена"
     override val nfcNotAvailable = "NFC недоступен или выключен на этом телефоне"
     override val nfcNeedItems = "Сначала добавьте файлы, фото или текст в пакет"
+    override val nfcHide = "Скрыть панель NFC"
 
     override val settingsTitle = "Настройки"
     override val deviceCard = "Устройство"
@@ -252,6 +254,7 @@ object EnStrings : AppStrings {
     override val nfcTextCopied = "Text copied to clipboard"
     override val nfcNotAvailable = "NFC is not supported or disabled on this device"
     override val nfcNeedItems = "Add files, photos or text to the package first"
+    override val nfcHide = "Hide NFC panel"
 
     override val settingsTitle = "Settings"
     override val deviceCard = "Device"

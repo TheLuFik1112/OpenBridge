@@ -1,6 +1,13 @@
 package app.openbridge.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,11 +22,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Description
@@ -29,19 +34,16 @@ import androidx.compose.material.icons.rounded.QrCode2
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Wifi
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,10 +52,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -79,14 +81,20 @@ fun HomeScreen(
     val peers by viewModel.peers.collectAsState()
     val sending by viewModel.sending.collectAsState()
     val isEngineReady by viewModel.isEngineReady.collectAsState()
+    val nfcSheetOpen by viewModel.nfcSheetOpen.collectAsState()
+
+    var nfcExpanded by remember { mutableStateOf(false) }
+    LaunchedEffect(nfcSheetOpen) {
+        if (nfcSheetOpen) nfcExpanded = true
+    }
 
     val sortedPeers = remember(peers) {
         peers.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.info.name })
     }
 
-    // Свайп ВНИЗ в начале списка открывает NFC-окно. NestedScrollConnection
+    // Свайп ВНИЗ в начале списка открывает NFC-панель. NestedScrollConnection
     // видит ровно тот остаток прокрутки, который LazyColumn уже не смог съесть,
-    // поэтому обычный скролл срабатывание не ломает.
+    // поэтому обычный скролл не ломает управление.
     val accumulatedPullPx = remember { mutableStateOf(0f) }
     val lastNfcOpenAt = remember { mutableStateOf(0L) }
     val nestedScrollConnection = remember {
@@ -96,7 +104,6 @@ fun HomeScreen(
                 available: Offset,
                 source: NestedScrollSource,
             ): Offset {
-                // available.y > 0: список в самом верху, палец тянет вниз.
                 if (available.y > 0f) {
                     accumulatedPullPx.value += available.y
                     val now = System.currentTimeMillis()
@@ -116,13 +123,34 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .nestedScroll(nestedScrollConnection)
+            .background(MaterialTheme.colorScheme.background)
+            .nestedScroll(nestedScrollConnection),
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            if (nfcExpanded) {
+                item(key = "nfc-panel", contentType = "card") {
+                    AnimatedVisibility(
+                        visible = nfcExpanded,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut(),
+                    ) {
+                        NfcPanel(
+                            state = viewModel.nfcState.value,
+                            strings = strings,
+                            onCollapse = {
+                                nfcExpanded = false
+                                viewModel.closeNfcSheet()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                }
+            }
+
             item(key = "status", contentType = "card") {
                 StatusCard(
                     strings = strings,
@@ -152,30 +180,12 @@ fun HomeScreen(
             }
 
             item(key = "devices-title", contentType = "title") {
-                Text(
-                    strings.devicesNearby,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 4.dp),
-                )
+                SectionHeader("02", strings.devicesNearby)
             }
 
             if (peers.isEmpty()) {
                 item(key = "devices-empty", contentType = "card") {
-                    Surface(
-                        shape = RoundedCornerShape(18.dp),
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Column(Modifier.padding(18.dp)) {
-                            Text(strings.noDevicesYet, style = MaterialTheme.typography.bodyLarge)
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                strings.noDevicesHint,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                    AccentCallout(text = strings.noDevicesHint)
                 }
             }
 
@@ -214,75 +224,87 @@ private fun StatusCard(
     isEngineReady: Boolean,
     onShowQr: () -> Unit,
 ) {
-    Surface(
-        shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.primaryContainer,
-        modifier = Modifier.fillMaxWidth(),
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(FlatSurface, RoundedCornerShape(0.dp))
+            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+            .padding(16.dp),
     ) {
-        Column(Modifier.padding(18.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    if (isEngineReady) {
-                        Icon(
-                            Icons.Rounded.Wifi,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    } else {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(22.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    }
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        deviceName,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    )
-                    Text(
-                        when {
-                            !isEngineReady -> strings.statusPreparing
-                            peerCount > 0 -> strings.statusPeersCount(peerCount)
-                            else -> strings.statusWaitingPeers
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
-                    )
-                }
-                FilledTonalButton(
-                    onClick = onShowQr,
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
+                    .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (isEngineReady) {
                     Icon(
-                        Icons.Rounded.QrCode2,
-                        contentDescription = "QR",
-                        modifier = Modifier.size(18.dp),
+                        Icons.Rounded.Wifi,
+                        contentDescription = null,
+                        tint = FlatAccent,
+                        modifier = Modifier.size(16.dp),
                     )
-                    Spacer(Modifier.width(4.dp))
-                    Text(strings.btnQr, style = MaterialTheme.typography.labelMedium)
+                } else {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = FlatAccent,
+                    )
                 }
             }
-            if (portalUrl != null) {
-                Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
                 Text(
-                    portalUrl,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    text = deviceName.uppercase(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = FlatTextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                Text(
+                    when {
+                        !isEngineReady -> strings.statusPreparing
+                        peerCount > 0 -> strings.statusPeersCount(peerCount)
+                        else -> strings.statusWaitingPeers
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = FlatTextSecondary,
+                    maxLines = 1,
+                )
             }
+            Spacer(Modifier.width(10.dp))
+            OutlinedButton(
+                onClick = onShowQr,
+                enabled = isEngineReady,
+                shape = RoundedCornerShape(0.dp),
+            ) {
+                Icon(
+                    Icons.Rounded.QrCode2,
+                    contentDescription = "QR",
+                    tint = FlatTextPrimary,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(4.dp))
+                Text(
+                    text = strings.btnQr.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = FlatTextPrimary,
+                )
+            }
+        }
+        if (portalUrl != null) {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                portalUrl,
+                style = MaterialTheme.typography.labelSmall,
+                color = FlatTextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -298,160 +320,163 @@ private fun QueueCard(
     onRemove: (String) -> Unit,
     onClear: () -> Unit,
 ) {
-    Surface(
-        shape = RoundedCornerShape(22.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    strings.sendPackageTitle,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f),
-                )
-                val totalBytes = remember(queue) { queue.sumOf { it.size } }
-                if (queue.isNotEmpty()) {
-                    Text(
-                        formatBytes(totalBytes),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    FlatCard {
+        SectionHeader("01", strings.sendPackageTitle)
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            QuickAction(
+                icon = Icons.Rounded.Add,
+                label = strings.btnFiles,
+                onClick = onPickFiles,
+            )
+            QuickAction(
+                icon = Icons.Rounded.Image,
+                label = strings.btnPhotos,
+                onClick = onPickPhotos,
+            )
+            QuickAction(
+                icon = Icons.Rounded.Folder,
+                label = strings.btnFolder,
+                onClick = onPickFolder,
+            )
+            QuickAction(
+                icon = Icons.Rounded.ContentCopy,
+                label = strings.btnText,
+                onClick = onAddText,
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        if (queue.isEmpty()) {
+            Text(
+                text = strings.sendPackageEmpty,
+                style = MaterialTheme.typography.bodySmall,
+                color = FlatTextSecondary,
+            )
+        } else {
+            val totalBytes = queue.sumOf { it.size }
+            queue.forEach { item ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = when (item.kind) {
+                            QueueKind.TEXT -> Icons.Rounded.ContentCopy
+                            QueueKind.FOLDER -> Icons.Rounded.Folder
+                            QueueKind.FILE -> Icons.Rounded.Description
+                        },
+                        contentDescription = null,
+                        tint = FlatAccent,
+                        modifier = Modifier.size(18.dp),
                     )
-                    IconButton(onClick = onClear) {
-                        Icon(Icons.Rounded.Delete, contentDescription = strings.btnClear)
-                    }
-                }
-            }
-
-            if (queue.isEmpty()) {
-                Text(
-                    strings.sendPackageEmpty,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            } else {
-                queue.forEach { item ->
-                    Row(
-                        Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            when (item.kind) {
-                                QueueKind.TEXT -> Icons.Rounded.ContentCopy
-                                QueueKind.FOLDER -> Icons.Rounded.Folder
-                                QueueKind.FILE -> Icons.Rounded.Description
-                            },
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp),
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            item.name,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = FlatTextPrimary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
-                        Spacer(Modifier.width(10.dp))
-                        Column(Modifier.weight(1f)) {
+                        if (item.size > 0) {
                             Text(
-                                item.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            if (item.size > 0) {
-                                Text(
-                                    formatBytes(item.size),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                        }
-                        IconButton(onClick = { onRemove(item.id) }, modifier = Modifier.size(32.dp)) {
-                            Icon(
-                                Icons.Rounded.Close,
-                                contentDescription = strings.btnRemove,
-                                modifier = Modifier.size(18.dp),
+                                text = formatBytes(item.size),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = FlatTextSecondary,
                             )
                         }
+                    }
+                    IconButton(onClick = { onRemove(item.id) }) {
+                        Icon(
+                            Icons.Rounded.Close,
+                            contentDescription = strings.btnRemove,
+                            tint = FlatTextSecondary,
+                            modifier = Modifier.size(18.dp),
+                        )
                     }
                 }
             }
+        }
 
-            Spacer(Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                FilledTonalButton(
-                    onClick = onPickFiles,
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.height(2.dp))
-                        Text(strings.btnFiles, style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-                FilledTonalButton(
-                    onClick = onPickPhotos,
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Rounded.Image, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.height(2.dp))
-                        Text(strings.btnPhotos, style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-                FilledTonalButton(
-                    onClick = onPickFolder,
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Rounded.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.height(2.dp))
-                        Text(strings.btnFolder, style = MaterialTheme.typography.labelSmall)
-                    }
-                }
-                FilledTonalButton(
-                    onClick = onAddText,
-                    shape = RoundedCornerShape(12.dp),
-                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp),
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Rounded.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.height(2.dp))
-                        Text(strings.btnText, style = MaterialTheme.typography.labelSmall)
-                    }
-                }
+        Spacer(Modifier.height(12.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = formatBytes(queue.sumOf { it.size }),
+                style = MaterialTheme.typography.labelMedium,
+                color = FlatTextSecondary,
+            )
+            androidx.compose.material3.TextButton(onClick = onClear) {
+                Text(text = strings.btnClear.uppercase(), style = MaterialTheme.typography.labelMedium, color = FlatAccent)
             }
         }
     }
 }
 
 @Composable
-private fun SendingCard(strings: AppStrings, state: SendState) {
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        modifier = Modifier.fillMaxWidth(),
+private fun QuickAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .weight(1f)
+            .height(56.dp)
+            .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
+            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+            .clip(RoundedCornerShape(0.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 4.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        Column(Modifier.padding(16.dp)) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, contentDescription = null, tint = FlatTextPrimary, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.height(2.dp))
             Text(
-                strings.transferringTo(state.peerName),
-                style = MaterialTheme.typography.titleSmall,
+                text = label.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = FlatTextPrimary,
             )
-            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+private fun SendingCard(strings: AppStrings, state: SendState) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(FlatSurface, RoundedCornerShape(0.dp))
+            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+            .padding(16.dp),
+    ) {
+        Column {
+            Text(
+                text = strings.transferringTo(state.peerName).uppercase(),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = FlatTextPrimary,
+            )
+            Spacer(Modifier.height(10.dp))
             LinearProgressIndicator(
                 progress = { state.fraction.coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
+                modifier = Modifier.fillMaxWidth().height(8.dp),
+                color = FlatAccent,
+                trackColor = FlatSurfaceElevated,
             )
             Spacer(Modifier.height(6.dp))
             Text(
                 state.text,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = FlatTextSecondary,
             )
         }
     }
@@ -465,26 +490,26 @@ private fun PeerRow(
     enabled: Boolean,
     onSend: () -> Unit,
 ) {
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.fillMaxWidth(),
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(FlatSurface, RoundedCornerShape(0.dp))
+            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+            .padding(14.dp),
     ) {
-        Row(
-            Modifier.padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier
+                modifier = Modifier
                     .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.tertiaryContainer),
+                    .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
+                    .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    peer.info.name.trim().take(1).uppercase().ifEmpty { "?" },
+                    text = peer.info.name.trim().take(1).uppercase().ifEmpty { "?" },
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    fontWeight = FontWeight.Bold,
+                    color = FlatAccent,
                 )
             }
             Spacer(Modifier.width(12.dp))
@@ -494,6 +519,7 @@ private fun PeerRow(
                         peer.info.name,
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium,
+                        color = FlatTextPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -502,7 +528,7 @@ private fun PeerRow(
                         Icon(
                             Icons.Rounded.Shield,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = FlatAccent,
                             modifier = Modifier.size(16.dp),
                         )
                     }
@@ -514,20 +540,31 @@ private fun PeerRow(
                         else -> strings.peerSearching
                     },
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = FlatTextSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
             Spacer(Modifier.width(8.dp))
-            Button(
-                onClick = onSend,
-                enabled = enabled,
-                shape = RoundedCornerShape(14.dp),
+            Box(
+                modifier = Modifier
+                    .border(
+                        androidx.compose.foundation.BorderStroke(1.dp, FlatBorder),
+                        RoundedCornerShape(0.dp),
+                    )
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Rounded.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(Modifier.width(6.dp))
-                Text(strings.btnSend)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Rounded.Send, contentDescription = null, tint = FlatAccent, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        text = strings.btnSend.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (enabled) FlatAccent else FlatTextMuted,
+                    )
+                }
             }
         }
     }
@@ -536,11 +573,11 @@ private fun PeerRow(
 @Composable
 private fun TextDialog(strings: AppStrings, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
-    AlertDialog(
+    androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(strings.textDialogTitle) },
         text = {
-            OutlinedTextField(
+            androidx.compose.material3.OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
                 minLines = 4,
@@ -550,12 +587,12 @@ private fun TextDialog(strings: AppStrings, onDismiss: () -> Unit, onConfirm: (S
             )
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(text) }, enabled = text.isNotBlank()) {
+            androidx.compose.material3.TextButton(onClick = { onConfirm(text) }, enabled = text.isNotBlank()) {
                 Text(strings.btnAdd)
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(strings.btnCancel) }
+            androidx.compose.material3.TextButton(onClick = onDismiss) { Text(strings.btnCancel) }
         },
     )
 }

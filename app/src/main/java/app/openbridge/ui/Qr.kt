@@ -47,12 +47,18 @@ fun QrDialog(payload: String, onDismiss: () -> Unit) {
         }
     }
     Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    MaterialTheme.colorScheme.surface,
+                    RoundedCornerShape(0.dp),
+                )
+                .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+                .padding(20.dp),
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier,
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {

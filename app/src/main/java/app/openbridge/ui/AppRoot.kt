@@ -8,9 +8,23 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
@@ -19,8 +33,7 @@ import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -35,23 +48,25 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import kotlinx.coroutines.launch
 
 private data class Tab(
-    val title: (AppStrings) -> String,
     val label: (AppStrings) -> String,
     val icon: androidx.compose.ui.graphics.vector.ImageVector,
 )
 
 private val tabs = listOf(
-    Tab(title = { "OpenBridge" }, label = { it.tabSend }, icon = Icons.Rounded.Send),
-    Tab(title = { it.tabHistory }, label = { it.tabHistory }, icon = Icons.Rounded.History),
-    Tab(title = { it.tabSettings }, label = { it.tabSettings }, icon = Icons.Rounded.Settings),
+    Tab(label = { it.tabSend }, icon = Icons.Rounded.Send),
+    Tab(label = { it.tabHistory }, icon = Icons.Rounded.History),
+    Tab(label = { it.tabSettings }, icon = Icons.Rounded.Settings),
 )
 
 @Composable
@@ -92,8 +107,6 @@ private fun AppContent(viewModel: AppViewModel) {
     val nearbyIncoming by viewModel.nearbyIncoming.collectAsState()
     val nearbyProgress by viewModel.nearbyProgress.collectAsState()
     val strings by viewModel.strings.collectAsState()
-    val nfcSheetOpen by viewModel.nfcSheetOpen.collectAsState()
-    val nfcState by viewModel.nfcState.collectAsState()
 
     // Движок стартует только после того, как кадр уже нарисован.
     LaunchedEffect(Unit) {
@@ -155,21 +168,78 @@ private fun AppContent(viewModel: AppViewModel) {
     CompositionLocalProvider(LocalStrings provides strings) {
         Scaffold(
             topBar = {
-                TopAppBar(title = { Text(tabs[selectedTab].title(strings)) })
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = tabs[selectedTab].label(strings).uppercase(),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    },
+                )
             },
             bottomBar = {
-                NavigationBar {
-                    tabs.forEachIndexed { index, tab ->
-                        NavigationBarItem(
-                            selected = selectedTab == index,
-                            onClick = {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(index)
-                                }
-                            },
-                            icon = { Icon(tab.icon, contentDescription = tab.label(strings)) },
-                            label = { Text(tab.label(strings)) },
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(0.dp))
+                        .border(
+                            androidx.compose.foundation.BorderStroke(1.dp, FlatBorder),
+                            RoundedCornerShape(0.dp),
                         )
+                        .height(64.dp),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                            .fillMaxHeight(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        tabs.forEachIndexed { index, tab ->
+                            val selected = selectedTab == index
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable {
+                                        coroutineScope.launch {
+                                            pagerState.animateScrollToPage(index)
+                                        }
+                                    }
+                                    .background(
+                                        if (selected) FlatAccent else Color.Transparent,
+                                        RoundedCornerShape(0.dp),
+                                    ),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(2.dp)
+                                        .background(
+                                            if (selected) FlatAccent else Color.Transparent,
+                                            RoundedCornerShape(0.dp),
+                                        ),
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Icon(
+                                    imageVector = tab.icon,
+                                    contentDescription = tab.label(strings),
+                                    tint = if (selected) FlatAccent else FlatTextMuted,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = tab.label(strings).uppercase(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                    color = if (selected) FlatAccent else FlatTextMuted,
+                                )
+                            }
+                        }
                     }
                 }
             },
@@ -198,13 +268,6 @@ private fun AppContent(viewModel: AppViewModel) {
             }
         }
 
-        if (nfcSheetOpen) {
-            NfcSheet(
-                state = nfcState,
-                onDismiss = viewModel::closeNfcSheet,
-            )
-        }
-
         nearbyIncoming?.let { request ->
             NearbyIncomingSheet(
                 request = request,
@@ -214,10 +277,9 @@ private fun AppContent(viewModel: AppViewModel) {
             )
         }
 
-        // Прогресс Nearby во время NFC уже виден в шторке — второй диалог не нужен.
-        if (!nfcSheetOpen) nearbyProgress?.let { progress ->
+        if (nearbyProgress != null) {
             NearbyProgressDialog(
-                progress = progress,
+                progress = nearbyProgress,
                 onDismiss = viewModel::dismissNearbyProgress,
             )
         }

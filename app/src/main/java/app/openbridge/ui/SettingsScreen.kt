@@ -6,6 +6,7 @@ import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -51,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.openbridge.core.APP_VERSION
@@ -91,7 +93,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item(key = "device") {
-            SettingsCard(strings.deviceCard) {
+            SettingsCard("01", strings.deviceCard) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(strings.deviceNameLabel, style = MaterialTheme.typography.bodyLarge)
@@ -107,7 +109,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
         }
 
         item(key = "theme") {
-            SettingsCard(strings.themeCard) {
+            SettingsCard("02", strings.themeCard) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(strings.themeLabel, style = MaterialTheme.typography.bodyLarge)
@@ -127,7 +129,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
         }
 
         item(key = "language") {
-            SettingsCard(strings.languageCard) {
+            SettingsCard("03", strings.languageCard) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(strings.languageLabel, style = MaterialTheme.typography.bodyLarge)
@@ -147,7 +149,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
         }
 
         item(key = "service") {
-            SettingsCard(strings.serviceCard) {
+            SettingsCard("04", strings.serviceCard) {
                 SwitchRow(
                     title = strings.serviceTitle,
                     subtitle = strings.serviceSubtitle,
@@ -182,7 +184,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
         }
 
         item(key = "receive") {
-            SettingsCard(strings.receiveCard) {
+            SettingsCard("05", strings.receiveCard) {
                 SwitchRow(
                     title = strings.autoAcceptTitle,
                     subtitle = strings.autoAcceptSubtitle,
@@ -193,7 +195,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
         }
 
         item(key = "reports") {
-            SettingsCard(strings.reportsCard) {
+            SettingsCard("06", strings.reportsCard) {
                 SwitchRow(
                     title = strings.reportsTitle,
                     subtitle = if (autoSendReports) strings.reportsSubtitleAuto else strings.reportsSubtitleManual,
@@ -204,7 +206,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
         }
 
         item(key = "trusted") {
-            SettingsCard(strings.trustedCard) {
+            SettingsCard("07", strings.trustedCard) {
                 if (trusted.none { !it.revoked }) {
                     Text(
                         strings.trustedEmpty,
@@ -242,11 +244,13 @@ fun SettingsScreen(viewModel: AppViewModel) {
         }
 
         item(key = "about") {
-            SettingsCard(strings.aboutCard) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.fillMaxWidth(),
+            SettingsCard("08", strings.aboutCard) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(0.dp))
+                        .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -307,7 +311,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
 
         if (developerMode) {
             item(key = "developer") {
-                SettingsCard("Developer Options") {
+                SettingsCard("09", "Developer Options") {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Rounded.BugReport,
@@ -328,39 +332,39 @@ fun SettingsScreen(viewModel: AppViewModel) {
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        OutlinedButton(
+                        FlatSecondaryButton(
+                            text = "Check server",
                             onClick = { viewModel.checkServer() },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.weight(1f),
-                        ) { Text("Check server") }
-                        OutlinedButton(
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        FlatSecondaryButton(
+                            text = "Save logs",
                             onClick = { viewModel.saveLogs() },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.weight(1f),
-                        ) { Text("Save logs") }
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
                     Spacer(Modifier.height(8.dp))
                     Row(
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        OutlinedButton(
+                        FlatSecondaryButton(
+                            text = "Restart server",
                             onClick = { viewModel.restartServer() },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.weight(1f),
-                        ) { Text("Restart server") }
-                        OutlinedButton(
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        FlatSecondaryButton(
+                            text = "Statistics",
                             onClick = { statsOpen = true },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.weight(1f),
-                        ) { Text("Statistics") }
+                            modifier = Modifier.fillMaxWidth(),
+                        )
                     }
                     Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
+                    FlatSecondaryButton(
+                        text = "Show logs",
                         onClick = { logsOpen = true },
-                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Show logs") }
+                    )
                     Spacer(Modifier.height(10.dp))
                     TextButton(
                         onClick = {
@@ -564,17 +568,14 @@ private fun LogsDialog(viewModel: AppViewModel, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun SettingsCard(title: String, content: @Composable () -> Unit) {
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(12.dp))
-            content()
-        }
+private fun SettingsCard(
+    index: String,
+    title: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    FlatCard {
+        SectionHeader(index, title)
+        content()
     }
 }
 
@@ -598,7 +599,7 @@ private fun SwitchRow(
             )
         }
         Spacer(Modifier.width(12.dp))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        FlatToggle(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
@@ -624,7 +625,13 @@ private fun ActionRow(
             )
         }
         Spacer(Modifier.width(8.dp))
-        TextButton(onClick = onClick) { Text(action) }
+        Text(
+            text = action.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Bold,
+            color = FlatAccent,
+            modifier = Modifier.clickable(onClick = onClick),
+        )
     }
 }
 
