@@ -28,6 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.openbridge.domain.NfcPhase
+import app.openbridge.domain.NfcState
+import app.openbridge.text.AppStrings
 
 /**
  * Верхняя панель NFC: открывается свайпом вниз на экране отправки и

@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.openbridge.core.HistoryEntry
 import app.openbridge.core.formatBytes
+import app.openbridge.text.RuStrings
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale

@@ -58,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.openbridge.core.APP_VERSION
+import app.openbridge.text.AppStrings
 import app.openbridge.util.hasOverlayPermission
 import app.openbridge.util.isIgnoringBatteryOptimizations
 import app.openbridge.util.openAppNotificationSettings

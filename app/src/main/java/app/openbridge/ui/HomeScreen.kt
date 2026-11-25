@@ -60,8 +60,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -73,6 +71,10 @@ import app.openbridge.core.QueueItem
 import app.openbridge.core.QueueKind
 import app.openbridge.core.formatBytes
 import app.openbridge.data.DiscoveredPeer
+import app.openbridge.domain.NfcPhase
+import app.openbridge.domain.NfcState
+import app.openbridge.domain.SendState
+import app.openbridge.text.AppStrings
 
 @Composable
 fun HomeScreen(

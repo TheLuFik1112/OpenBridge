@@ -58,6 +58,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import app.openbridge.text.AppStrings
 import kotlinx.coroutines.launch
 
 private data class Tab(
