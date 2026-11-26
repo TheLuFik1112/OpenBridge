@@ -32,14 +32,16 @@ OpenBridge передаёт файлы, фото, папки и текст ме�
 
 ## Скриншоты
 
-<p align="center">
-  <img src="docs/screenshots/send.svg" width="200" alt="Пакет на отправку">
-  <img src="docs/screenshots/nfc.svg" width="200" alt="Панель NFC">
-  <img src="docs/screenshots/receive.svg" width="200" alt="Входящая передача">
-  <img src="docs/screenshots/settings.svg" width="200" alt="Настройки">
-</p>
-
-Замените заглушки в [`docs/screenshots`](docs/screenshots) настоящими скриншотами, когда они будут готовы.
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/screenshots/send.jpg" width="240" alt="Пакет на отправку"></td>
+    <td align="center"><img src="docs/screenshots/nfc.jpg" width="240" alt="Панель NFC"></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/history.jpg" width="240" alt="История передач"></td>
+    <td align="center"><img src="docs/screenshots/settings.jpg" width="240" alt="Настройки"></td>
+  </tr>
+</table>
 
 ## Установка
 

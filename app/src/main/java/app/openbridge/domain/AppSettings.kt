@@ -17,8 +17,8 @@ class AppSettings(
     val portalEnabled = MutableStateFlow(false)
     val developerMode = MutableStateFlow(false)
     val autoSendReports = MutableStateFlow(false)
-    val appLanguage = MutableStateFlow("system")
-    val themeMode = MutableStateFlow(THEME_SYSTEM)
+    val appLanguage = MutableStateFlow(sanitizeLanguage(graph.settings.appLanguage.value))
+    val themeMode = MutableStateFlow(sanitizeTheme(graph.settings.themeMode.value))
 
     fun load() {
         val s = graph.settings

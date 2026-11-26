@@ -39,7 +39,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val message: StateFlow<String?> = messages.asStateFlow()
 
     val sending = MutableStateFlow<SendState?>(null)
-    val strings = MutableStateFlow<AppStrings>(resolveStrings("system"))
+    // Берём сохранённый язык сразу: после пересоздания процесса UI не должен
+    // откатываться к системному, пока AppSettings.load() читает настройки.
+    val strings = MutableStateFlow<AppStrings>(
+        resolveStrings(graph.settings.appLanguage.value),
+    )
 
     private val engineReady = MutableStateFlow(false)
     private val nearbyEnabledState = MutableStateFlow(false)
@@ -81,6 +85,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         Diag.log("viewmodel", "init")
+
+        viewModelScope.launch {
+            settings.appLanguage.collect { strings.value = resolveStrings(it) }
+        }
 
         viewModelScope.launch(Dispatchers.IO) {
             nearbySession.progress.collect { progress ->

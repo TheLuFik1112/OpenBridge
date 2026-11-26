@@ -32,14 +32,16 @@ OpenBridge moves files, photos, folders and text between Android devices over th
 
 ## Screenshots
 
-<p align="center">
-  <img src="docs/screenshots/send.svg" width="200" alt="Send package">
-  <img src="docs/screenshots/nfc.svg" width="200" alt="NFC panel">
-  <img src="docs/screenshots/receive.svg" width="200" alt="Incoming transfer">
-  <img src="docs/screenshots/settings.svg" width="200" alt="Settings">
-</p>
-
-Replace the placeholders in [`docs/screenshots`](docs/screenshots) with real screenshots when they are ready.
+<table align="center">
+  <tr>
+    <td align="center"><img src="docs/screenshots/send.jpg" width="240" alt="Send package"></td>
+    <td align="center"><img src="docs/screenshots/nfc.jpg" width="240" alt="NFC panel"></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/history.jpg" width="240" alt="Transfer history"></td>
+    <td align="center"><img src="docs/screenshots/settings.jpg" width="240" alt="Settings"></td>
+  </tr>
+</table>
 
 ## Installation
 

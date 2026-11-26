@@ -16,7 +16,7 @@ android {
         applicationId = "app.openbridge"
         minSdk = 26
         targetSdk = 35
-        versionCode = 17
+        versionCode = 18
         versionName = "0.6.0"
     }
 
@@ -37,7 +37,8 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName("debug")
         }
@@ -59,6 +60,8 @@ android {
             excludes += "/META-INF/INDEX.LIST"
             excludes += "/META-INF/DEPENDENCIES"
             excludes += "/META-INF/versions/9/OSGI-INF/MANIFEST.MF"
+            excludes += "org/fusesource/jansi/**"
+            excludes += "org/bouncycastle/pqc/**"
         }
     }
 }
