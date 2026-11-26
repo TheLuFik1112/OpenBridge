@@ -17,11 +17,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * Пакет на отправку: очередь файлов и текста, веб-портал и отметка «в метке
- * есть что забрать». Всё, что меняет пакет, проходит здесь, поэтому портал и
- * NFC-метка не могут разойтись с очередью.
- */
 class PackageQueue(
     private val context: Context,
     private val graph: AppGraph,
@@ -29,7 +24,6 @@ class PackageQueue(
     private val settings: AppSettings,
     private val messages: MutableStateFlow<String?>,
 ) {
-
     val items = MutableStateFlow<List<QueueItem>>(emptyList())
     val portalUrl = MutableStateFlow<String?>(null)
 
@@ -95,7 +89,6 @@ class PackageQueue(
         scope.launch(Dispatchers.IO) { publish() }
     }
 
-    /** Включает или выключает веб-портал вместе с публикацией пакета. */
     fun setPortalEnabled(enabled: Boolean) {
         settings.setPortalEnabled(enabled)
         scope.launch(Dispatchers.IO) {
@@ -111,11 +104,8 @@ class PackageQueue(
         }
     }
 
-    /** Включает портал (если выключен) и отдаёт свежий URL для QR-кода. */
     fun ensurePortalUrl(onReady: (String) -> Unit) {
         scope.launch(Dispatchers.IO) {
-            // Публикуем пакет заново: QR должен вести на живой адрес с текущим
-            // IP и свежим токеном, а не на вчерашний.
             if (!settings.portalEnabled.value) {
                 settings.setPortalEnabled(true)
                 graph.portal.rotateToken()
@@ -127,7 +117,6 @@ class PackageQueue(
         }
     }
 
-    /** Пакет для Nearby: текст и файлы. Папки умеет только LAN-канал. */
     fun nearbyItems(): List<NearbyItem> = items.value.mapNotNull { item ->        when (item.kind) {
             QueueKind.TEXT -> item.text?.takeIf { it.isNotBlank() }
                 ?.let { NearbyItem.Text(it) }
@@ -138,7 +127,6 @@ class PackageQueue(
         }
     }
 
-    /** Очередь изменилась — обновляем метку NFC и веб-портал. */
     private suspend fun publish() {
         runCatching {
             if (!settings.portalEnabled.value) {
@@ -172,7 +160,6 @@ class PackageQueue(
         }.onFailure { Diag.log("portal", "publish failed: $it") }
     }
 
-    /** Имя для текста из пакета: получатель сохранит его как обычный .txt. */
     private fun textFileName(item: QueueItem): String {
         val base = item.name
             .removeSuffix("…")

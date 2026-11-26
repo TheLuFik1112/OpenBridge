@@ -20,26 +20,12 @@ import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.util.Collections
 
-/**
- * LAN-обнаружение без NsdManager и без Wi-Fi Direct.
- *
- * Схема:
- *  1. Держим WifiManager.MulticastLock — без него Android отбрасывает широковещательные
- *     UDP-пакеты, когда экран выключен или приложение в фоне. Это главная причина,
- *     по которой устройства «находились через раз».
- *  2. Каждые 2 секунды шлём короткий JSON-маяк на 255.255.255.255:53531 и на broadcast
- *     адреса всех подсетей (их берём из NetworkInterface, пропуская loopback и rmnet).
- *  3. Раз в 10 секунд дополнительно проходим unicast-ом по всей /24 подсети — некоторые
- *     роутеры и хотспоты режут широковещательные пакеты.
- *  4. Постоянно слушаем 53531 и на каждый пакет сразу отдаём устройство наверх.
- */
 class LanUdpDiscovery(
     private val context: Context,
     private val scope: CoroutineScope,
     private val self: () -> PeerInfo,
     private val onPeer: (PeerInfo, String, String) -> Unit,
 ) {
-
     private companion object {
         const val PORT = 53531
         const val BEACON_INTERVAL_MS = 2_000L
@@ -47,17 +33,11 @@ class LanUdpDiscovery(
         const val MAX_SWEEP_HOSTS = 254
         const val GLOBAL_BROADCAST = "255.255.255.255"
 
-        /**
-         * 254 unicast-пакета — это заметная пачка. Раньше она уходила каждые
-         * 10 секунд даже когда сосед уже найден и отвечает маяками. Теперь
-         * обход включается только если сеть замолчала: broadcast не доходит.
-         */
         const val QUIET_BEFORE_SWEEP_MS = 15_000L
     }
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    /** Когда последний раз приходил чужой маяк (мс, 0 — ещё ни разу). */
     private val lastPeerAt = java.util.concurrent.atomic.AtomicLong(0L)
 
     private var job: Job? = null
@@ -95,8 +75,6 @@ class LanUdpDiscovery(
         bind(InetSocketAddress(PORT))
     }
 
-    // ── маяки ────────────────────────────────────────────────────────────
-
     private suspend fun beaconLoop(sock: DatagramSocket) {
         var tick = 0
         while (scope.isActive) {
@@ -122,8 +100,6 @@ class LanUdpDiscovery(
                         }
                     }
 
-                    // Unicast sweep: добиваем подсети, где broadcast выключен.
-                    // Только если чужих маяков давно не было — иначе это лишний трафик.
                     if (tick % SWEEP_EVERY_TICKS == 0 &&
                         System.currentTimeMillis() - lastPeerAt.get() > QUIET_BEFORE_SWEEP_MS
                     ) {
@@ -155,8 +131,6 @@ class LanUdpDiscovery(
         }
     }
 
-    // ── приём ────────────────────────────────────────────────────────────
-
     private fun receiveLoop(sock: DatagramSocket) {
         val buffer = ByteArray(2048)
         while (scope.isActive && !sock.isClosed) {
@@ -181,12 +155,9 @@ class LanUdpDiscovery(
                 lastPeerAt.set(System.currentTimeMillis())
             } catch (_: Exception) {
                 if (sock.isClosed) break
-                // мусорный пакет — просто продолжаем слушать
             }
         }
     }
-
-    // ── сетевые адреса ───────────────────────────────────────────────────
 
     private fun interfaces(): List<NetworkInterface> = runCatching {
         Collections.list(NetworkInterface.getNetworkInterfaces())
@@ -196,7 +167,7 @@ class LanUdpDiscovery(
 
     private fun isUsable(name: String): Boolean {
         val lower = name.lowercase()
-        // rmnet — мобильный интернет, там broadcast-ов нет и они не нужны.
+
         return !lower.startsWith("rmnet") &&
             !lower.startsWith("ccmni") &&
             !lower.startsWith("dummy") &&
@@ -208,7 +179,6 @@ class LanUdpDiscovery(
         nif.interfaceAddresses.mapNotNull { it.broadcast as? Inet4Address }
     }.distinct()
 
-    /** Все адреса /24 вокруг наших IPv4 — для unicast-обхода. */
     private fun hostAddresses(): List<InetAddress> = interfaces().flatMap { nif ->
         nif.interfaceAddresses.flatMap { iface ->
             val ip = iface.address as? Inet4Address ?: return@flatMap emptyList<InetAddress>()
@@ -220,8 +190,6 @@ class LanUdpDiscovery(
             }
         }
     }
-
-    // ── multicast lock ───────────────────────────────────────────────────
 
     private fun acquireMulticastLock() {
         if (multicastLock?.isHeld == true) return

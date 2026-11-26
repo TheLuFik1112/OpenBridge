@@ -31,7 +31,6 @@ interface AppStrings {
     val btnAdd: String
     val btnCancel: String
 
-    // NFC
     val nfcTitle: String
     val nfcHoldToSend: String
     val nfcSent: String
@@ -53,8 +52,10 @@ interface AppStrings {
     val nfcPullHint: String
     val nfcSwipeUpHint: String
 
-    // Settings
     val settingsTitle: String
+    val generalCard: String
+    val networkCard: String
+    val otherCard: String
     val deviceCard: String
     val deviceNameLabel: String
     val btnChange: String
@@ -98,7 +99,6 @@ interface AppStrings {
     val versionLabel: String
     val licenseLabel: String
 
-    // Sheet
     val nearbyIncomingDesc: String
     val btnTrustAlways: String
     val btnDecline: String
@@ -159,6 +159,9 @@ object RuStrings : AppStrings {
     override val nfcSwipeUpHint = "Смахните вверх, чтобы скрыть"
 
     override val settingsTitle = "Настройки"
+    override val generalCard = "Общие"
+    override val networkCard = "Сеть"
+    override val otherCard = "Другое"
     override val deviceCard = "Устройство"
     override val deviceNameLabel = "Имя в сети"
     override val btnChange = "Изменить"
@@ -262,6 +265,9 @@ object EnStrings : AppStrings {
     override val nfcSwipeUpHint = "Swipe up to hide"
 
     override val settingsTitle = "Settings"
+    override val generalCard = "General"
+    override val networkCard = "Network"
+    override val otherCard = "Other"
     override val deviceCard = "Device"
     override val deviceNameLabel = "Network Name"
     override val btnChange = "Change"

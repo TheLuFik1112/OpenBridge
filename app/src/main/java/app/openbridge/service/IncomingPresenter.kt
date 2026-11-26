@@ -20,14 +20,7 @@ import app.openbridge.overlay.IncomingRequestActivity
 import app.openbridge.overlay.OverlaySheetHost
 import app.openbridge.util.canUseFullScreenIntent
 
-/**
- * Каскад показа входящего запроса:
- *  1. приложение на экране → прозрачная Activity с ModalBottomSheet;
- *  2. фон + SYSTEM_ALERT_WINDOW + экран разблокирован → overlay-шторка;
- *  3. иначе (в т.ч. keyguard) → heads-up уведомление с действиями.
- */
 class IncomingPresenter(private val context: Context, private val g: AppGraph) {
-
     private val overlay by lazy {
         OverlaySheetHost(
             context = context,
@@ -78,7 +71,6 @@ class IncomingPresenter(private val context: Context, private val g: AppGraph) {
 }
 
 class IncomingNotifier(private val context: Context) {
-
     private val nm = context.getSystemService(NotificationManager::class.java)
 
     fun headsUp(offer: TransferOffer) {
@@ -103,7 +95,6 @@ class IncomingNotifier(private val context: Context) {
         runCatching { nm.notify(INCOMING_ID, builder.build()) }
     }
 
-    /** Тихий старт для доверенных: без шторки, только прогресс. */
     fun autoAcceptStarted(offer: TransferOffer) {
         val notification = NotificationCompat.Builder(context, RadarService.CHANNEL_PROGRESS)
             .setSmallIcon(R.drawable.ic_stat_incoming)

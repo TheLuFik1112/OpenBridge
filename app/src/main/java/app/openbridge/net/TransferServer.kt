@@ -39,15 +39,12 @@ import kotlinx.io.readByteArray
 import io.ktor.utils.io.readRemaining
 
 class TransferServer(private val g: AppGraph) {
-
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
     private var relay: TlsRelay? = null
 
     fun start() {
         if (server != null) return
 
-        // Сначала HTTP-сервер на loopback, только потом внешний TLS-порт:
-        // ретранслятор не должен принимать соединения раньше, чем сервер готов.
         server = embeddedServer(
             factory = CIO,
             configure = {
@@ -160,8 +157,6 @@ class TransferServer(private val g: AppGraph) {
                 call.respond(if (result.ok) HttpStatusCode.OK else HttpStatusCode.Conflict, result)
             }
 
-            // ── Веб-портал ───────────────────────────────────────────────
-
             get("/web") {
                 val token = call.request.queryParameters["t"]
                 if (!g.portal.check(token)) {
@@ -184,7 +179,6 @@ class TransferServer(private val g: AppGraph) {
                 val file = g.portal.file(call.request.queryParameters["id"] ?: "")
                     ?: return@get call.respond(HttpStatusCode.NotFound)
 
-                // Текст из пакета живёт прямо в памяти — отдаём его как text/plain.
                 val text = file.text
                 if (text != null) {
                     call.response.headers.append(

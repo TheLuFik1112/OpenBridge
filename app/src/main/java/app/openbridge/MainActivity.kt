@@ -12,22 +12,15 @@ import app.openbridge.ui.AppRoot
 import app.openbridge.ui.AppViewModel
 import app.openbridge.util.NfcHelper
 
-/**
- * Единственная задача Activity — показать первый кадр.
- * Ключи, сертификаты, сокеты и служба стартуют из AppViewModel в фоне.
- */
 class MainActivity : ComponentActivity() {
-
     private val viewModel: AppViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Сплэш должен быть установлен до super.onCreate — это требование библиотеки.
         installSplashScreen()
         super.onCreate(savedInstanceState)
         Diag.log("ui", "MainActivity.onCreate")
         enableEdgeToEdge()
 
-        // Тему выставляет сам AppRoot по настройке «Оформление».
         setContent {
             AppRoot(viewModel)
         }
@@ -50,7 +43,7 @@ class MainActivity : ComponentActivity() {
 
         if (intent?.getBooleanExtra(EXTRA_SEND_CLIPBOARD, false) != true) return
         intent.removeExtra(EXTRA_SEND_CLIPBOARD)
-        // Окно ещё не получило фокус — читать буфер обмена сразу нельзя.
+
         window.decorView.postDelayed({ viewModel.sendClipboardNow() }, 350)
     }
 

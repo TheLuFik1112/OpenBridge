@@ -8,9 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-/** Кнопки «Принять / Отклонить» в heads-up уведомлении. */
 class DecisionReceiver : BroadcastReceiver() {
-
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION) return
         val transferId = intent.getStringExtra(EXTRA_ID) ?: return

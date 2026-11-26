@@ -24,10 +24,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.openbridge.core.PendingCrash
 
-/**
- * Диалог о фатальном сбое прошлого запуска.
- * Показывается только если автоотправка отчётов выключена.
- */
 @Composable
 fun CrashDialog(
     crash: PendingCrash,

@@ -86,7 +86,6 @@ fun SettingsScreen(viewModel: AppViewModel) {
     var overlayGranted by remember { mutableStateOf(hasOverlayPermission(context)) }
     var batteryOk by remember { mutableStateOf(isIgnoringBatteryOptimizations(context)) }
 
-    // Пасхалка: 7 быстрых нажатий на номер версии открывают раздел для разработчиков.
     var taps by rememberSaveable { mutableStateOf(0) }
     var lastTapAt by remember { mutableLongStateOf(0L) }
 
@@ -95,121 +94,42 @@ fun SettingsScreen(viewModel: AppViewModel) {
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item(key = "device") {
-            SettingsCard("01", strings.deviceCard) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(strings.deviceNameLabel, style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            deviceName,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    FlatTextAction(text = strings.btnChange, onClick = { renameOpen = true })
-                }
-            }
-        }
-
-        item(key = "theme") {
-            SettingsCard("02", strings.themeCard) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(strings.themeLabel, style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            when (themeMode) {
-                                THEME_LIGHT -> strings.themeLight
-                                THEME_SYSTEM -> strings.themeSystem
-                                else -> strings.themeDark
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    FlatTextAction(text = strings.btnChange, onClick = { themeOpen = true })
-                }
-            }
-        }
-
-        item(key = "language") {
-            SettingsCard("03", strings.languageCard) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(strings.languageLabel, style = MaterialTheme.typography.bodyLarge)
-                        Text(
-                            when (appLanguage) {
-                                "en" -> strings.langEn
-                                "ru" -> strings.langRu
-                                else -> strings.langSystem
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    FlatTextAction(text = strings.btnChange, onClick = { langOpen = true })
-                }
-            }
-        }
-
-        item(key = "service") {
-            SettingsCard("04", strings.serviceCard) {
-                SwitchRow(
-                    title = strings.serviceTitle,
-                    subtitle = strings.serviceSubtitle,
-                    checked = serviceEnabled,
-                    onCheckedChange = viewModel::setServiceEnabled,
+        item(key = "general") {
+            SettingsCard(strings.generalCard) {
+                ValueRow(
+                    title = strings.themeLabel,
+                    value = when (themeMode) {
+                        THEME_LIGHT -> strings.themeLight
+                        THEME_SYSTEM -> strings.themeSystem
+                        else -> strings.themeDark
+                    },
+                    action = strings.btnChange,
+                    onClick = { themeOpen = true },
                 )
-                Spacer(Modifier.height(8.dp))
-                ActionRow(
-                    title = strings.overlayTitle,
-                    subtitle = if (overlayGranted) strings.overlaySubtitleAllowed else strings.overlaySubtitleNeeded,
-                    action = if (overlayGranted) strings.btnConfigure else strings.btnAllow,
-                ) {
-                    requestOverlayPermission(context)
-                    overlayGranted = hasOverlayPermission(context)
-                }
-                ActionRow(
-                    title = strings.batteryTitle,
-                    subtitle = if (batteryOk) strings.batterySubtitleAllowed else strings.batterySubtitleNeeded,
-                    action = strings.btnOpen,
-                ) {
-                    requestIgnoreBatteryOptimizations(context)
-                    batteryOk = isIgnoringBatteryOptimizations(context)
-                }
-                ActionRow(
-                    title = strings.notificationsTitle,
-                    subtitle = strings.notificationsSubtitle,
-                    action = strings.btnOpen,
-                ) {
-                    openAppNotificationSettings(context)
-                }
+                RowDivider()
+                ValueRow(
+                    title = strings.languageLabel,
+                    value = when (appLanguage) {
+                        "en" -> strings.langEn
+                        "ru" -> strings.langRu
+                        else -> strings.langSystem
+                    },
+                    action = strings.btnChange,
+                    onClick = { langOpen = true },
+                )
             }
         }
 
         item(key = "receive") {
-            SettingsCard("05", strings.receiveCard) {
+            SettingsCard(strings.receiveCard) {
                 SwitchRow(
                     title = strings.autoAcceptTitle,
                     subtitle = strings.autoAcceptSubtitle,
                     checked = autoAccept,
                     onCheckedChange = viewModel::setAutoAccept,
                 )
-            }
-        }
-
-        item(key = "reports") {
-            SettingsCard("06", strings.reportsCard) {
-                SwitchRow(
-                    title = strings.reportsTitle,
-                    subtitle = if (autoSendReports) strings.reportsSubtitleAuto else strings.reportsSubtitleManual,
-                    checked = autoSendReports,
-                    onCheckedChange = viewModel::setAutoSendReports,
-                )
-            }
-        }
-
-        item(key = "trusted") {
-            SettingsCard("07", strings.trustedCard) {
+                RowDivider()
+                GroupLabel(strings.trustedCard)
                 if (trusted.none { !it.revoked }) {
                     Text(
                         strings.trustedEmpty,
@@ -243,41 +163,88 @@ fun SettingsScreen(viewModel: AppViewModel) {
                         }
                     }
                 }
+                RowDivider()
+                SwitchRow(
+                    title = strings.serviceTitle,
+                    subtitle = strings.serviceSubtitle,
+                    checked = serviceEnabled,
+                    onCheckedChange = viewModel::setServiceEnabled,
+                )
+                RowDivider()
+                ActionRow(
+                    title = strings.overlayTitle,
+                    subtitle = if (overlayGranted) strings.overlaySubtitleAllowed else strings.overlaySubtitleNeeded,
+                    action = if (overlayGranted) strings.btnConfigure else strings.btnAllow,
+                ) {
+                    requestOverlayPermission(context)
+                    overlayGranted = hasOverlayPermission(context)
+                }
+                RowDivider()
+                ActionRow(
+                    title = strings.batteryTitle,
+                    subtitle = if (batteryOk) strings.batterySubtitleAllowed else strings.batterySubtitleNeeded,
+                    action = strings.btnOpen,
+                ) {
+                    requestIgnoreBatteryOptimizations(context)
+                    batteryOk = isIgnoringBatteryOptimizations(context)
+                }
+                RowDivider()
+                ActionRow(
+                    title = strings.notificationsTitle,
+                    subtitle = strings.notificationsSubtitle,
+                    action = strings.btnOpen,
+                ) {
+                    openAppNotificationSettings(context)
+                }
             }
         }
 
-        item(key = "about") {
-            SettingsCard("08", strings.aboutCard) {
+        item(key = "network") {
+            SettingsCard(strings.networkCard) {
+                ValueRow(
+                    title = strings.deviceNameLabel,
+                    value = deviceName,
+                    action = strings.btnChange,
+                    onClick = { renameOpen = true },
+                )
+            }
+        }
+
+        item(key = "other") {
+            SettingsCard(strings.otherCard) {
+                SwitchRow(
+                    title = strings.reportsTitle,
+                    subtitle = if (autoSendReports) strings.reportsSubtitleAuto else strings.reportsSubtitleManual,
+                    checked = autoSendReports,
+                    onCheckedChange = viewModel::setAutoSendReports,
+                )
+                RowDivider()
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(0.dp))
                         .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+                        .clickable {
+                            if (developerMode) return@clickable
+                            val now = System.currentTimeMillis()
+                            taps = if (now - lastTapAt > 1_500) 1 else taps + 1
+                            lastTapAt = now
+                            if (taps >= 7) {
+                                taps = 0
+                                viewModel.setDeveloperMode(true)
+                                Toast.makeText(
+                                    context,
+                                    "Developer mode enabled",
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            } else if (taps >= 4) {
+                                Toast.makeText(context, "${7 - taps}", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                         .padding(horizontal = 14.dp, vertical = 12.dp),
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                if (developerMode) return@clickable
-                                val now = System.currentTimeMillis()
-                                taps = if (now - lastTapAt > 1_500) 1 else taps + 1
-                                lastTapAt = now
-                                if (taps >= 7) {
-                                    taps = 0
-                                    viewModel.setDeveloperMode(true)
-                                    Toast.makeText(
-                                        context,
-                                        "Developer mode enabled",
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
-                                } else if (taps >= 4) {
-                                    Toast.makeText(context, "${7 - taps}", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                            .padding(horizontal = 14.dp, vertical = 12.dp),
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(
                                 "OpenBridge",
@@ -314,7 +281,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
 
         if (developerMode) {
             item(key = "developer") {
-                SettingsCard("09", "Developer Options") {
+                SettingsCard("Developer Options") {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             Icons.Rounded.BugReport,
@@ -576,14 +543,48 @@ private fun LogsDialog(viewModel: AppViewModel, onDismiss: () -> Unit) {
 
 @Composable
 private fun SettingsCard(
-    index: String,
     title: String,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     FlatCard {
-        SectionHeader(index, title)
+        SectionHeader(title = title)
         content()
     }
+}
+
+@Composable
+private fun ValueRow(
+    title: String,
+    value: String,
+    action: String,
+    onClick: () -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                value,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        FlatTextAction(text = action, onClick = onClick)
+    }
+}
+
+@Composable
+private fun RowDivider() {
+    HorizontalDivider(Modifier.padding(vertical = 10.dp))
+}
+
+@Composable
+private fun GroupLabel(text: String) {
+    Text(
+        text = text.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 2.dp, bottom = 6.dp),
+    )
 }
 
 @Composable
@@ -642,7 +643,6 @@ private fun ActionRow(
     }
 }
 
-/** Ссылка в карточке «О приложении»: подпись слева, стрелка справа. */
 @Composable
 private fun AboutLink(label: String, url: String) {
     val context = LocalContext.current

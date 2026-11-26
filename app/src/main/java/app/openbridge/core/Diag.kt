@@ -11,12 +11,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.Executors
 
-/**
- * Минимальный «чёрный ящик»: держит последние строки журнала в памяти и при падении
- * складывает стектрейс вместе с журналом в Download/OpenBridge.
- */
 object Diag {
-
     private const val MAX_LINES = 400
     private const val FOLDER = "OpenBridge"
 
@@ -28,7 +23,6 @@ object Diag {
     @Volatile
     private var logStream: java.io.OutputStream? = null
 
-    /** Единственный фоновый писатель: ни одна строка не пишется с главного потока. */
     private val writer = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "openbridge-log").apply { isDaemon = true }
     }
@@ -38,7 +32,6 @@ object Diag {
         if (installed) return
         installed = true
 
-        // Открытие файла — тоже в фоне: MediaStore.insert умеет думать десятки мс.
         writer.execute { openLogFile(context) }
 
         val previous = Thread.getDefaultUncaughtExceptionHandler()
@@ -61,7 +54,7 @@ object Diag {
             pending.addLast(line)
             while (pending.size > MAX_LINES) pending.removeFirst()
         }
-        // Запись в файл — только через фоновый поток.
+
         writer.execute { flushPending() }
     }
 
@@ -77,7 +70,6 @@ object Diag {
         }
     }
 
-    /** Журнал прошлой сессии — чтобы понять, что было при старте, даже без падения. */
     private fun openLogFile(context: Context) {
         runCatching {
             val name = "log-${fileStamp()}.txt".replace(":", "-").replace(" ", "_")
@@ -105,7 +97,6 @@ object Diag {
         }
     }
 
-    /** Сохраняет отчёт и возвращает путь (или null, если контекста ещё нет). */
     fun dump(kind: String = "report", error: Throwable? = null): String? {
         val context = appContext ?: return null
         val body = buildString {
@@ -146,12 +137,10 @@ object Diag {
         }
     }
 
-    /** Последние строки журнала — без обращения к файлам. */
     fun recentLines(count: Int = 200): String = synchronized(lines) {
         lines.takeLast(count).joinToString("\n")
     }
 
-    /** Сохраняет готовый текст в папку Download/OpenBridge (или в приватный каталог). */
     fun saveText(name: String, body: String): String? {
         val context = appContext ?: return null
         return runCatching { save(context, name, body) }.getOrNull()

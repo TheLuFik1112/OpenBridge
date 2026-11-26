@@ -15,7 +15,6 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
-/** Один элемент пакета на портале отправителя. */
 data class NfcItem(
     val id: String,
     val name: String,
@@ -29,20 +28,11 @@ data class NfcResult(
     val bytes: Long,
 )
 
-/**
- * Приём по NFC без диалогов: касание даёт ссылку на портал отправителя,
- * а дальше всё качается по обычному HTTP в той же Wi-Fi сети.
- *
- * Работает в своём процессе на HttpURLConnection, поэтому не зависит от
- * готовности движка: приложение могло быть только что запущено касанием.
- */
 object NfcPortal {
-
     private const val CONNECT_TIMEOUT = 6_000
     private const val READ_TIMEOUT = 60_000
     private const val BUFFER = 128 * 1024
 
-    /** http://ip:53531/web?t=token — живой портал, а не страница релизов. */
     fun isPortalUrl(raw: String): Boolean {
         val uri = runCatching { Uri.parse(raw) }.getOrNull() ?: return false
         val scheme = uri.scheme?.lowercase() ?: return false
@@ -86,8 +76,6 @@ object NfcPortal {
         Diag.log("nfc", "received $files file(s), ${texts.size} text(s), $doneBytes bytes")
         NfcResult(files = files, texts = texts, bytes = doneBytes)
     }
-
-    // ── портал ───────────────────────────────────────────────────────────
 
     private fun fetchList(base: String, token: String): List<NfcItem> {
         val body = request("$base/web/list?t=${Uri.encode(token)}")

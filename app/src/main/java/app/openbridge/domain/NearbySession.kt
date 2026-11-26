@@ -18,24 +18,18 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
-/**
- * Контур Nearby: входящие запросы, прогресс и события приёма.
- * Подписки поднимаются один раз после прогрева движка.
- */
 class NearbySession(
     private val context: Context,
     private val graph: AppGraph,
     private val scope: CoroutineScope,
     private val messages: MutableStateFlow<String?>,
 ) {
-
     private val _incoming = MutableStateFlow<NearbyRequest?>(null)
     val incoming: StateFlow<NearbyRequest?> = _incoming.asStateFlow()
 
     val progress = MutableStateFlow<NearbyProgress?>(null)
     val enabled = MutableStateFlow(false)
 
-    /** Подписки на менеджер Nearby. Только из фонового потока. */
     fun attach() {
         scope.launch(Dispatchers.IO) {
             graph.nearby.incoming.collect { _incoming.value = it }
@@ -52,7 +46,6 @@ class NearbySession(
         enabled.value = runCatching { graph.nearby.isAvailable() }.getOrDefault(false)
     }
 
-    /** Пользователь нажал «Принять»: разрешаем соединение. */
     fun accept() {
         val request = _incoming.value ?: return
         _incoming.value = null
@@ -60,7 +53,6 @@ class NearbySession(
         messages.value = "Соединяемся с ${request.name}…"
     }
 
-    /** «Доверять»: добавляем в доверенные и принимаем. */
     fun trust() {
         val request = _incoming.value ?: return
         _incoming.value = null

@@ -56,19 +56,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-/**
- * Шторка поверх чужих приложений.
- *
- * ВАЖНО: M3 ModalBottomSheet нельзя использовать внутри overlay — она открывается в
- * отдельном Dialog-окне, которому не назначается TYPE_APPLICATION_OVERLAY.
- * Поэтому здесь собственный scrim + slide-in, а контент общий с Activity-вариантом.
- */
+// M3 ModalBottomSheet живёт в Dialog и не получает TYPE_APPLICATION_OVERLAY.
 class OverlaySheetHost(
     private val context: Context,
     private val onAccept: (transferId: String, always: Boolean) -> Unit,
     private val onDecline: (transferId: String) -> Unit,
 ) {
-
     private val main = Handler(Looper.getMainLooper())
     private var composeView: ComposeView? = null
     private var owner: OverlayLifecycleOwner? = null
@@ -231,7 +224,6 @@ private fun SheetOverlay(
 }
 
 private class OverlayLifecycleOwner : LifecycleOwner, SavedStateRegistryOwner, ViewModelStoreOwner {
-
     private val registry = LifecycleRegistry(this)
     private val controller = SavedStateRegistryController.create(this)
     override val viewModelStore = ViewModelStore()

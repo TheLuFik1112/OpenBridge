@@ -27,7 +27,6 @@ import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.HttpsURLConnection
 
 class TransferClient(private val g: AppGraph) {
-
     private data class HttpResult(val code: Int, val text: String) {
         val ok: Boolean get() = code in 200..299
     }

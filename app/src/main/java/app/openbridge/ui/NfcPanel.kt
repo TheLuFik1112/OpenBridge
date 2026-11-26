@@ -32,11 +32,6 @@ import app.openbridge.domain.NfcPhase
 import app.openbridge.domain.NfcState
 import app.openbridge.text.AppStrings
 
-/**
- * Верхняя панель NFC: открывается свайпом вниз на экране отправки и
- * «проталкивает» содержимое вниз. Вместо Material-3 BottomSheet — flat,
- * бистро-стильная панель с 1.dp рамкой и вертикальной акцентной полосой.
- */
 @Composable
 fun NfcPanel(
     state: NfcState,
@@ -72,7 +67,6 @@ fun NfcPanel(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            // Смахнуть вверх — закрыть панель, как в обычной шторке.
             .pointerInput(Unit) {
                 detectVerticalDragGestures(
                     onDragEnd = { dragTotal = 0f },

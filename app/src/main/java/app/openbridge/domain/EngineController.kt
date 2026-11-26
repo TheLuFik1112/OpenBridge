@@ -19,25 +19,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 
-/**
- * Запуск и обслуживание движка: прогрев ключей, сервер, служба, отчёты о сбоях.
- * Тяжёлая работа идёт на Dispatchers.IO и только после первого кадра.
- */
 class EngineController(
     private val app: Application,
     private val graph: AppGraph,
     private val scope: CoroutineScope,
     private val settings: AppSettings,
     private val messages: MutableStateFlow<String?>,
-    /** Движок прогрет: после этого можно отправлять. */
     private val ready: MutableStateFlow<Boolean>,
     private val nearbyEnabled: MutableStateFlow<Boolean>,
-    /** Что отдавать получателю, который пришёл по NFC-метке. */
     private val nearbyItems: () -> List<NearbyItem>,
-    /** Подписки на репозитории: вызываются сразу после чтения настроек. */
     private val onWarm: () -> Unit,
 ) {
-
     val error = MutableStateFlow<String?>(null)
     val serverState = MutableStateFlow("запускается")
     val lastSelfCheck = MutableStateFlow("—")
@@ -45,7 +37,6 @@ class EngineController(
 
     private val started = AtomicBoolean(false)
 
-    /** Вызывается один раз после первой отрисовки. Повторные вызовы игнорируются. */
     fun start() {
         if (!started.compareAndSet(false, true)) return
 
@@ -53,7 +44,6 @@ class EngineController(
             val startedAt = SystemClock.elapsedRealtime()
             Diag.log("engine", "start")
 
-            // Настройки и репозитории привязываем в первую очередь: UI сразу заполняется данными.
             runCatching { settings.load() }.onFailure { fail("Настройки", it) }
             runCatching { onWarm() }.onFailure { fail("Данные", it) }
 
@@ -67,7 +57,6 @@ class EngineController(
             runCatching { graph.warmUp() }
                 .onFailure { fail("Ключи и данные", it) }
 
-            // Метка должна знать, кто мы: id для поиска по Nearby, имя для показа.
             runCatching {
                 NfcHelper.prime(app)
                 NfcHelper.updateSender(
@@ -76,7 +65,6 @@ class EngineController(
                 )
             }.onFailure { Diag.log("nfc", "sender init failed: $it") }
 
-            // Получатель по NFC просит пакет — отдаём очередь.
             graph.nearby.pullProvider = { nearbyItems() }
 
             launch {
@@ -162,10 +150,6 @@ class EngineController(
         }
     }
 
-    /**
-     * Поток логов. Обновляет UI только пока его собирают — то есть пока
-     * открыт диалог логов в меню разработчика.
-     */
     fun logsFlow(): Flow<String> = flow {
         while (true) {
             emit(Diag.recentLines(200))

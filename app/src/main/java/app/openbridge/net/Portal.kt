@@ -17,15 +17,9 @@ data class PortalFile(
     val name: String,
     val size: Long,
     val uri: String? = null,
-    /** Текст из пакета: отдаётся как text/plain, без файла на диске. */
     val text: String? = null,
 )
 
-/**
- * Веб-портал: телефон поднимает HTTP-страницу, любое устройство в той же сети
- * открывает её по QR-коду и может скачать предложенные файлы или закинуть свои.
- * Доступ — по одноразовому токену из QR, без него 403.
- */
 class Portal(
     @Suppress("unused") private val context: Context,
     private val settings: SettingsRepository,

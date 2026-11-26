@@ -8,7 +8,6 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
 class HistoryRepository(context: Context, json: Json) {
-
     private val store = JsonFile(
         context = context,
         fileName = "history.json",

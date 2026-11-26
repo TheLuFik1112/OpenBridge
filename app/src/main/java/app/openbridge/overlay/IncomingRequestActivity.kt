@@ -29,13 +29,8 @@ import app.openbridge.ui.IncomingSheetContent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/**
- * Прозрачная Activity со штатной ModalBottomSheet — используется, когда приложение на экране
- * либо когда старт Activity разрешён (есть SYSTEM_ALERT_WINDOW / пользователь нажал уведомление).
- */
 @OptIn(ExperimentalMaterial3Api::class)
 class IncomingRequestActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

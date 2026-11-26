@@ -5,7 +5,6 @@ import android.os.Build
 import kotlinx.coroutines.flow.MutableStateFlow
 
 class SettingsRepository(private val context: Context) {
-
     private val prefs = context.getSharedPreferences("openbridge.settings", Context.MODE_PRIVATE)
 
     private val defaultName: String =
@@ -20,14 +19,16 @@ class SettingsRepository(private val context: Context) {
     val autoSendReports = MutableStateFlow(prefs.getBoolean(KEY_AUTO_REPORTS, false))
     val appLanguage = MutableStateFlow(prefs.getString(KEY_LANGUAGE, "system") ?: "system")
 
-    /** Оформление: чёрная тема по умолчанию, светлую можно выбрать в настройках. */
-    val themeMode = MutableStateFlow(prefs.getString(KEY_THEME, THEME_SYSTEM) ?: THEME_SYSTEM)
+    val themeMode = MutableStateFlow(normalizeTheme(prefs.getString(KEY_THEME, null)))
 
     fun setThemeMode(value: String) {
-        val clean = if (value in listOf(THEME_DARK, THEME_LIGHT, THEME_SYSTEM)) value else THEME_SYSTEM
+        val clean = normalizeTheme(value)
         themeMode.value = clean
         prefs.edit().putString(KEY_THEME, clean).apply()
     }
+
+    private fun normalizeTheme(value: String?): String =
+        if (value != null && value in THEMES) value else THEME_SYSTEM
 
     fun setAppLanguage(value: String) {
         val clean = if (value in listOf("system", "en", "ru")) value else "system"
@@ -98,5 +99,7 @@ class SettingsRepository(private val context: Context) {
         const val THEME_DARK = "dark"
         const val THEME_LIGHT = "light"
         const val THEME_SYSTEM = "system"
+
+        private val THEMES = listOf(THEME_DARK, THEME_LIGHT, THEME_SYSTEM)
     }
 }

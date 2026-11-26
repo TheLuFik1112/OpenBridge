@@ -31,11 +31,6 @@ import androidx.compose.ui.window.Dialog
 import app.openbridge.discovery.NearbyProgress
 import app.openbridge.discovery.NearbyRequest
 
-/**
- * Диалог входящего запроса Nearby — когда роутера рядом нет и устройства
- * соединяются напрямую (BLE + Wi-Fi Direct под капотом Google Nearby).
- * Flat-контейнер: 1.dp рамка, без скруглений и теней.
- */
 @Composable
 fun NearbyIncomingSheet(
     request: NearbyRequest,
@@ -117,7 +112,6 @@ fun NearbyIncomingSheet(
     }
 }
 
-/** Тихий прогресс приёма/отправки по Nearby, чтобы не терять обратную связь. */
 @Composable
 fun NearbyProgressDialog(
     progress: NearbyProgress,

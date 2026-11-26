@@ -22,7 +22,6 @@ data class PeerInfo(
     val publicKeyB64: String = "",
 )
 
-/** Минимальный пакет для UDP/mDNS/BLE — без сертификата, чтобы не фрагментировать датаграмму. */
 @Serializable
 @Immutable
 data class Beacon(
@@ -51,7 +50,6 @@ data class FileMeta(
 
 @Serializable
 sealed interface Payload {
-
     @Serializable
     @SerialName("text")
     data class Text(val text: String) : Payload
@@ -89,7 +87,6 @@ val Payload.kind: String
         is Payload.Mixed -> "mixed"
     }
 
-/** Детерминированная строка, которую подписывает отправитель. */
 fun Payload.signatureMaterial(): String = when (this) {
     is Payload.Text -> "text:${text.length}:${text.hashCode()}"
     is Payload.Files -> "files:" + files.joinToString(";") { "${it.index}:${it.path}:${it.size}:${it.mime}" }

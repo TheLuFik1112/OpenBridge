@@ -30,21 +30,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/**
- * Мост между экранами и логикой.
- *
- * Здесь нет ни сетей, ни сокетов, ни работы с очередью: этим занимаются классы
- * из [app.openbridge.domain] — [AppSettings], [PackageQueue], [NearbySession],
- * [NfcSession], [TransferSender], [EngineController]. ViewModel только держит их
- * вместе и отдаёт экранам готовые потоки состояния.
- */
 class AppViewModel(application: Application) : AndroidViewModel(application) {
-
     private val openBridgeApp = application as OpenBridgeApp
     private val graph get() = openBridgeApp.graph
     private val context: Context get() = getApplication()
-
-    // ── общие сигналы ────────────────────────────────────────────────────
 
     private val messages = MutableStateFlow<String?>(null)
     val message: StateFlow<String?> = messages.asStateFlow()
@@ -55,14 +44,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val engineReady = MutableStateFlow(false)
     private val nearbyEnabledState = MutableStateFlow(false)
 
-    // ── зеркала данных с диска (заполняются после прогрева) ──────────────
-
     val peers = MutableStateFlow<List<DiscoveredPeer>>(emptyList())
     val trusted = MutableStateFlow<List<TrustedPeer>>(emptyList())
     val trustedIds = MutableStateFlow<Set<String>>(emptySet())
     val history = MutableStateFlow<List<HistoryEntry>>(emptyList())
-
-    // ── логика ───────────────────────────────────────────────────────────
 
     private val settings = AppSettings(graph, viewModelScope)
     private val packages = PackageQueue(context, graph, viewModelScope, settings, messages)
@@ -95,18 +80,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     )
 
     init {
-        // Никаких сертификатов, KeyStore, сокетов и prefs. Только журнал.
         Diag.log("viewmodel", "init")
 
-        // Прогресс Nearby во время NFC показываем в самой панели.
         viewModelScope.launch(Dispatchers.IO) {
             nearbySession.progress.collect { progress ->
                 if (progress != null) nfc.onNearbyProgress(progress.fraction)
             }
         }
     }
-
-    // ── готовность движка ────────────────────────────────────────────────
 
     val isEngineReady: StateFlow<Boolean> = engineReady
     val engineError: StateFlow<String?> = engine.error
@@ -118,8 +99,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val nearbyIncoming: StateFlow<NearbyRequest?> = nearbySession.incoming
     val nearbyProgress: StateFlow<NearbyProgress?> = nearbySession.progress
 
-    // ── настройки ────────────────────────────────────────────────────────
-
     val deviceName: StateFlow<String> = settings.deviceName.asStateFlow()
     val serviceEnabled: StateFlow<Boolean> = settings.serviceEnabled.asStateFlow()
     val autoAccept: StateFlow<Boolean> = settings.autoAccept.asStateFlow()
@@ -129,22 +108,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val appLanguage: StateFlow<String> = settings.appLanguage.asStateFlow()
     val themeMode: StateFlow<String> = settings.themeMode.asStateFlow()
 
-    // ── пакет ────────────────────────────────────────────────────────────
-
     val queue: StateFlow<List<QueueItem>> = packages.items.asStateFlow()
     val portalUrl: StateFlow<String?> = packages.portalUrl.asStateFlow()
-
-    // ── NFC ──────────────────────────────────────────────────────────────
 
     val nfcSheetOpen: StateFlow<Boolean> = nfc.isOpen
     val nfcState: StateFlow<NfcState> = nfc.state
 
-    // ── жизненный цикл ───────────────────────────────────────────────────
-
-    /** Вызывается один раз после первой отрисовки (LaunchedEffect в AppRoot). */
     fun startEngine() = engine.start()
 
-    /** Подписки на репозитории и NFC — только после прогрева, на IO. */
     private fun bindRepositories() {
         val peersRepo = graph.peers
         val historyRepo = graph.history
@@ -164,8 +135,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         nfc.attach()
     }
 
-    // ── сообщения и сбои ─────────────────────────────────────────────────
-
     fun consumeMessage() {
         messages.value = null
     }
@@ -173,8 +142,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun dismissCrash() = engine.dismissCrash()
 
     fun sendCrash() = engine.sendCrash()
-
-    // ── Nearby ───────────────────────────────────────────────────────────
 
     fun acceptNearby() = nearbySession.accept()
 
@@ -184,15 +151,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun dismissNearbyProgress() = nearbySession.dismissProgress()
 
-    // ── NFC ──────────────────────────────────────────────────────────────
-
     fun openNfcSheet() = nfc.openSheet()
 
     fun closeNfcSheet() = nfc.close()
 
     fun handleNfcReceived(raw: String) = nfc.handleReceived(raw)
-
-    // ── пакет, портал, отправка ──────────────────────────────────────────
 
     fun addUris(uris: List<Uri>) = packages.addUris(uris)
 
@@ -206,12 +169,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun sendTo(peer: DiscoveredPeer) = sender.sendTo(peer)
 
-    /** Вызывается плиткой быстрых настроек, когда Activity уже на экране. */
     fun sendClipboardNow() = sender.sendClipboardNow()
 
     fun ensurePortalUrl(onReady: (String) -> Unit) = packages.ensurePortalUrl(onReady)
-
-    // ── настройки ────────────────────────────────────────────────────────
 
     fun setDeviceName(name: String) = settings.setDeviceName(name)
 
@@ -241,8 +201,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setAutoSendReports(enabled: Boolean) = settings.setAutoSendReports(enabled)
 
-    // ── обслуживание (раздел «Для разработчиков») ────────────────────────
-
     fun checkServer() = engine.checkServer()
 
     fun saveLogs() = engine.saveLogs()
@@ -253,7 +211,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun logsFlow() = engine.logsFlow()
 
-    /** Собирается из уже готовых потоков — без обращения к сервисам. */
     fun serverStats(): String = buildString {
         appendLine("Движок: ${if (engineReady.value) "готов" else "запускается"}")
         appendLine("Сервер: ${serverState.value}")

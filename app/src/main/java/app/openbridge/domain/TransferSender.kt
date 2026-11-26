@@ -15,10 +15,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * Отправка пакета: сначала LAN (TLS), при неудаче — Nearby.
- * Ничего не знает про экраны: только очереди, результат и текст ошибки.
- */
 class TransferSender(
     private val context: Context,
     private val graph: AppGraph,
@@ -31,7 +27,6 @@ class TransferSender(
     private val progress: MutableStateFlow<NearbyProgress?>,
     private val messages: MutableStateFlow<String?>,
 ) {
-
     fun sendTo(peer: DiscoveredPeer) {
         if (!engineReady()) {
             messages.value = "Подготовка соединения… попробуйте через секунду"
@@ -55,7 +50,6 @@ class TransferSender(
         scope.launch {
             sending.value = SendState(peer.info.name, 0f, "Подключение…")
 
-            // 1. LAN (TLS) — приоритетный и самый быстрый канал.
             var result: Result<Unit> = if (peer.ip.isBlank()) {
                 Result.failure(java.io.IOException("нет общего Wi-Fi"))
             } else {
@@ -72,7 +66,6 @@ class TransferSender(
                 }
             }
 
-            // 2. Nearby — если LAN не удался, роутера нет или сеть режет пакеты.
             if (result.isFailure && shouldFallbackToNearby(result.exceptionOrNull())) {
                 val items = queue.nearbyItems()
                 if (items.isNotEmpty() && items.size == queue.items.value.size &&
@@ -101,7 +94,6 @@ class TransferSender(
         }
     }
 
-    /** Вызывается плиткой быстрых настроек: текст из буфера — первому доверенному рядом. */
     fun sendClipboardNow() {
         if (!engineReady()) {
             messages.value = "Подготовка соединения…"
@@ -129,7 +121,6 @@ class TransferSender(
                 graph.client.sendText(target.info, target.ip, text)
             }
 
-            // Роутера рядом нет — отправляем текст через Nearby.
             if (result.isFailure && shouldFallbackToNearby(result.exceptionOrNull()) &&
                 graph.nearby.isKnown(target.info.id)
             ) {

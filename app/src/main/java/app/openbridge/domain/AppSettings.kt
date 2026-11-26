@@ -7,16 +7,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
-/**
- * Настройки в виде потока. Хранилище — [app.openbridge.data.SettingsRepository],
- * здесь только зеркало в памяти: интерфейс читает его без обращения к диску,
- * а запись уходит в репозиторий в фоне.
- */
 class AppSettings(
     private val graph: AppGraph,
     private val scope: CoroutineScope,
 ) {
-
     val deviceName = MutableStateFlow("")
     val serviceEnabled = MutableStateFlow(true)
     val autoAccept = MutableStateFlow(true)
@@ -26,7 +20,6 @@ class AppSettings(
     val appLanguage = MutableStateFlow("system")
     val themeMode = MutableStateFlow(THEME_SYSTEM)
 
-    /** Читает prefs с диска. Только из фонового потока. */
     fun load() {
         val s = graph.settings
         deviceName.value = s.deviceName.value
@@ -42,7 +35,7 @@ class AppSettings(
     fun setDeviceName(name: String) {
         val clean = name.trim()
         deviceName.value = clean
-        // Имя уходит в метку NFC: получатель ищет нас по нему в эфире.
+
         NfcHelper.updateSender(name = clean)
         scope.launch(Dispatchers.IO) { graph.settings.setDeviceName(name) }
     }
@@ -72,7 +65,6 @@ class AppSettings(
         scope.launch(Dispatchers.IO) { graph.settings.setAutoSendReports(enabled) }
     }
 
-    /** Возвращает очищенный код языка — по нему интерфейс сразу берёт словарь. */
     fun setAppLanguage(lang: String): String {
         val clean = sanitizeLanguage(lang)
         appLanguage.value = clean
@@ -80,7 +72,6 @@ class AppSettings(
         return clean
     }
 
-    /** Возвращает очищенный режим темы. */
     fun setThemeMode(mode: String): String {
         val clean = sanitizeTheme(mode)
         themeMode.value = clean

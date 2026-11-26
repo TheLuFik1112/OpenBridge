@@ -37,15 +37,7 @@ import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
 
-/**
- * Идентичность устройства.
- *
- * Ключ EC P-256 генерируется в софте, но на диске лежит зашифрованным AES-GCM-ключом
- * из AndroidKeyStore — иначе TLS-сервер на части прошивок не поднимается с Keystore-ключом.
- * Сертификат самоподписанный; DeviceId = SHA-256(SPKI).
- */
 class IdentityStore(private val context: Context) {
-
     @Serializable
     private data class StoredIdentity(val keyB64: String, val certB64: String)
 
@@ -60,8 +52,6 @@ class IdentityStore(private val context: Context) {
 
     val identity: Identity by lazy { loadOrCreate() }
 
-    // ── подпись / проверка ────────────────────────────────────────────────
-
     fun sign(data: ByteArray): String {
         val sig = Signature.getInstance("SHA256withECDSA").run {
             initSign(identity.key)
@@ -71,9 +61,6 @@ class IdentityStore(private val context: Context) {
         return Base64.encodeToString(sig, Base64.NO_WRAP)
     }
 
-    // ── TLS ──────────────────────────────────────────────────────────────
-
-    /** KeyStore для Ktor sslConnector. */
     fun serverKeyStore(): Pair<KeyStore, CharArray> {
         val pass = "openbridge".toCharArray()
         val ks = KeyStore.getInstance("PKCS12").apply { load(null, null) }
@@ -88,10 +75,6 @@ class IdentityStore(private val context: Context) {
         return SSLContext.getInstance("TLS").apply { init(kmf.keyManagers, null, SecureRandom()) }
     }
 
-    /**
-     * Клиент: пиннинг сертификата сервера по отпечатку.
-     * expected == null → первый контакт, шифрование без пиннинга (подлинность подтвердит подпись offer).
-     */
     fun clientSsl(expectedFingerprint: String?): Pair<SSLSocketFactory, X509TrustManager> {
         val tm = PinnedTrustManager(expectedFingerprint)
         val ctx = SSLContext.getInstance("TLS").apply {
@@ -100,8 +83,8 @@ class IdentityStore(private val context: Context) {
         return ctx.socketFactory to tm
     }
 
-    // ── создание / хранение ───────────────────────────────────────────────
-
+    // TLS-сервер на части прошивок не стартует с ключом из Keystore, поэтому EC-ключ
+    // лежит на диске зашифрованным ключом AES-GCM из Keystore.
     private fun loadOrCreate(): Identity {
         val file = File(context.filesDir, "identity.enc")
         if (file.exists()) {
@@ -205,7 +188,6 @@ class IdentityStore(private val context: Context) {
             }
         }.getOrDefault(false)
 
-        /** id == отпечаток ключа из сертификата, и открытый ключ совпадает с сертификатом. */
         fun isSelfConsistent(peer: PeerInfo): Boolean = runCatching {
             if (peer.certB64.isBlank() || peer.publicKeyB64.isBlank()) return false
             val cert = certFromB64(peer.certB64)
@@ -219,7 +201,6 @@ class IdentityStore(private val context: Context) {
 }
 
 class PinnedTrustManager(private val expectedFingerprint: String?) : X509TrustManager {
-
     override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) = Unit
 
     override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {

@@ -6,13 +6,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/**
- * Перехватчик фатальных сбоев: сохраняет стектрейс и последние строки журнала,
- * а на следующем запуске отдаёт отчёт приложению — либо тихо отправляет,
- * либо показывает диалог.
- */
 object CrashReporter {
-
     private const val PREFS = "openbridge.crash"
     private const val KEY_TIME = "pending_time"
     private const val KEY_BODY = "pending_body"
@@ -79,7 +73,6 @@ object CrashReporter {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().clear().apply()
     }
 
-    /** Заглушка транспорта: отчёт складывается файлом, готовым к отправке. */
     fun send(context: Context, crash: PendingCrash): String? {
         val name = "crash-report-${format(System.currentTimeMillis())}.txt"
             .replace(":", "-")

@@ -18,14 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import app.openbridge.R
 
-/** Значения совпадают с app.openbridge.data.SettingsRepository. */
 const val THEME_DARK = "dark"
 const val THEME_LIGHT = "light"
 const val THEME_SYSTEM = "system"
-
-// ── Flat technical palette ────────────────────────────────────────────────
-// Две палитры с одинаковыми ролями: экраны берут цвета только отсюда,
-// поэтому светлая тема переключается целиком, без тёмных закоулков.
 
 @Immutable
 data class FlatPalette(
@@ -34,9 +29,7 @@ data class FlatPalette(
     val surfaceElevated: Color,
     val border: Color,
     val borderActive: Color,
-    /** Только интерактив: активная вкладка, включённый переключатель, главная кнопка. */
     val accent: Color,
-    /** Приглушённый акцент для микрозаголовков разделов. */
     val accentMuted: Color,
     val error: Color,
     val accentDimBg: Color,
@@ -51,7 +44,6 @@ val FlatDarkPalette = FlatPalette(
     surfaceElevated = Color(0xFF161616),
     border = Color(0xFF242424),
     borderActive = Color(0xFF3A3A3A),
-    // Матовая терракота вместо неоново-красного: спокойнее на OLED.
     accent = Color(0xFFC95D48),
     accentMuted = Color(0xFF9E6B60),
     error = Color(0xFFD9705C),
@@ -114,7 +106,6 @@ val FlatTextSecondary: Color
 val FlatTextMuted: Color
     @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.textMuted
 
-// Ioskeley Mono — основной шрифт всего интерфейса.
 private val FlatFont = FontFamily(
     Font(R.font.ioskeylemonnl_regular, FontWeight.Normal),
     Font(R.font.ioskeylemonnl_medium, FontWeight.Medium),
@@ -257,10 +248,6 @@ fun isDarkTheme(mode: String): Boolean = when (mode) {
     else -> true
 }
 
-/**
- * Flat technical UI: deep matte black surfaces, 1.dp outlines, red-orange accent.
- * Светлая тема — та же геометрия, но светлые поверхности и тёмный текст.
- */
 @Composable
 fun OpenBridgeTheme(mode: String = THEME_SYSTEM, content: @Composable () -> Unit) {
     val dark = isDarkTheme(mode)

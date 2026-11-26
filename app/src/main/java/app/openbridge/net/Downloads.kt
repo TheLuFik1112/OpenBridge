@@ -9,8 +9,6 @@ import android.provider.MediaStore
 import java.io.File
 
 object Downloads {
-
-    /** Копирует готовый файл в общую папку Download/OpenBridge, сохраняя относительный путь. */
     fun save(context: Context, source: File, relativePath: String, mime: String): Uri? = runCatching {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val subDir = relativePath.substringBeforeLast('/', "")

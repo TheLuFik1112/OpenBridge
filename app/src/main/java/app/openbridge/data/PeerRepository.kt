@@ -21,7 +21,6 @@ data class DiscoveredPeer(
 }
 
 class PeerRepository(context: Context, private val json: Json) {
-
     private val store = JsonFile(
         context = context,
         fileName = "trusted.json",
@@ -36,12 +35,6 @@ class PeerRepository(context: Context, private val json: Json) {
     private val _discovered = MutableStateFlow<List<DiscoveredPeer>>(emptyList())
     val discovered: StateFlow<List<DiscoveredPeer>> = _discovered
 
-    /**
-     * Живое время последнего пакета по каждому пиру. Хранится отдельно от
-     * опубликованного списка: маяки приходят каждые 2 секунды, и если писать
-     * новый lastSeen в StateFlow, весь UI перерисовывается 2 раза в секунду
-     * без единого визуального изменения.
-     */
     private val lastSeenAt = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
     @Synchronized
@@ -55,18 +48,16 @@ class PeerRepository(context: Context, private val json: Json) {
         val merged = DiscoveredPeer(
             info = info.copy(certFingerprint = info.certFingerprint.ifBlank { info.id }),
             ip = mergedIp,
-            // Сохраняем первое появление: порядок списка не дрожит на каждом маяке.
             lastSeen = existing?.lastSeen ?: now,
             source = if (ip.isNotBlank()) source else existing?.source ?: source,
         )
-        // Ничего видимого не изменилось — не трогаем StateFlow вообще.
+
         if (existing == merged) return
 
         _discovered.value = (current.filterNot { it.info.id == info.id } + merged)
             .sortedByDescending { it.lastSeen }
     }
 
-    /** Убирает находку конкретного канала (например, Nearby-устройство ушло). */
     @Synchronized
     fun onPeerLost(id: String, source: String) {
         if (_discovered.value.none { it.info.id == id && it.source == source }) return

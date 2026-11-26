@@ -18,11 +18,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.cancellation.CancellationException
 
-/**
- * NFC-сессия: состояние верхней панели, приём по метке и обратная связь
- * отправки. Режимов больше нет — HCE и приём включены всегда, панель только
- * показывает, что происходит.
- */
 class NfcSession(
     private val context: Context,
     private val graph: AppGraph,
@@ -31,7 +26,6 @@ class NfcSession(
     private val strings: StateFlow<AppStrings>,
     private val messages: MutableStateFlow<String?>,
 ) {
-
     private val _open = MutableStateFlow(false)
     val isOpen: StateFlow<Boolean> = _open.asStateFlow()
 
@@ -39,8 +33,6 @@ class NfcSession(
     val state: StateFlow<NfcState> = _state.asStateFlow()
 
     init {
-        // Новая сессия (например, после пересоздания Activity) начинается
-        // с закрытой панели: старая метка не должна отвечать по инерции.
         syncTag()
     }
 
@@ -49,7 +41,7 @@ class NfcSession(
             messages.value = strings.value.nfcNotAvailable
             return
         }
-        // Пустой пакет открывать нечего: панель появляется только когда есть что отправить.
+
         if (queue.items.value.isEmpty()) {
             messages.value = strings.value.nfcNeedItems
             return
@@ -68,19 +60,10 @@ class NfcSession(
         syncTag()
     }
 
-    /**
-     * Метка живёт только пока панель открыта: закрытая панель не отвечает
-     * даже на касание, поэтому второе устройство ничего не откроет.
-     */
     private fun syncTag() {
         NfcHelper.setTagActive(context, _open.value && queue.items.value.isNotEmpty())
     }
 
-    /**
-     * Касание вторым телефоном. В метке — адрес отправителя `openbridge://…`:
-     * ищем его по Nearby и забираем пакет. Старые метки с адресом локального
-     * портала тоже понимаем, чтобы обновление не рвало передачу между версиями.
-     */
     fun handleReceived(raw: String) {
         Diag.log("nfc", "incoming: $raw")
         val sender = NfcHelper.parseSender(raw)
@@ -95,7 +78,6 @@ class NfcSession(
         messages.value = strings.value.nfcNothingToReceive
     }
 
-    /** Прогресс Nearby во время NFC показываем в самой панели, без второго диалога. */
     fun onNearbyProgress(fraction: Float) {
         val current = _state.value
         when (current.phase) {
@@ -109,22 +91,12 @@ class NfcSession(
         }
     }
 
-    /**
-     * Отправка по NFC и её обратная связь:
-     *  - метку прочитали → «передаём», пока получатель не заберёт пакет;
-     *  - пакет ушёл → «Отправлено».
-     * События приходят из HCE-службы и Nearby, поэтому подписки живут в фоне.
-     */
     fun attach() {
-        // Очередь меняется при открытой панели — метка должна замолчать,
-        // если пакет опустел.
         scope.launch(Dispatchers.IO) {
             queue.items.collect { syncTag() }
         }
 
         scope.launch(Dispatchers.IO) {
-            // StateFlow сразу отдаёт текущее значение: без этой отметки после
-            // пересоздания Activity мы бы показали «Отправлено» ещё раз.
             var read = NfcHelper.served.value
             NfcHelper.served.collect { count ->
                 if (count <= read) {
@@ -142,8 +114,6 @@ class NfcSession(
                 }
                 NfcHelper.vibrate(context)
 
-                // Получатель может не прийти: у него нет приложения, и он ушёл
-                // на страницу скачивания. Тогда просто показываем «Отправлено».
                 delay(NFC_HANDOFF_TIMEOUT_MS)
                 if (_state.value.phase == NfcPhase.TRANSFER &&
                     graph.nearby.progress.value == null
@@ -171,7 +141,6 @@ class NfcSession(
             }
         }
 
-        // Пакет не дошёл, хотя метку прочитали: не оставляем панель на «Передаём».
         scope.launch(Dispatchers.IO) {
             var failures = graph.nearby.failed.value
             graph.nearby.failed.collect { count ->
@@ -189,7 +158,6 @@ class NfcSession(
         }
     }
 
-    /** Получатель нашёл отправителя в метке и забирает его пакет по Nearby. */
     private fun pullFromSender(sender: NfcHelper.Sender) {
         if (_state.value.phase == NfcPhase.CONNECTING ||
             _state.value.phase == NfcPhase.RECEIVING
@@ -242,7 +210,6 @@ class NfcSession(
         }
     }
 
-    /** Старая метка: страница портала отправителя, качаем по HTTP. */
     private fun receiveFromPortal(raw: String) {
         if (_state.value.phase == NfcPhase.RECEIVING) return
 
@@ -298,7 +265,6 @@ class NfcSession(
     }
 
     private companion object {
-        /** Сколько ждём получателя после чтения метки, прежде чем закрыть панель. */
         const val NFC_HANDOFF_TIMEOUT_MS = 25_000L
         const val NFC_RESULT_DISPLAY_MS = 1_800L
     }

@@ -79,8 +79,6 @@ fun AppRoot(viewModel: AppViewModel) {
     val view = LocalView.current
     val context = LocalContext.current
 
-    // Чёрная тема по умолчанию: значки системных панелей должны быть светлыми,
-    // а в светлой теме — тёмными, иначе они теряются на фоне.
     LaunchedEffect(dark) {
         val window = context.findActivity()?.window ?: return@LaunchedEffect
         WindowCompat.getInsetsController(window, view).apply {
@@ -101,17 +99,12 @@ private fun AppContent(viewModel: AppViewModel) {
     val snackbarHostState = remember { SnackbarHostState() }
     var qrPayload by remember { mutableStateOf<String?>(null) }
 
-    // На корне держим только то, что действительно нужно всему экрану:
-    // строки, снекбар, шторки и диалоги поверх. Всё остальное (очередь,
-    // пиры, отправка, история, доверенные) собирают сами экраны — иначе
-    // любой маяк из сети перерисовывал весь pager целиком.
     val message by viewModel.message.collectAsState()
     val crash by viewModel.crash.collectAsState()
     val nearbyIncoming by viewModel.nearbyIncoming.collectAsState()
     val nearbyProgress by viewModel.nearbyProgress.collectAsState()
     val strings by viewModel.strings.collectAsState()
 
-    // Движок стартует только после того, как кадр уже нарисован.
     LaunchedEffect(Unit) {
         viewModel.startEngine()
     }

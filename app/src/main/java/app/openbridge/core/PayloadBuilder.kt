@@ -6,7 +6,6 @@ import android.provider.OpenableColumns
 import androidx.documentfile.provider.DocumentFile
 
 object PayloadBuilder {
-
     fun build(context: Context, items: List<QueueItem>): BuiltPayload? {
         val texts = mutableListOf<String>()
         val metas = mutableListOf<FileMeta>()

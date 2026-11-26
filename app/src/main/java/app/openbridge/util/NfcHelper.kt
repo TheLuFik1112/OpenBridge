@@ -19,28 +19,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/**
- * NFC в OpenBridge работает в обе стороны одновременно и без режимов:
- *
- *  - отправка — HostApduService эмулирует Type 4 Tag (см. [OpenBridgeApduService]).
- *    В метке лежит только свой `openbridge://nfc?...` с именем и id
- *    устройства-отправителя. Телефон с OpenBridge откроет приложение,
- *    найдёт отправителя по Nearby и заберёт пакет; при закрытой панели
- *    NFC-метка остаётся пустой и касание ничего не открывает;
- *  - приём — Android сам разбирает чужую метку и отдаёт ссылку в MainActivity
- *    как NDEF_DISCOVERED. Reader mode намеренно не используется: он занимает
- *    контроллер чтением и тогда телефон не может отвечать как карта.
- *
- * Локальный веб-портал по NFC больше не открывается: он остался отдельной
- * функцией для QR-кода.
- */
 object NfcHelper {
-
-    /** Схема, которую понимает только OpenBridge: браузер её открыть не может. */
     private const val SCHEME = "openbridge"
     private const val HOST = "nfc"
 
-    /** Отправитель из метки: id нужен для поиска по Nearby, имя — для показа. */
     data class Sender(val deviceId: String, val name: String)
 
     @Volatile
@@ -49,11 +31,6 @@ object NfcHelper {
     @Volatile
     private var senderName: String = ""
 
-    /**
-     * Метка отвечает, только пока на телефоне открыта панель NFC и в пакете
-     * есть что отдать. Закрытая панель = пустая метка: второе устройство
-     * ничего не откроет.
-     */
     @Volatile
     private var tagActive: Boolean = false
 
@@ -69,29 +46,18 @@ object NfcHelper {
     @Volatile
     private var cachedFileKey: String? = null
 
-    /** Счётчик удачных считываний метки: по нему UI показывает «Отправлено». */
     private val _served = MutableStateFlow(0)
     val served: StateFlow<Int> = _served.asStateFlow()
 
-    /** Вызывается из [OpenBridgeApduService], когда второй телефон дочитал NDEF-файл. */
     fun notifyServed() {
         lastServedAt = System.currentTimeMillis()
         _served.value += 1
         Diag.log("nfc", "NDEF read by peer")
     }
 
-    /**
-     * Метку только что прочитали. В это окно получатель вправе соединиться
-     * по Nearby без отдельного подтверждения — иначе после касания пришлось бы
-     * ещё раз нажимать «Принять» на телефоне отправителя.
-     */
     fun recentlyServed(windowMs: Long = 120_000L): Boolean =
         lastServedAt > 0L && System.currentTimeMillis() - lastServedAt <= windowMs
 
-    /**
-     * Кто мы для метки. Id берём из сертификата, имя — из настроек.
-     * Пустые значения не затирают уже известные.
-     */
     fun updateSender(id: String? = null, name: String? = null) {
         if (!id.isNullOrBlank() && id != senderId) {
             senderId = id.trim()
@@ -103,16 +69,13 @@ object NfcHelper {
         }
     }
 
-    /** Открылась или закрылась панель NFC: метка начинает или перестаёт отвечать. */
     fun setTagActive(context: Context, active: Boolean) {
         if (active != tagActive) {
             tagActive = active
             invalidate()
         }
 
-        // Когда NFC-панель закрыта, полностью выключаем HCE-компонент.
-        // Это важнее ответа STATUS_FAILED: Android тогда не видит телефон
-        // как NFC-метку и не показывает системное окно «пустая метка».
+        // Выключенный компонент важнее STATUS_FAILED: Android не должен видеть пустую метку.
         runCatching {
             context.packageManager.setComponentEnabledSetting(
                 ComponentName(context, OpenBridgeApduService::class.java),
@@ -123,14 +86,8 @@ object NfcHelper {
         }.onFailure { Diag.log("nfc", "toggle HCE failed: $it") }
     }
 
-    /** В метке есть адрес отправителя: читателю есть что открыть. */
     fun isTagActive(): Boolean = senderUri() != null
 
-    /**
-     * Заполняет имя и id до первого касания. HCE-служба может быть запущена
-     * системой, когда приложение вообще не открывали, поэтому имя читаем сразу
-     * (это prefs), а сертификат — в фоне, чтобы не тормозить APDU.
-     */
     fun prime(context: Context) {
         if (primed) return
         primed = true
@@ -156,17 +113,11 @@ object NfcHelper {
         return runCatching { adapter.isEnabled }.getOrDefault(false)
     }
 
-    /**
-     * Готовый NDEF-файл формата Type 4 Tag: два байта NLEN + само сообщение.
-     * Кешируется, потому что HCE читает его на каждый READ BINARY (иногда десятки раз).
-     */
     fun buildNdefFile(): ByteArray {
         val uri = senderUri()
         val key = uri ?: "empty"
         cachedFile?.let { if (cachedFileKey == key) return it }
 
-        // Панель закрыта — папка NDEF пустая: ни приложения, ни браузера,
-        // ни страницы скачивания. Касание двух телефонов без пакета молчит.
         if (uri == null) {
             val empty = byteArrayOf(0x00, 0x00)
             cachedFileKey = key
@@ -187,7 +138,6 @@ object NfcHelper {
         return file
     }
 
-    /** Адрес отправителя для метки; null — панель закрыта, метка пустая. */
     private fun senderUri(): String? {
         if (!tagActive) return null
         val name = senderName.ifBlank { "Android" }
@@ -206,7 +156,6 @@ object NfcHelper {
         cachedFileKey = null
     }
 
-    /** Разбор метки OpenBridge: `openbridge://nfc?v=1&i=<id>&n=<имя>`. */
     fun parseSender(raw: String): Sender? {
         val uri = runCatching { Uri.parse(raw) }.getOrNull() ?: return null
         if (!uri.scheme.equals(SCHEME, ignoreCase = true)) return null
@@ -215,8 +164,6 @@ object NfcHelper {
         if (id.isBlank() && name.isBlank()) return null
         return Sender(deviceId = id, name = name)
     }
-
-    // ── мелочи ───────────────────────────────────────────────────────────
 
     fun vibrate(context: Context) {
         runCatching {
@@ -238,7 +185,6 @@ object NfcHelper {
         }
     }
 
-    /** Ссылка из intent'а NDEF_DISCOVERED / ACTION_VIEW. */
     fun extractNfcUri(intent: Intent?): String? {
         if (intent == null) return null
 

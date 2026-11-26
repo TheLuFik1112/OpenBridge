@@ -22,15 +22,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * Единая точка правды о входящих передачах.
- *
- * handleOffer() живёт внутри HTTP-запроса отправителя: пока пользователь смотрит шторку,
- * запрос висит, а accept()/decline() завершают CompletableDeferred.
- * Автоприём — только если устройство в доверенных и тип передачи разрешён.
- */
 class IncomingCoordinator(private val g: AppGraph) {
-
     private class Pending(
         val offer: TransferOffer,
         val decision: CompletableDeferred<Boolean>,

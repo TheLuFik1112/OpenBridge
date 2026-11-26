@@ -5,15 +5,8 @@ import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import app.openbridge.MainActivity
 
-/**
- * Плитка быстрых настроек: один тап — открывает OpenBridge и отправляет буфер обмена
- * последнему доверенному устройству, которое сейчас видно в сети.
- *
- * Буфер обмена нельзя прочитать из фонового сервиса (Android 10+), поэтому плитка
- * поднимает Activity: она получает фокус, читает буфер и отправляет.
- */
+// Буфер обмена недоступен из фона (Android 10+), поэтому плитка открывает Activity.
 class ClipboardTileService : TileService() {
-
     override fun onStartListening() {
         super.onStartListening()
         qsTile?.apply {

@@ -18,12 +18,7 @@ import app.openbridge.core.AppGraph
 import app.openbridge.core.Diag
 import kotlinx.coroutines.launch
 
-/**
- * Постоянный фон: TLS-сервер, UDP/mDNS/BLE-обнаружение, приём передач.
- * FGS type connectedDevice; если BT/Wi-Fi разрешения не выданы — откат на dataSync.
- */
 class RadarService : Service() {
-
     private lateinit var graph: AppGraph
     private var multicastLock: WifiManager.MulticastLock? = null
 
@@ -41,8 +36,7 @@ class RadarService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        // Всё тяжёлое (ключи, сертификат, сокеты, обнаружение) — в фоне:
-        // onStartCommand нельзя задерживать, иначе белый экран и ANR.
+
         graph.scope.launch {
             runCatching { graph.startRuntime() }
                 .onFailure {

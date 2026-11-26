@@ -11,7 +11,6 @@ import app.openbridge.service.RadarService
 import java.util.concurrent.atomic.AtomicInteger
 
 class OpenBridgeApp : Application() {
-
     lateinit var graph: AppGraph
         private set
 
@@ -19,11 +18,6 @@ class OpenBridgeApp : Application() {
 
     val isInForeground: Boolean get() = startedActivities.get() > 0
 
-    /**
-     * Здесь НЕТ и не должно быть ничего тяжёлого: ни KeyStore, ни генерации
-     * сертификатов, ни сокетов, ни startForegroundService. Всё это делает
-     * AppViewModel после первой отрисовки кадра.
-     */
     override fun onCreate() {
         super.onCreate()
 
@@ -31,7 +25,6 @@ class OpenBridgeApp : Application() {
         CrashReporter.install(this)
         Diag.log("app", "onCreate")
 
-        // Только пустые обёртки: внутри все поля ленивые и ничего не делают.
         graph = AppGraph(this)
 
         registerActivityLifecycleCallbacks(object : Application.ActivityLifecycleCallbacks {
@@ -52,10 +45,6 @@ class OpenBridgeApp : Application() {
         })
     }
 
-    /**
-     * Запускается из фона (Dispatchers.IO) уже после первого кадра.
-     * Безопасно вызывать повторно: служба и каналы создаются один раз.
-     */
     fun startRadarServiceIfEnabled() {
         runCatching { createChannels() }
             .onFailure { Diag.log("app", "channels failed: $it") }

@@ -42,8 +42,7 @@ private sealed class QrState {
 @Composable
 fun QrDialog(payload: String, onDismiss: () -> Unit) {
     val strings = LocalStrings.current
-    // QR 720×720 — это ~0.5 млн пикселей. Генерация в главном потоке подвешивает
-    // кадр на десятки миллисекунд, поэтому считаем в Default-диспетчере.
+
     val state by produceState<QrState>(initialValue = QrState.Loading, key1 = payload) {
         value = withContext(Dispatchers.Default) {
             generateQr(payload)?.let { QrState.Ready(it) } ?: QrState.Failed

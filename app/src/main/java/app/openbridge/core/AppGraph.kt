@@ -25,7 +25,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
 class AppGraph(val app: Application) {
-
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     val json = Json {
@@ -53,7 +52,7 @@ class AppGraph(val app: Application) {
     val presenter by lazy { IncomingPresenter(app, this) }
     val client by lazy { TransferClient(this) }
     val server by lazy { TransferServer(this) }
-    /** Контур 2: поиск и передача без роутера. */
+
     val nearby by lazy {
         NearbyP2pManager(
             context = app,
@@ -61,8 +60,6 @@ class AppGraph(val app: Application) {
             selfId = { identity.identity.id },
             selfName = { settings.deviceName.value },
             isTrusted = { id -> peers.trusted.value.any { it.id == id && !it.revoked } },
-            // Метку только что прочитали — значит человек сам поднёс телефон
-            // и получатель вправе забрать пакет без второго подтверждения.
             isNfcHandoff = { NfcHelper.recentlyServed() },
             onPeer = { peer ->
                 peers.onDiscovered(
@@ -91,7 +88,6 @@ class AppGraph(val app: Application) {
 
     private var pruneJob: Job? = null
 
-    /** Тяжёлая инициализация: ключи, сертификат, префы, история. Только из фонового потока. */
     suspend fun warmUp() {
         val started = android.os.SystemClock.elapsedRealtime()
         identity.identity
@@ -115,7 +111,6 @@ class AppGraph(val app: Application) {
         )
     }
 
-    /** Проверяет свой же сервер по TLS: relay → Ktor → маршрут → JSON. */
     fun probeServer(): String {
         var last: Throwable? = null
         for (attempt in 1..3) {
@@ -195,7 +190,6 @@ class AppGraph(val app: Application) {
         runCatching { server.stop() }
     }
 
-    /** Перезапуск TLS-ретранслятора и HTTP-сервера без трогания службы. */
     suspend fun restartServer(): String = kotlinx.coroutines.withContext(Dispatchers.IO) {
         Diag.log("runtime", "restart requested")
         runCatching { server.stop() }

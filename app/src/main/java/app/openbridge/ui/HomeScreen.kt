@@ -97,8 +97,6 @@ fun HomeScreen(
     val nfcState by viewModel.nfcState.collectAsState()
     val scope = rememberCoroutineScope()
 
-    // Панель NFC живёт в списке только пока открыта: panelShown убирает её
-    // из LazyColumn после анимации, panelVisible задаёт цель анимации.
     var panelShown by remember { mutableStateOf(nfcSheetOpen) }
     var panelVisible by remember { mutableStateOf(nfcSheetOpen) }
 
@@ -117,16 +115,11 @@ fun HomeScreen(
         peers.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.info.name })
     }
 
-    // Свайп ВНИЗ в самом начале списка открывает NFC-панель.
-    // Ловим onPreScroll только когда список уже не может прокрутиться вверх,
-    // иначе обычный скролл перестал бы работать. Заодно гасим overscroll,
-    // чтобы список не «резинился» под пальцем.
+    // Жест работает только когда список уже прокручен в самый верх.
     val listState = rememberLazyListState()
     val thresholdPx = with(LocalDensity.current) { 64.dp.toPx() }
     val nestedScrollConnection = remember(listState, thresholdPx, viewModel) {
         object : NestedScrollConnection {
-            // Plain fields avoid Compose state writes and recomposition on every
-            // pointer sample while the pull-down gesture is being tracked.
             var accumulatedPullPx = 0f
             var lastNfcOpenAt = 0L
 

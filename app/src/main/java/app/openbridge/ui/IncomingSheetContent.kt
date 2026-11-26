@@ -50,11 +50,6 @@ import app.openbridge.core.TransferOffer
 import app.openbridge.core.formatBytes
 import app.openbridge.core.totalBytes
 
-/**
- * Общий контент входящей шторки.
- * Хостится либо в прозрачной Activity, либо в overlay-окне.
- * Flat: 1.dp рамка, акцентная полоса сверху, без скруглений и теней.
- */
 @Composable
 fun IncomingSheetContent(
     offer: TransferOffer,
@@ -76,7 +71,6 @@ fun IncomingSheetContent(
             .navigationBarsPadding()
             .padding(horizontal = 18.dp),
     ) {
-        // Вместо круглого «хэндла» — акцентная полоса во всю ширину.
         Box(
             Modifier
                 .fillMaxWidth()

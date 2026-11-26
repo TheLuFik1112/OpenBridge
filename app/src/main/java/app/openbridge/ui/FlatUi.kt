@@ -30,9 +30,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-// ── Flat technical UI primitives ────────────────────────────────────────────
-// Все карточки — плоские, без скруглений и теней, с 1.dp рамкой.
-
 @Composable
 fun FlatCard(
     modifier: Modifier = Modifier,
@@ -52,12 +49,12 @@ fun FlatCard(
 
 @Composable
 fun SectionHeader(
-    index: String,
+    index: String? = null,
     title: String,
     modifier: Modifier = Modifier,
 ) {
     Text(
-        text = "$index — ${title.uppercase()}",
+        text = if (index == null) title.uppercase() else "$index — ${title.uppercase()}",
         style = MaterialTheme.typography.labelMedium,
         color = FlatTextSecondary,
         fontFamily = FontFamily.Monospace,
@@ -179,7 +176,6 @@ fun FlatCheckbox(
     }
 }
 
-/** Плоский индикатор прогресса: рамка + заливка без градиентов и скруглений. */
 @Composable
 fun FlatProgress(
     fraction: Float,
@@ -203,7 +199,6 @@ fun FlatProgress(
     }
 }
 
-/** Акцентное текстовое действие в стиле терминала — без Material-кнопки. */
 @Composable
 fun FlatTextAction(
     text: String,

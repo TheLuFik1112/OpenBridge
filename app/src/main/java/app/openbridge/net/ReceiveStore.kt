@@ -13,19 +13,10 @@ import java.security.MessageDigest
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * Приём файлов чанками.
- *
- *  - `.part` пишется по случайному смещению, поэтому чанки можно слать в любом порядке;
- *  - индексы принятых чанков лежат в `<index>.idx`, переживают убийство процесса;
- *  - SHA-256 каждого чанка и файла целиком берутся из манифеста отправителя;
- *  - готовый файл атомарно переезжает в out/ и затем копируется в Download/OpenBridge.
- */
 class ReceiveStore(
     private val context: Context,
     @Suppress("unused") private val identity: IdentityStore,
 ) {
-
     class Session(val offer: TransferOffer, val token: String, val dir: File) {
         val files = ConcurrentHashMap<Int, ReceivingFile>()
         val totalBytes: Long = offer.payload.totalBytes
@@ -118,8 +109,7 @@ class ReceiveStore(
             file.handle.seek(chunkIndex.toLong() * file.meta.chunkSize)
             file.handle.write(data)
             file.received.add(chunkIndex)
-            // Пишем прогресс на диск каждые 8 чанков — достаточно для resume,
-            // но не убивает скорость дисковыми операциями на каждый чанк.
+
             if (file.received.size % 8 == 0 || file.received.size == file.meta.chunkCount) {
                 file.persistProgress()
             }

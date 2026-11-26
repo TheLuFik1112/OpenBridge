@@ -9,20 +9,11 @@ import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLServerSocket
 import javax.net.ssl.SSLSocket
 
-/**
- * Ktor 3 CIO не умеет HTTPS, поэтому TLS-терминация вынесена в отдельный слой:
- * приложение слушает внешний TLS-порт, расшифровывает поток и передаёт его
- * на внутренний loopback-порт, где работает обычный HTTP-сервер Ktor.
- *
- * @param listenPort   внешний порт с TLS (его видят другие устройства)
- * @param upstreamPort внутренний loopback-порт HTTP-сервера
- */
 class TlsRelay(
     private val sslContext: SSLContext,
     private val listenPort: Int,
     private val upstreamPort: Int,
 ) {
-
     init {
         require(listenPort in 1..65535) { "listenPort out of range: $listenPort" }
         require(upstreamPort in 1..65535) { "upstreamPort out of range: $upstreamPort" }
@@ -112,7 +103,6 @@ class TlsRelay(
             }
             runCatching { to.shutdownOutput() }
         } catch (_: Exception) {
-            // соединение закрылось — обычная ситуация
         }
     }
 }

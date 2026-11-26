@@ -4,29 +4,15 @@ import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
 import app.openbridge.core.Diag
 
-/**
- * Эмуляция стандартного NFC Forum Type 4 Tag (AID D2760000850101).
- * Позволяет любому современному Android-устройству (и iPhone) считать NDEF-сообщение
- * при простом касании, без необходимости запускать специальные режимы считывания.
- *
- * NDEF содержит только `openbridge://` с именем отправителя.
- * Сервис отвечает полезной меткой только при активной NFC-панели и непустом пакете;
- * в остальных случаях NDEF-файл пустой.
- *
- * Работает всегда, когда включён NFC: reader mode не используется (см. [NfcHelper]).
- */
 class OpenBridgeApduService : HostApduService() {
-
     private var selectedFile: SelectedFile = SelectedFile.NONE
 
     override fun onCreate() {
         super.onCreate()
-        // Метку могут прочитать, когда приложение вообще не запускали:
-        // заранее подставляем имя устройства (и в фоне — id сертификата).
+
         NfcHelper.prime(applicationContext)
     }
 
-    /** Второй телефон уже дочитал NDEF до конца — сообщаем один раз за касание. */
     private var ndefServed = false
 
     private enum class SelectedFile { NONE, CC, NDEF }
@@ -34,22 +20,18 @@ class OpenBridgeApduService : HostApduService() {
     override fun processCommandApdu(commandApdu: ByteArray?, extras: Bundle?): ByteArray {
         if (commandApdu == null || commandApdu.size < 4) return STATUS_FAILED
 
-        // Дополнительная защита, если компонент успел получить APDU до того,
-        // как Android применил новое состояние enabled/disabled.
         if (!NfcHelper.isTagActive()) return STATUS_FAILED
 
         val ins = commandApdu[1]
         val p1 = commandApdu[2]
         val p2 = commandApdu[3]
 
-        // 1. SELECT по AID (00 A4 04 00 07 D2760000850101)
         if (ins == INS_SELECT && p1 == 0x04.toByte()) {
             selectedFile = SelectedFile.NONE
             Diag.log("nfc_hce", "SELECT Type 4 Tag AID")
             return STATUS_SUCCESS
         }
 
-        // 2. SELECT файла по ID (00 A4 00 0C 02 <FID>)
         if (ins == INS_SELECT) {
             if (commandApdu.size >= 7) {
                 val fid = ((commandApdu[5].toInt() and 0xFF) shl 8) or
@@ -64,7 +46,6 @@ class OpenBridgeApduService : HostApduService() {
             return STATUS_FILE_NOT_FOUND
         }
 
-        // 3. READ BINARY (00 B0 <offset_hi> <offset_lo> <Le>)
         if (ins == INS_READ_BINARY) {
             val offset = ((p1.toInt() and 0xFF) shl 8) or (p2.toInt() and 0xFF)
             val fileData = when (selectedFile) {
@@ -115,7 +96,6 @@ class OpenBridgeApduService : HostApduService() {
         val STATUS_WRONG_OFFSET = byteArrayOf(0x6B.toByte(), 0x00)
         val STATUS_INS_NOT_SUPPORTED = byteArrayOf(0x6D.toByte(), 0x00)
 
-        // Стандартный Capability Container (CC) для Type 4 Tag v2.0
         val CC_FILE = byteArrayOf(
             0x00, 0x0F,             // CCLEN: 15 байт
             0x20,                   // Mapping Version 2.0
