@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#0A0A0A" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F4F4F4" media="(prefers-color-scheme: light)">
+<title>OpenBridge</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0A0A0A;
+    --surface: #111111;
+    --surface-2: #161616;
+    --border: #242424;
+    --text: #F2F2F2;
+    --muted: #8A8A8A;
+    --accent: #C95D48;
+    --accent-soft: rgba(201, 93, 72, 0.12);
+    --danger: #E06C5A;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      color-scheme: light;
+      --bg: #F4F4F4;
+      --surface: #FFFFFF;
+      --surface-2: #FAFAFA;
+      --border: #D4D4D4;
+      --text: #121212;
+      --muted: #6E6E6E;
+      --accent: #B94E3A;
+      --accent-soft: rgba(185, 78, 58, 0.10);
+      --danger: #A33A2B;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { background: var(--bg); color: var(--text); }
+  body {
+    margin: 0;
+    padding: 24px 16px 48px;
+    padding-top: max(24px, env(safe-area-inset-top));
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: max(48px, env(safe-area-inset-bottom));
+    font-family: 'IoskeleyMono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 18px;
+    margin-bottom: 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+  .brand i {
+    display: block;
+    width: 40px;
+    height: 3px;
+    margin-bottom: 12px;
+    background: var(--accent);
+  }
+  .sub {
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .online {
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    padding-top: 3px;
+  }
+  .dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    margin-right: 7px;
+    vertical-align: middle;
+    background: var(--accent);
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    margin: 0 0 18px;
+    padding: 16px;
+  }
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .label {
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+  .head-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .btn {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 1px;
+    background: var(--surface-2);
+    color: var(--text);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .btn:hover, .btn:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
+    outline: none;
+  }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #FFFFFF;
+  }
+  .btn.primary:hover, .btn.primary:focus-visible { color: #FFFFFF; opacity: 0.9; }
+  .btn.ghost { background: transparent; }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .item:first-child { padding-top: 0; }
+  .item:last-child { padding-bottom: 0; border-bottom: 0; }
+  .item-main { flex: 1; min-width: 0; }
+  .item-name {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .item-meta {
+    display: block;
+    margin-top: 3px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  pre.text {
+    margin: 10px 0;
+    padding: 10px;
+    max-height: 220px;
+    overflow: auto;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  .text-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .empty {
+    padding: 24px 16px;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    text-align: center;
+  }
+  .empty strong {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .error {
+    padding: 12px;
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .hint {
+    display: block;
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 11px;
+  }
+  .drop {
+    display: block;
+    padding: 28px 16px;
+    border: 1px dashed var(--border);
+    border-radius: 1px;
+    background: var(--surface-2);
+    color: var(--muted);
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+  .drop:hover, .drop:focus-visible {
+    border-color: var(--accent);
+    color: var(--text);
+    outline: none;
+  }
+  .drop.over {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--text);
+  }
+  .drop strong {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--text);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .drop span { font-size: 12px; letter-spacing: 0.03em; }
+  input[type=file] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    font-size: 16px;
+  }
+  .bar {
+    display: none;
+    height: 6px;
+    margin-top: 14px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .bar.on { display: block; }
+  .bar > i {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    transition: width 0.12s linear;
+  }
+  .status {
+    min-height: 17px;
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    word-break: break-word;
+  }
+  .status.error { color: var(--danger); }
+  .foot {
+    margin-top: 26px;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+  @media (max-width: 520px) {
+    body { padding-left: 12px; padding-right: 12px; }
+    .card { padding: 14px; }
+    .item { gap: 9px; }
+    .btn { padding: 8px 10px; font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand"><i></i>OpenBridge</div>
+      <div class="sub" data-i18n="sub">Direct LAN transfer · no cloud</div>
+    </div>
+    <div class="online"><span class="dot"></span><span data-i18n="online">Online</span></div>
+  </header>
+
+  <section class="card">
+    <div class="card-head">
+      <span class="label" data-i18n="files">Shared files</span>
+      <div class="head-actions">
+        <button class="btn ghost" id="refresh" type="button" data-i18n="refresh">Refresh</button>
+        <a class="btn primary" id="all" href="#" hidden data-i18n="downloadAll">Download all</a>
+      </div>
+    </div>
+    <div id="list">
+      <div class="empty"><strong data-i18n="loading">Loading…</strong></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <span class="label" data-i18n="upload">Send to phone</span>
+    </div>
+    <div class="drop" id="drop" role="button" tabindex="0">
+      <strong data-i18n="dropTitle">Drop files here</strong>
+      <span data-i18n="dropHint">or tap to select files</span>
+    </div>
+    <input id="file" type="file" multiple>
+    <div class="bar" id="bar"><i id="barfill"></i></div>
+    <div class="status" id="status"></div>
+  </section>
+
+  <div class="foot">OpenBridge · P2P LAN</div>
+</div>
+
+<script>
+'use strict';
+
+var TOKEN = __TOKEN_JSON__;
+
+var I18N = {
+  en: {
+    sub: 'Direct LAN transfer · no cloud',
+    online: 'Online',
+    files: 'Shared files',
+    refresh: 'Refresh',
+    downloadAll: 'Download all',
+    loading: 'Loading…',
+    empty: 'No files in package',
+    emptyHint: 'Add files on the phone, then press Refresh.',
+    download: 'Download',
+    copy: 'Copy',
+    copied: 'Copied',
+    text: 'Text',
+    upload: 'Send to phone',
+    dropTitle: 'Drop files here',
+    dropHint: 'or tap to select files',
+    uploading: 'Uploading',
+    done: 'Upload complete',
+    failed: 'Upload failed',
+    http: 'Request failed',
+    tokenHint: 'Link token is invalid or expired. Scan the QR code again on the phone.'
+  },
+  ru: {
+    sub: 'Прямая передача по LAN · без облака',
+    online: 'На связи',
+    files: 'Файлы в пакете',
+    refresh: 'Обновить',
+    downloadAll: 'Скачать всё',
+    loading: 'Загрузка…',
+    empty: 'В пакете нет файлов',
+    emptyHint: 'Добавьте файлы на телефоне и нажмите «Обновить».',
+    download: 'Скачать',
+    copy: 'Копировать',
+    copied: 'Скопировано',
+    text: 'Текст',
+    upload: 'Отправить на телефон',
+    dropTitle: 'Перетащите файлы',
+    dropHint: 'или нажмите, чтобы выбрать',
+    uploading: 'Отправка',
+    done: 'Отправка завершена',
+    failed: 'Ошибка отправки',
+    http: 'Ошибка запроса',
+    tokenHint: 'Ссылка недействительна. Отсканируйте QR-код на телефоне заново.'
+  }
+};
+
+var lang = (navigator.language || 'en').toLowerCase().indexOf('ru') === 0 ? 'ru' : 'en';
+
+function t(key) {
+  var table = I18N[lang] || I18N.en;
+  return table[key] || I18N.en[key] || key;
+}
+
+function applyLang() {
+  document.documentElement.lang = lang;
+  var nodes = document.querySelectorAll('[data-i18n]');
+  for (var i = 0; i < nodes.length; i++) {
+    nodes[i].textContent = t(nodes[i].getAttribute('data-i18n'));
+  }
+}
+
+var list = document.getElementById('list');
+var all = document.getElementById('all');
+var refresh = document.getElementById('refresh');
+var drop = document.getElementById('drop');
+var input = document.getElementById('file');
+var bar = document.getElementById('bar');
+var barfill = document.getElementById('barfill');
+var statusNode = document.getElementById('status');
+
+var current = [];
+var lastRaw = '';
+var loading = false;
+var uploading = false;
+
+function api(path) {
+  return path + (path.indexOf('?') >= 0 ? '&' : '?') + 't=' + encodeURIComponent(TOKEN);
+}
+
+function esc(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+    return ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    })[ch];
+  });
+}
+
+function human(bytes) {
+  var n = Number(bytes) || 0;
+  if (n < 1024) return n + ' B';
+  if (n < 1048576) return (n / 1024).toFixed(1) + ' KB';
+  if (n < 1073741824) return (n / 1048576).toFixed(1) + ' MB';
+  return (n / 1073741824).toFixed(2) + ' GB';
+}
+
+function setStatus(text, isError) {
+  statusNode.textContent = text || '';
+  statusNode.className = isError ? 'status error' : 'status';
+}
+
+function setProgress(fraction) {
+  var percent = Math.max(0, Math.min(1, fraction || 0)) * 100;
+  barfill.style.width = percent.toFixed(1) + '%';
+}
+
+function render(items) {
+  current = items || [];
+  if (!current.length) {
+    list.innerHTML = '<div class="empty"><strong>' + esc(t('empty')) + '</strong>' +
+      '<span class="hint">' + esc(t('emptyHint')) + '</span></div>';
+    all.hidden = true;
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < current.length; i++) {
+    var f = current[i] || {};
+    var isText = typeof f.text === 'string' && f.text.length > 0;
+    html += '<div class="item"><div class="item-main">';
+    html += '<span class="item-name">' + esc(f.name || 'file') + '</span>';
+    html += '<span class="item-meta">' + (isText ? esc(t('text')) + ' · ' : '') +
+      human(f.size) + '</span>';
+    if (isText) {
+      var preview = f.text.length > 4000 ? f.text.slice(0, 4000) + '\n…' : f.text;
+      html += '<pre class="text">' + esc(preview) + '</pre>';
+      html += '<div class="text-actions">';
+      html += '<button class="btn ghost" type="button" data-copy="' + i + '">' +
+        esc(t('copy')) + '</button>';
+      html += '</div>';
+    }
+    html += '</div>';
+    html += '<a class="btn" href="' + esc(api('/download/' + encodeURIComponent(f.id))) + '">' +
+      esc(t('download')) + '</a>';
+    html += '</div>';
+  }
+
+  list.innerHTML = html;
+  all.hidden = current.length < 2;
+  all.href = api('/download/all');
+
+  var copyButtons = list.querySelectorAll('[data-copy]');
+  for (var c = 0; c < copyButtons.length; c++) {
+    copyButtons[c].addEventListener('click', function () {
+      var index = Number(this.getAttribute('data-copy'));
+      var item = current[index];
+      copyText(item && item.text ? item.text : '', this);
+    });
+  }
+}
+
+function copyText(text, button) {
+  var fallback = function () {
+    var area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.top = '-1000px';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(area);
+    return ok;
+  };
+
+  var finish = function (ok) {
+    if (!button) return;
+    var original = t('copy');
+    button.textContent = ok ? t('copied') : t('failed');
+    window.setTimeout(function () { button.textContent = original; }, 1300);
+  };
+
+  if (window.isSecureContext && navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () {
+      finish(true);
+    }, function () {
+      finish(fallback());
+    });
+  } else {
+    finish(fallback());
+  }
+}
+
+async function load() {
+  if (loading) return;
+  loading = true;
+  try {
+    var res = await fetch(api('/api/files'), { cache: 'no-store' });
+    if (!res.ok) {
+      var body = '';
+      try { body = (await res.text()).slice(0, 400); } catch (e) { body = ''; }
+      throw new Error('HTTP ' + res.status + ' ' + (res.statusText || '') +
+        (body ? '\n' + body : '') + '\n' + t('tokenHint'));
+    }
+    var items = await res.json();
+    var raw = JSON.stringify(items);
+    if (raw !== lastRaw) {
+      lastRaw = raw;
+      render(items);
+    }
+  } catch (e) {
+    lastRaw = '';
+    all.hidden = true;
+    list.innerHTML = '<div class="error">' + esc(t('http') + ': ' + (e && e.message ? e.message : e)) +
+      '</div>';
+  } finally {
+    loading = false;
+  }
+}
+
+function uploadFiles(files) {
+  if (!files || !files.length || uploading) return;
+  uploading = true;
+  var index = 0;
+
+  function next() {
+    if (index >= files.length) {
+      uploading = false;
+      input.value = '';
+      setStatus(t('done'));
+      window.setTimeout(function () {
+        bar.className = 'bar';
+        setProgress(0);
+        load();
+      }, 700);
+      return;
+    }
+
+    var file = files[index++];
+    setStatus(t('uploading') + ' · ' + file.name);
+    bar.className = 'bar on';
+    setProgress(0);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', api('/upload') + '&name=' + encodeURIComponent(file.name), true);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+
+    xhr.upload.onprogress = function (event) {
+      if (!event.lengthComputable) return;
+      var fraction = event.total > 0 ? event.loaded / event.total : 0;
+      setProgress(fraction);
+      setStatus(t('uploading') + ' · ' + file.name + ' · ' +
+        Math.round(fraction * 100) + '%');
+    };
+
+    xhr.onload = function () {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        setProgress(1);
+        next();
+      } else {
+        uploading = false;
+        setStatus(t('failed') + ': ' + file.name + ' · HTTP ' + xhr.status + ' ' +
+          (xhr.responseText || '').slice(0, 240), true);
+        bar.className = 'bar';
+      }
+    };
+
+    xhr.onerror = function () {
+      uploading = false;
+      setStatus(t('failed') + ': ' + file.name + ' · network error', true);
+      bar.className = 'bar';
+    };
+
+    xhr.send(file);
+  }
+
+  next();
+}
+
+drop.addEventListener('click', function () { input.click(); });
+drop.addEventListener('keydown', function (event) {
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault();
+    input.click();
+  }
+});
+input.addEventListener('change', function () { uploadFiles(input.files); });
+
+['dragenter', 'dragover'].forEach(function (name) {
+  drop.addEventListener(name, function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+    drop.className = 'drop over';
+  });
+});
+['dragleave', 'dragend'].forEach(function (name) {
+  drop.addEventListener(name, function (event) {
+    event.preventDefault();
+    event.stopPropagation();
+    drop.className = 'drop';
+  });
+});
+drop.addEventListener('drop', function (event) {
+  event.preventDefault();
+  event.stopPropagation();
+  drop.className = 'drop';
+  uploadFiles(event.dataTransfer ? event.dataTransfer.files : null);
+});
+document.addEventListener('dragover', function (event) { event.preventDefault(); });
+document.addEventListener('drop', function (event) {
+  if (event.target !== drop && !drop.contains(event.target)) event.preventDefault();
+});
+
+refresh.addEventListener('click', function () { load(); });
+
+window.setInterval(function () {
+  if (document.visibilityState === 'visible' && !uploading) load();
+}, 5000);
+document.addEventListener('visibilitychange', function () {
+  if (document.visibilityState === 'visible' && !uploading) load();
+});
+
+applyLang();
+load();
+</script>
+</body>
+</html>

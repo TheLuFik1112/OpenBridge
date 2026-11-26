@@ -19,6 +19,8 @@ interface AppStrings {
     val sendPackageEmpty: String
     val btnClear: String
     val btnRemove: String
+    val btnCopy: String
+    val btnCopied: String
     val devicesNearby: String
     val noDevicesYet: String
     val noDevicesHint: String
@@ -124,6 +126,8 @@ object RuStrings : AppStrings {
     override val sendPackageEmpty = "Добавьте файлы, фото, папку или текст — получателя можно выбрать потом."
     override val btnClear = "Очистить"
     override val btnRemove = "Убрать"
+    override val btnCopy = "Копировать"
+    override val btnCopied = "Скопировано"
     override val devicesNearby = "Устройства рядом"
     override val noDevicesYet = "Пока никого не видно"
     override val noDevicesHint = "Откройте OpenBridge на втором устройстве рядом. " +
@@ -230,6 +234,8 @@ object EnStrings : AppStrings {
     override val sendPackageEmpty = "Add files, photos, folders, or text — you can select recipient later."
     override val btnClear = "Clear"
     override val btnRemove = "Remove"
+    override val btnCopy = "Copy"
+    override val btnCopied = "Copied"
     override val devicesNearby = "Nearby Devices"
     override val noDevicesYet = "No devices found yet"
     override val noDevicesHint = "Open OpenBridge on the nearby device. " +

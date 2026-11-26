@@ -44,7 +44,7 @@ class AppGraph(val app: Application) {
     val settings by lazy { SettingsRepository(app) }
     val peers by lazy { PeerRepository(app, json) }
     val history by lazy { HistoryRepository(app, json) }
-    val portal by lazy { Portal(app, settings, json) }
+    val portal by lazy { Portal(app, settings) }
     val receiver by lazy { ReceiveStore(app, identity) }
     val notifier by lazy { IncomingNotifier(app) }
 

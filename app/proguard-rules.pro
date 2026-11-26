@@ -14,6 +14,10 @@
 -keep,includedescriptorclasses class **$$serializer { *; }
 -keepclassmembers enum * { *; }
 
+# Web portal DTOs cross the JSON boundary to the browser.
+-keep class app.openbridge.net.PortalFile { *; }
+-keepclassmembers class app.openbridge.net.PortalFile { *; }
+
 # Ktor server and CIO engine resolve converters and engines by type at runtime.
 -keep class io.ktor.** { *; }
 -dontwarn io.ktor.**

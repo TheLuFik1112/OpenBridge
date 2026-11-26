@@ -15,7 +15,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 class PackageQueue(
     private val context: Context,
@@ -26,6 +29,13 @@ class PackageQueue(
 ) {
     val items = MutableStateFlow<List<QueueItem>>(emptyList())
     val portalUrl = MutableStateFlow<String?>(null)
+
+    private val publishMutex = Mutex()
+
+    private companion object {
+        const val MAX_PORTAL_FILES = 1000
+        const val MAX_FOLDER_DEPTH = 8
+    }
 
     fun addUris(uris: List<Uri>) {
         if (uris.isEmpty()) return
@@ -95,10 +105,8 @@ class PackageQueue(
             if (enabled) {
                 graph.portal.rotateToken()
                 publish()
-                portalUrl.value = graph.portal.url()
             } else {
-                portalUrl.value = null
-                runCatching { graph.portal.publish(emptyList()) }
+                publish()
                 messages.value = "Веб-портал выключен"
             }
         }
@@ -127,7 +135,7 @@ class PackageQueue(
         }
     }
 
-    private suspend fun publish() {
+    private suspend fun publish() = publishMutex.withLock {
         runCatching {
             if (!settings.portalEnabled.value) {
                 portalUrl.value = null
@@ -135,29 +143,78 @@ class PackageQueue(
                 return@runCatching
             }
 
-            val files = items.value.mapNotNull { item ->
-                if (item.kind == QueueKind.TEXT) {
-                    val text = item.text?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                    PortalFile(
-                        id = item.id,
-                        name = textFileName(item),
-                        size = text.toByteArray(Charsets.UTF_8).size.toLong(),
-                        text = text,
-                    )
-                } else {
-                    val uri = item.uri ?: return@mapNotNull null
-                    PortalFile(
-                        id = item.id,
-                        name = item.name,
-                        size = item.size,
-                        uri = uri.toString(),
-                    )
+            val files = buildList<PortalFile> {
+                items.value.forEach { item ->
+                    when (item.kind) {
+                        QueueKind.TEXT -> textPortalFile(item)?.let { add(it) }
+                        QueueKind.FILE -> filePortalFile(item)?.let { add(it) }
+                        QueueKind.FOLDER -> addAll(folderPortalFiles(item))
+                    }
                 }
             }
             graph.portal.publish(files)
             portalUrl.value = graph.portal.url()
             Diag.log("portal", "published ${files.size} item(s)")
         }.onFailure { Diag.log("portal", "publish failed: $it") }
+    }
+
+    private fun textPortalFile(item: QueueItem): PortalFile? {
+        val text = item.text?.takeIf { it.isNotBlank() } ?: return null
+        return PortalFile(
+            id = item.id,
+            name = textFileName(item),
+            size = text.toByteArray(Charsets.UTF_8).size.toLong(),
+            text = text,
+        )
+    }
+
+    private fun filePortalFile(item: QueueItem): PortalFile? {
+        val uri = item.uri ?: return null
+        val size = item.size.takeIf { it > 0L } ?: PayloadBuilder.sizeOf(context, uri)
+        return PortalFile(
+            id = item.id,
+            name = item.name,
+            size = size,
+            uri = uri.toString(),
+        )
+    }
+
+    private fun folderPortalFiles(item: QueueItem): List<PortalFile> {
+        val uri = item.uri ?: return emptyList()
+        val root = runCatching { DocumentFile.fromTreeUri(context, uri) }.getOrNull()
+            ?: return emptyList()
+        val out = mutableListOf<PortalFile>()
+        collectFolder(root, item, "", 0, out)
+        return out
+    }
+
+    private fun collectFolder(
+        dir: DocumentFile,
+        rootItem: QueueItem,
+        prefix: String,
+        depth: Int,
+        out: MutableList<PortalFile>,
+    ) {
+        if (depth > MAX_FOLDER_DEPTH || out.size >= MAX_PORTAL_FILES) return
+        val children = runCatching { dir.listFiles() }.getOrDefault(emptyArray())
+        for (child in children) {
+            if (out.size >= MAX_PORTAL_FILES) return
+            val name = child.name?.takeIf { it.isNotBlank() } ?: continue
+            val path = if (prefix.isBlank()) name else "$prefix/$name"
+            if (child.isDirectory) {
+                collectFolder(child, rootItem, path, depth + 1, out)
+            } else if (child.isFile) {
+                val id = UUID.nameUUIDFromBytes(
+                    (rootItem.id + "/" + path).toByteArray(Charsets.UTF_8),
+                ).toString()
+                out += PortalFile(
+                    id = id,
+                    name = "${rootItem.name.ifBlank { "folder" }}/$path",
+                    size = child.length(),
+                    uri = child.uri.toString(),
+                )
+            }
+        }
     }
 
     private fun textFileName(item: QueueItem): String {
@@ -167,6 +224,6 @@ class PackageQueue(
             .trim()
             .take(40)
             .ifBlank { "text" }
-        return "$base.txt"
+        return if (base.endsWith(".txt", ignoreCase = true)) base else "$base.txt"
     }
 }

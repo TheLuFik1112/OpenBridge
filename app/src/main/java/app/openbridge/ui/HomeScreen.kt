@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
@@ -59,11 +60,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -275,7 +279,18 @@ private fun StatusCard(
     isEngineReady: Boolean,
     onShowQr: () -> Unit,
 ) {
-    Box(
+    val clipboard = LocalClipboardManager.current
+    var copied by remember(portalUrl) { mutableStateOf(false) }
+    val url = portalUrl
+
+    LaunchedEffect(copied) {
+        if (copied) {
+            kotlinx.coroutines.delay(1400)
+            copied = false
+        }
+    }
+
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(FlatSurface, RoundedCornerShape(0.dp))
@@ -347,15 +362,55 @@ private fun StatusCard(
                 )
             }
         }
-        if (portalUrl != null) {
-            Spacer(Modifier.height(10.dp))
-            Text(
-                portalUrl,
-                style = MaterialTheme.typography.labelSmall,
-                color = FlatTextSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+
+        if (url != null) {
+            Spacer(Modifier.height(12.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(FlatBorder),
             )
+            Spacer(Modifier.height(10.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = url,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = FontFamily.Monospace,
+                    color = FlatTextSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(10.dp))
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(0.dp))
+                        .clickable {
+                            clipboard.setText(AnnotatedString(url))
+                            copied = true
+                        }
+                        .padding(horizontal = 4.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = if (copied) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
+                        contentDescription = strings.btnCopy,
+                        tint = if (copied) FlatAccent else FlatTextSecondary,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(5.dp))
+                    Text(
+                        text = (if (copied) strings.btnCopied else strings.btnCopy).uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (copied) FlatAccent else FlatTextSecondary,
+                    )
+                }
+            }
         }
     }
 }
