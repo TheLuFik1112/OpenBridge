@@ -13,10 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Icon
@@ -123,11 +122,10 @@ fun FlatToggle(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val thumbOffset by animateFloatAsState(
-        targetValue = if (checked) 20f else 0f,
+    val thumbOffset = animateDpAsState(
+        targetValue = if (checked) 20.dp else 0.dp,
         label = "flatToggleThumb",
     )
-    val density = LocalDensity.current.density
     Box(
         modifier = modifier
             .width(44.dp)
@@ -142,7 +140,7 @@ fun FlatToggle(
         Box(
             modifier = Modifier
                 .size(18.dp)
-                .graphicsLayer { translationX = thumbOffset * density }
+                .graphicsLayer { translationX = thumbOffset.value.toPx() }
                 .background(
                     if (checked) MaterialTheme.colorScheme.onPrimary else FlatTextMuted,
                     RoundedCornerShape(0.dp),
