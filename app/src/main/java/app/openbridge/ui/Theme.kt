@@ -34,7 +34,10 @@ data class FlatPalette(
     val surfaceElevated: Color,
     val border: Color,
     val borderActive: Color,
+    /** Только интерактив: активная вкладка, включённый переключатель, главная кнопка. */
     val accent: Color,
+    /** Приглушённый акцент для микрозаголовков разделов. */
+    val accentMuted: Color,
     val error: Color,
     val accentDimBg: Color,
     val textPrimary: Color,
@@ -48,9 +51,11 @@ val FlatDarkPalette = FlatPalette(
     surfaceElevated = Color(0xFF161616),
     border = Color(0xFF242424),
     borderActive = Color(0xFF3A3A3A),
-    accent = Color(0xFFFF3B1D),
-    error = Color(0xFFFF4A26),
-    accentDimBg = Color(0xFF1F100D),
+    // Матовая терракота вместо неоново-красного: спокойнее на OLED.
+    accent = Color(0xFFC95D48),
+    accentMuted = Color(0xFF9E6B60),
+    error = Color(0xFFD9705C),
+    accentDimBg = Color(0xFF181211),
     textPrimary = Color(0xFFF2F2F2),
     textSecondary = Color(0xFF8A8A8A),
     textMuted = Color(0xFF555555),
@@ -60,12 +65,13 @@ val FlatLightPalette = FlatPalette(
     background = Color(0xFFF4F4F4),
     surface = Color(0xFFFFFFFF),
     surfaceElevated = Color(0xFFEDEDED),
-    border = Color(0xFFD8D8D8),
-    borderActive = Color(0xFFB5B5B5),
-    accent = Color(0xFFE8330F),
-    error = Color(0xFFD92D1A),
-    accentDimBg = Color(0xFFFFE8E3),
-    textPrimary = Color(0xFF0A0A0A),
+    border = Color(0xFFD4D4D4),
+    borderActive = Color(0xFFB0B0B0),
+    accent = Color(0xFFC95D48),
+    accentMuted = Color(0xFF9E6B60),
+    error = Color(0xFFB94A38),
+    accentDimBg = Color(0xFFF3E7E3),
+    textPrimary = Color(0xFF121212),
     textSecondary = Color(0xFF5C5C5C),
     textMuted = Color(0xFF9A9A9A),
 )
@@ -89,6 +95,9 @@ val FlatBorderActive: Color
 
 val FlatAccent: Color
     @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.accent
+
+val FlatAccentMuted: Color
+    @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.accentMuted
 
 val FlatError: Color
     @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.error

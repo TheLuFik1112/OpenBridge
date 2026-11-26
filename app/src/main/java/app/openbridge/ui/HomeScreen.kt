@@ -123,21 +123,24 @@ fun HomeScreen(
     // чтобы список не «резинился» под пальцем.
     val listState = rememberLazyListState()
     val thresholdPx = with(LocalDensity.current) { 64.dp.toPx() }
-    val accumulatedPullPx = remember { mutableStateOf(0f) }
-    val lastNfcOpenAt = remember { mutableStateOf(0L) }
-    val nestedScrollConnection = remember(listState, thresholdPx) {
+    val nestedScrollConnection = remember(listState, thresholdPx, viewModel) {
         object : NestedScrollConnection {
+            // Plain fields avoid Compose state writes and recomposition on every
+            // pointer sample while the pull-down gesture is being tracked.
+            var accumulatedPullPx = 0f
+            var lastNfcOpenAt = 0L
+
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 val down = available.y > 0f
                 if (!down || listState.canScrollBackward) {
-                    accumulatedPullPx.value = 0f
+                    accumulatedPullPx = 0f
                     return Offset.Zero
                 }
-                accumulatedPullPx.value += available.y
+                accumulatedPullPx += available.y
                 val now = System.currentTimeMillis()
-                if (accumulatedPullPx.value >= thresholdPx && now - lastNfcOpenAt.value > 700) {
-                    accumulatedPullPx.value = 0f
-                    lastNfcOpenAt.value = now
+                if (accumulatedPullPx >= thresholdPx && now - lastNfcOpenAt > 700) {
+                    accumulatedPullPx = 0f
+                    lastNfcOpenAt = now
                     viewModel.openNfcSheet()
                 }
                 return Offset(0f, available.y)

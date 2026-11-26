@@ -9,8 +9,10 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -58,7 +60,7 @@ fun SectionHeader(
     Text(
         text = "$index — ${title.uppercase()}",
         style = MaterialTheme.typography.labelMedium,
-        color = FlatAccent,
+        color = FlatTextSecondary,
         fontFamily = FontFamily.Monospace,
         modifier = modifier.padding(top = 8.dp, bottom = 10.dp),
     )
@@ -121,20 +123,26 @@ fun FlatToggle(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val thumbOffset by animateFloatAsState(
+        targetValue = if (checked) 20f else 0f,
+        label = "flatToggleThumb",
+    )
+    val density = LocalDensity.current
     Box(
         modifier = modifier
-            .width(52.dp)
+            .width(44.dp)
             .height(24.dp)
             .background(if (checked) FlatAccent else FlatSurfaceElevated, RoundedCornerShape(0.dp))
             .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+            .padding(3.dp)
             .clip(RoundedCornerShape(0.dp))
             .clickable { onCheckedChange(!checked) },
+        contentAlignment = Alignment.CenterStart,
     ) {
         Box(
             modifier = Modifier
-                .offset(x = if (checked) 28.dp else 2.dp)
-                .width(18.dp)
-                .height(18.dp)
+                .size(18.dp)
+                .graphicsLayer { translationX = with(density) { thumbOffset.dp.toPx() } }
                 .background(
                     if (checked) MaterialTheme.colorScheme.onPrimary else FlatTextMuted,
                     RoundedCornerShape(0.dp),
