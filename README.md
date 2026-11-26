@@ -6,7 +6,7 @@
 
 Direct device-to-device sharing. No internet, no cloud, no accounts.
 
-[![Version](https://img.shields.io/badge/version-0.6.0-C95D48?style=flat-square)](../../releases)
+[![Version](https://img.shields.io/badge/version-0.6.0-C95D48?style=flat-square)](https://github.com/TheLuFik1112/OpenBridge/releases)
 [![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/license-MIT-121212?style=flat-square)](LICENSE)
@@ -45,7 +45,7 @@ OpenBridge moves files, photos, folders and text between Android devices over th
 
 ## Installation
 
-1. Download the latest `OpenBridge-*.apk` from [Releases](../../releases/latest).
+1. Download the latest `OpenBridge-*.apk` from [Releases](https://github.com/TheLuFik1112/OpenBridge/releases/latest).
 2. Open the file on the device and allow installation from this source.
 3. Grant the permissions the app asks for: notifications, nearby devices and storage.
 

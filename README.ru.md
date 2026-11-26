@@ -6,7 +6,7 @@
 
 Прямая передача с устройства на устройство. Без интернета, облака и аккаунтов.
 
-[![Версия](https://img.shields.io/badge/версия-0.6.0-C95D48?style=flat-square)](../../releases)
+[![Версия](https://img.shields.io/badge/версия-0.6.0-C95D48?style=flat-square)](https://github.com/TheLuFik1112/OpenBridge/releases)
 [![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Лицензия](https://img.shields.io/badge/лицензия-MIT-121212?style=flat-square)](LICENSE)
@@ -45,7 +45,7 @@ OpenBridge передаёт файлы, фото, папки и текст ме�
 
 ## Установка
 
-1. Скачайте свежий `OpenBridge-*.apk` из [Releases](../../releases/latest).
+1. Скачайте свежий `OpenBridge-*.apk` из [Releases](https://github.com/TheLuFik1112/OpenBridge/releases/latest).
 2. Откройте файл на телефоне и разрешите установку из этого источника.
 3. Выдайте разрешения, которые попросит приложение: уведомления, устройства рядом, память.
 
