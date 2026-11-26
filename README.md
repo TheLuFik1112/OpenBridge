@@ -1,41 +1,66 @@
+<div align="center">
+
+<img src="docs/icon.svg" width="96" height="96" alt="OpenBridge">
+
 # OpenBridge
 
-[Russian / Русский](readme/readme.ru.md)
+Direct device-to-device sharing. No internet, no cloud, no accounts.
 
----
+[![Version](https://img.shields.io/badge/version-0.6.0-C95D48?style=flat-square)](../../releases)
+[![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?style=flat-square&logo=android&logoColor=white)](https://developer.android.com)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![License](https://img.shields.io/badge/license-MIT-121212?style=flat-square)](LICENSE)
 
-<p align="center">
-  <img src="icon/openbridge.svg" alt="OpenBridge" width="96" height="96">
-</p>
+**English** · [Русский](README.ru.md)
 
-Send files, photos, folders and text from one phone to another: no internet, no cloud, no accounts. Phones find each other on the same Wi-Fi or connect directly when there is no router.
+</div>
 
-**Current version: 0.6.0** · Android 8.0+ · Kotlin + Jetpack Compose (Material 3)
+## Overview
 
-## How to use
-
-1. Add files, photos, folders or text to the package.
-2. Pick a device from the list and tap Send — or swipe down and hold the phones together, if both have NFC.
-3. To hand something to a PC or iPhone, tap QR on the home screen and scan it in the browser.
+OpenBridge moves files, photos, folders and text between Android devices over the local network or a direct Google Nearby connection. Nothing passes through the internet, a cloud service or an account. If there is no router around, the phones still find each other and transfer directly.
 
 ## Features
 
-- **Send a package:** collect everything first, then choose the recipient.
-- **NFC in one touch:** swipe down on the home screen and hold the phones back to back. If the other phone has OpenBridge, the package arrives by itself; if not, it opens the download page.
-- **QR code:** show it from the home screen to open the package in any browser on a PC or iPhone — no app needed.
-- **Works without a router:** on the same Wi-Fi or phone to phone, even with no network around.
-- **Incoming requests on top:** a transfer request appears over any app, even when OpenBridge is in the background. Trusted devices are accepted automatically.
-- **Black theme:** true black by default, light theme in Settings → Appearance.
-- **Russian and English:** follows the system language, can be switched in Settings.
-- **Quick Settings tile:** send the clipboard with one tap.
-- **Resumable transfers:** an interrupted transfer continues where it stopped.
+- **Package-first sending** — collect files, photos, folders or text, then choose the recipient.
+- **NFC in one tap** — swipe down on the Send screen and hold two phones together.
+- **QR browser sharing** — open the package on a PC or iPhone with no app installed.
+- **Works without a router** — LAN when available, Google Nearby when there is no network.
+- **Receiving in the background** — discovery keeps running, requests appear over other apps, trusted devices are accepted automatically.
+- **Flat technical UI** — dark and light palettes, system theme by default, Russian and English.
+- **Quick Settings tile** — send the clipboard in one tap.
+- **Resumable transfers** — an interrupted transfer continues from where it stopped.
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/send.svg" width="200" alt="Send package">
+  <img src="docs/screenshots/nfc.svg" width="200" alt="NFC panel">
+  <img src="docs/screenshots/receive.svg" width="200" alt="Incoming transfer">
+  <img src="docs/screenshots/settings.svg" width="200" alt="Settings">
+</p>
+
+Replace the placeholders in [`docs/screenshots`](docs/screenshots) with real screenshots when they are ready.
 
 ## Installation
 
-1. Go to [Releases](../../releases) and download the latest `OpenBridge-*.apk`.
-2. Open the file on your device and allow installation from this source.
-3. Grant the permissions the app asks for (notifications, nearby devices, storage).
+1. Download the latest `OpenBridge-*.apk` from [Releases](../../releases/latest).
+2. Open the file on the device and allow installation from this source.
+3. Grant the permissions the app asks for: notifications, nearby devices and storage.
+
+Android 8.0 or newer is required.
+
+## Building from source
+
+Requirements: JDK 17 and Android SDK 35.
+
+```bash
+git clone https://github.com/TheLuFik1112/OpenBridge.git
+cd OpenBridge
+./gradlew assembleRelease
+```
+
+The APK is written to `app/build/outputs/apk/release/`.
 
 ## License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for details.
+Distributed under the [MIT License](LICENSE).

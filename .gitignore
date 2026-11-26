@@ -9,3 +9,8 @@ captures/
 .externalNativeBuild/
 .cxx/
 .kotlin/
+
+*.jks
+*.keystore
+keystore/*.p12
+*.log
