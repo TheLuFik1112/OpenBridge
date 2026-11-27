@@ -68,9 +68,14 @@ OpenBridge принимает два вида дополнений: темы и 
 | --- | --- | --- |
 | `buttonStyle` | `filled`, `outlined`, `tonal` | `filled` |
 | `switchStyle` | `flat`, `pill`, `ios` | `flat` |
-| `navBarStyle` | `top_line`, `pill`, `floating`, `minimal` | `top_line` |
+| `navBarStyle` | `top_line`, `pill`, `floating`, `minimal`, `detached_round` | `top_line` |
+| `navBarShowLabels` | `true`, `false` | `true` |
 | `cardBorderWidthDp` | 0–3 | 1 |
 | `cardElevationDp` | 0–8 | 0 |
+
+`detached_round` рисует три вкладки отдельными скруглёнными кнопками над нижним
+краем экрана, с промежутками между ними. При `navBarShowLabels: false` это
+круги только с иконками.
 
 `typography`
 

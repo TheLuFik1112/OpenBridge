@@ -13,6 +13,8 @@
 
 [English](README.md) · **Русский**
 
+[Скачать последний APK](https://github.com/TheLuFik1112/OpenBridge/releases/latest)
+
 </div>
 
 ## Обзор
@@ -42,16 +44,18 @@ OpenBridge передаёт файлы, фото, папки и текст ме�
 
 Оба формата, все поля и готовый пример плагина описаны в [docs/PLUGINS.ru.md](docs/PLUGINS.ru.md).
 
+Готовые файлы: [`themes/material3.json`](themes/material3.json), [`themes/custom-font-demo.obp`](themes/custom-font-demo.obp) и [`plugins/auto-open-links.obp`](plugins/auto-open-links.obp). Исходник примера плагина — в [`plugins/auto-open-links`](plugins/auto-open-links).
+
 ## Скриншоты
 
 <table align="center">
   <tr>
     <td align="center"><img src="docs/screenshots/send.jpg" width="240" alt="Пакет на отправку"></td>
-    <td align="center"><img src="docs/screenshots/nfc.jpg" width="240" alt="Панель NFC"></td>
+    <td align="center"><img src="docs/screenshots/settings.jpg" width="240" alt="Настройки"></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/history.jpg" width="240" alt="История передач"></td>
-    <td align="center"><img src="docs/screenshots/settings.jpg" width="240" alt="Настройки"></td>
+    <td align="center"><img src="docs/screenshots/themes.jpg" width="240" alt="Темы"></td>
+    <td align="center"><img src="docs/screenshots/plugins.jpg" width="240" alt="Плагины"></td>
   </tr>
 </table>
 

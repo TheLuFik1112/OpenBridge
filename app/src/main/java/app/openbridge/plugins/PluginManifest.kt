@@ -21,7 +21,6 @@ data class PluginManifest(
     val permissions: List<String> = emptyList(),
 )
 
-/** An installed script plugin on disk. */
 data class ScriptPlugin(
     val manifest: PluginManifest,
     val dir: File,

@@ -521,11 +521,8 @@ class NearbyP2pManager(
     }
 
     /**
-     * Puts the radio into a clean state before a new transfer.
-     *
-     * A previous session can leave discovered endpoints behind, which makes a
-     * reverse transfer (B -> A) collide with it. Discovery is restarted and
-     * only endpoints with a live connection are kept.
+     * Clears stale endpoints before a new transfer, so a reverse transfer
+     * (B -> A) does not collide with the previous session.
      */
     private suspend fun beginTransfer(
         client: ConnectionsClient,
@@ -557,7 +554,6 @@ class NearbyP2pManager(
 
         if (preferred == null) return awaitEndpoint(deviceId, name, waitMs)
 
-        // The old id may be gone after the reset: prefer a fresh discovery hit.
         return awaitEndpoint(deviceId, name, minOf(waitMs, QUICK_DISCOVERY_MS)) ?: preferred
     }
 
@@ -844,11 +840,8 @@ class NearbyP2pManager(
     }
 
     /**
-     * Copies a finished Nearby file into Download/OpenBridge.
-     *
-     * Called only after [PayloadTransferUpdate.Status.SUCCESS], so the whole
-     * payload is on disk. A size mismatch means the file is unusable: it is
-     * deleted and reported as an error instead of being saved truncated.
+     * Copies a finished Nearby file into Download/OpenBridge. A size mismatch
+     * means the payload is unusable, so the file is deleted and reported.
      */
     private fun finalizeFile(pending: PendingFile) {
         val peerName = pending.peerName
@@ -998,7 +991,6 @@ class NearbyP2pManager(
             when (update.status) {
                 PayloadTransferUpdate.Status.SUCCESS -> {
                     waiter?.complete(true)
-                    // Only now the temp file holds every byte of the payload.
                     pendingFiles.remove(update.payloadId)?.let { pending ->
                         scope.launch(Dispatchers.IO) { finalizeFile(pending) }
                     }

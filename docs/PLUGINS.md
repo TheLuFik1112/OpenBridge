@@ -66,9 +66,14 @@ A `.json` file cannot carry a font. If you want a custom font, use `.obp`.
 | --- | --- | --- |
 | `buttonStyle` | `filled`, `outlined`, `tonal` | `filled` |
 | `switchStyle` | `flat`, `pill`, `ios` | `flat` |
-| `navBarStyle` | `top_line`, `pill`, `floating`, `minimal` | `top_line` |
+| `navBarStyle` | `top_line`, `pill`, `floating`, `minimal`, `detached_round` | `top_line` |
+| `navBarShowLabels` | `true`, `false` | `true` |
 | `cardBorderWidthDp` | 0–3 | 1 |
 | `cardElevationDp` | 0–8 | 0 |
+
+`detached_round` draws the three tabs as separate rounded buttons floating above
+the bottom edge, with space between them. With `navBarShowLabels: false` they
+become circles with only icons.
 
 `typography`
 

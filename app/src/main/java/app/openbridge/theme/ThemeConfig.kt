@@ -37,6 +37,7 @@ data class ThemeComponents(
     val buttonStyle: String = BUTTON_FILLED,
     val switchStyle: String = SWITCH_FLAT,
     val navBarStyle: String = NAV_TOP_LINE,
+    val navBarShowLabels: Boolean = true,
     val cardBorderWidthDp: Int = 1,
     val cardElevationDp: Int = 0,
 )
@@ -75,6 +76,7 @@ const val NAV_TOP_LINE = "top_line"
 const val NAV_PILL = "pill"
 const val NAV_FLOATING = "floating"
 const val NAV_MINIMAL = "minimal"
+const val NAV_DETACHED_ROUND = "detached_round"
 
 const val FONT_MONO = "mono"
 const val FONT_SANS = "sans"
@@ -83,7 +85,8 @@ const val FONT_CUSTOM = "custom"
 
 val THEME_BUTTON_STYLES = setOf(BUTTON_FILLED, BUTTON_OUTLINED, BUTTON_TONAL)
 val THEME_SWITCH_STYLES = setOf(SWITCH_FLAT, SWITCH_PILL, SWITCH_IOS)
-val THEME_NAV_STYLES = setOf(NAV_TOP_LINE, NAV_PILL, NAV_FLOATING, NAV_MINIMAL)
+val THEME_NAV_STYLES =
+    setOf(NAV_TOP_LINE, NAV_PILL, NAV_FLOATING, NAV_MINIMAL, NAV_DETACHED_ROUND)
 val THEME_FONTS = setOf(FONT_MONO, FONT_SANS, FONT_SERIF, FONT_CUSTOM)
 
 const val MIN_CARD_RADIUS = 0
@@ -134,8 +137,6 @@ fun ThemePalette.normalized(): ThemePalette = ThemePalette(
     textPrimary = normalizeHexColor(textPrimary) ?: textPrimary,
     textSecondary = normalizeHexColor(textSecondary) ?: textSecondary,
 )
-
-// --- v1 compatibility -------------------------------------------------------
 
 /** Schema used before the granular theme system; kept only for migration. */
 @Keep

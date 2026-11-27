@@ -13,6 +13,8 @@ Direct device-to-device sharing. No internet, no cloud, no accounts.
 
 **English** · [Русский](README.ru.md)
 
+[Download latest APK](https://github.com/TheLuFik1112/OpenBridge/releases/latest)
+
 </div>
 
 ## Overview
@@ -42,16 +44,18 @@ A script plugin is an `.obp` archive with `manifest.json` and a JavaScript file.
 
 Both formats, all supported fields and a complete plugin example are described in [docs/PLUGINS.md](docs/PLUGINS.md).
 
+Ready files to try: [`themes/material3.json`](themes/material3.json), [`themes/custom-font-demo.obp`](themes/custom-font-demo.obp) and [`plugins/auto-open-links.obp`](plugins/auto-open-links.obp). The source of the plugin example is in [`plugins/auto-open-links`](plugins/auto-open-links).
+
 ## Screenshots
 
 <table align="center">
   <tr>
     <td align="center"><img src="docs/screenshots/send.jpg" width="240" alt="Send package"></td>
-    <td align="center"><img src="docs/screenshots/nfc.jpg" width="240" alt="NFC panel"></td>
+    <td align="center"><img src="docs/screenshots/settings.jpg" width="240" alt="Settings"></td>
   </tr>
   <tr>
-    <td align="center"><img src="docs/screenshots/history.jpg" width="240" alt="Transfer history"></td>
-    <td align="center"><img src="docs/screenshots/settings.jpg" width="240" alt="Settings"></td>
+    <td align="center"><img src="docs/screenshots/themes.jpg" width="240" alt="Themes"></td>
+    <td align="center"><img src="docs/screenshots/plugins.jpg" width="240" alt="Plugins"></td>
   </tr>
 </table>
 

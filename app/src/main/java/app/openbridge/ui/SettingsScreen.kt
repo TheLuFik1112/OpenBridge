@@ -305,38 +305,37 @@ fun SettingsScreen(viewModel: AppViewModel) {
                                     }
                                     .padding(horizontal = 14.dp, vertical = 12.dp),
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Column(Modifier.weight(1f)) {
+                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
                                             "OpenBridge",
                                             style = MaterialTheme.typography.bodyLarge,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f),
                                         )
-                                        Spacer(Modifier.height(2.dp))
-                                        Text(
-                                            "${strings.versionLabel} $APP_VERSION",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
-                                        )
+                                        if (developerMode) {
+                                            Spacer(Modifier.width(8.dp))
+                                            Text(
+                                                "dev",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.primary,
+                                            )
+                                        }
                                     }
-                                    if (developerMode) {
-                                        Spacer(Modifier.width(8.dp))
-                                        Text(
-                                            "dev",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.primary,
-                                        )
-                                    }
+                                    Text(
+                                        "${strings.versionLabel} $APP_VERSION",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        strings.appDescription,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
                                 }
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    strings.appDescription,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
                             }
 
                             Spacer(Modifier.height(8.dp))
