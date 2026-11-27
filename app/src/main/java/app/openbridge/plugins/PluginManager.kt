@@ -5,6 +5,7 @@ import android.net.Uri
 import app.openbridge.theme.BuiltInThemes
 import app.openbridge.theme.FONT_CUSTOM
 import app.openbridge.theme.FONT_FILE_PATTERN
+import app.openbridge.theme.LEGACY_THEMES_DIR
 import app.openbridge.theme.LegacyThemeConfig
 import app.openbridge.theme.MAX_BADGE_RADIUS
 import app.openbridge.theme.MAX_BUTTON_RADIUS
