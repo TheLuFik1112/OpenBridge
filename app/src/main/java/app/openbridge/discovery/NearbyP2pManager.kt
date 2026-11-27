@@ -492,6 +492,7 @@ class NearbyP2pManager(
             runCatching {
                 require(items.isNotEmpty()) { "Нечего отправлять" }
                 val client = client ?: error("Google Play Services недоступен")
+                if (!running) start()
 
                 val endpointId = beginTransfer(client, deviceId)
                     ?: error("Устройство не найдено поблизости")
