@@ -331,6 +331,12 @@ fun SettingsScreen(viewModel: AppViewModel) {
                                         )
                                     }
                                 }
+                                Spacer(Modifier.height(8.dp))
+                                Text(
+                                    strings.appDescription,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
                             }
 
                             Spacer(Modifier.height(8.dp))

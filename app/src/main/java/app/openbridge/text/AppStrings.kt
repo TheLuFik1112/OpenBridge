@@ -101,6 +101,7 @@ interface AppStrings {
     val aboutCard: String
     val versionLabel: String
     val licenseLabel: String
+    val appDescription: String
 
     val themesLabel: String
     val themesTitle: String
@@ -234,6 +235,9 @@ object RuStrings : AppStrings {
     override val btnRevoke = "Отозвать"
     override val aboutCard = "О приложении"
     override val versionLabel = "Версия"
+    override val appDescription =
+        "Передаёт файлы, фото, папки и текст между телефонами по локальной сети или через Google Nearby. " +
+            "Без интернета, облака и аккаунтов. Темы и плагины ставятся из настроек."
     override val licenseLabel = "Лицензия"
 
     override val themesLabel = "Темы оформления"
@@ -368,6 +372,9 @@ object EnStrings : AppStrings {
     override val btnRevoke = "Revoke"
     override val aboutCard = "About"
     override val versionLabel = "Version"
+    override val appDescription =
+        "Moves files, photos, folders and text between phones over the local network or Google Nearby. " +
+            "No internet, cloud or accounts. Themes and plugins are installed from Settings."
     override val licenseLabel = "License"
 
     override val themesLabel = "Themes"

@@ -1,6 +1,7 @@
 package app.openbridge.core
 
 import androidx.compose.runtime.Immutable
+import app.openbridge.BuildConfig
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -8,7 +9,9 @@ const val TLS_PORT = 53530
 const val WEB_PORT = 53531
 const val TLS_LOCAL_PORT = 53533
 const val CHUNK_SIZE = 16 * 1024 * 1024
-const val APP_VERSION = "0.6.0"
+
+/** Taken from `versionName` in build.gradle.kts, so the app never shows an old number. */
+val APP_VERSION: String = BuildConfig.VERSION_NAME
 
 @Serializable
 @Immutable
