@@ -44,6 +44,7 @@ interface AppStrings {
     val nfcSending: String
     val nfcSendFailed: String
     val nfcNoNearbyPeer: String
+    val nfcNoNearbyPeerRetry: String
     val nfcNearbyUnavailable: String
     val nfcNothingToReceive: String
     val nfcEmptyPackage: String
@@ -177,6 +178,7 @@ object RuStrings : AppStrings {
     override val nfcSending = "Передаём пакет…"
     override val nfcSendFailed = "Не удалось передать пакет. Поднесите телефон ещё раз"
     override val nfcNoNearbyPeer = "Отправитель не найден поблизости. Включите Bluetooth на обоих телефонах"
+    override val nfcNoNearbyPeerRetry = "Отправитель не найден поблизости. Поднесите телефоны ещё раз"
     override val nfcNearbyUnavailable = "Передача поблизости недоступна: нет Google Play Services"
     override val nfcNothingToReceive = "В метке нет пакета — обновите OpenBridge на обоих телефонах"
     override val nfcEmptyPackage = "В пакете отправителя пока ничего нет"
@@ -310,6 +312,7 @@ object EnStrings : AppStrings {
     override val nfcSending = "Sending the package…"
     override val nfcSendFailed = "Could not send the package. Touch the phones together again"
     override val nfcNoNearbyPeer = "Sender not found nearby. Make sure Bluetooth is on for both phones"
+    override val nfcNoNearbyPeerRetry = "Sender not found nearby. Touch the phones together again"
     override val nfcNearbyUnavailable = "Nearby transfer is unavailable: Google Play Services is missing"
     override val nfcNothingToReceive = "The tag has no package — update OpenBridge on both phones"
     override val nfcEmptyPackage = "The sender's package is still empty"

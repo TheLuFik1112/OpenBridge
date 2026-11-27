@@ -202,7 +202,11 @@ class NfcSession(
                 _state.value = NfcState(NfcPhase.ERROR)
                 messages.value = when (t.message) {
                     "empty" -> strings.value.nfcEmptyPackage
-                    "no-peer" -> strings.value.nfcNoNearbyPeer
+                    "no-peer" -> if (NfcHelper.isBluetoothReady(context)) {
+                        strings.value.nfcNoNearbyPeerRetry
+                    } else {
+                        strings.value.nfcNoNearbyPeer
+                    }
                     "blocked" -> strings.value.nfcNearbyUnavailable
                     else -> strings.value.nfcReceiveFailed
                 }

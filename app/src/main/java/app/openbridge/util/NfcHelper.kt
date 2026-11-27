@@ -1,5 +1,7 @@
 package app.openbridge.util
 
+import android.Manifest
+import android.bluetooth.BluetoothManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -12,16 +14,28 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.util.Base64
 import app.openbridge.core.Diag
 import app.openbridge.core.IdentityStore
 import app.openbridge.data.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import org.json.JSONObject
 
 object NfcHelper {
+    /** Legacy scheme, still parsed so older tags keep working. */
     private const val SCHEME = "openbridge"
     private const val HOST = "nfc"
+
+    /**
+     * The tag is a plain HTTPS link. Phones without OpenBridge open the
+     * GitHub page in a browser instead of saying "no app for this tag";
+     * phones with OpenBridge match the NDEF_DISCOVERED filter and start the
+     * transfer from the `#ob=` fragment.
+     */
+    private const val PAGE_URL = "https://github.com/TheLuFik1112/OpenBridge"
+    private const val FRAGMENT_PREFIX = "ob="
 
     data class Sender(val deviceId: String, val name: String)
 
@@ -57,6 +71,11 @@ object NfcHelper {
 
     fun recentlyServed(windowMs: Long = 120_000L): Boolean =
         lastServedAt > 0L && System.currentTimeMillis() - lastServedAt <= windowMs
+
+    /** Ends the NFC hand-off window so the next tap starts a fresh session. */
+    fun clearHandoff() {
+        lastServedAt = 0L
+    }
 
     fun updateSender(id: String? = null, name: String? = null) {
         if (!id.isNullOrBlank() && id != senderId) {
@@ -113,6 +132,27 @@ object NfcHelper {
         return runCatching { adapter.isEnabled }.getOrDefault(false)
     }
 
+    /**
+     * True only when Bluetooth is actually usable: the adapter is on and, on
+     * Android 12+, the app holds the Bluetooth runtime permissions. Nearby
+     * runs inside Play Services, but a disabled radio still breaks it.
+     */
+    fun isBluetoothReady(context: Context): Boolean {
+        val manager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
+        val adapter = manager?.adapter ?: return false
+        val enabled = runCatching { adapter.isEnabled }.getOrDefault(false)
+        if (!enabled) return false
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val granted = runCatching {
+                context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) ==
+                    PackageManager.PERMISSION_GRANTED
+            }.getOrDefault(false)
+            if (!granted) return false
+        }
+        return true
+    }
+
     fun buildNdefFile(): ByteArray {
         val uri = senderUri()
         val key = uri ?: "empty"
@@ -125,9 +165,20 @@ object NfcHelper {
             return empty
         }
 
-        val records = ArrayList<NdefRecord>(2)
-        records.add(NdefRecord.createUri(Uri.parse(uri)))
-        val bytes = NdefMessage(records.toTypedArray()).toByteArray()
+        // One standard well-known URI record, no AAR: Android hands the link to
+        // OpenBridge when it is installed, and to a browser when it is not.
+        val message = NdefMessage(arrayOf(NdefRecord.createUri(uri)))
+        val bytes = message.toByteArray()
+
+        if (bytes.size > MAX_NDEF_BYTES) {
+            Diag.log("nfc", "[ERR] NDEF слишком велик: ${bytes.size} > $MAX_NDEF_BYTES")
+            val empty = byteArrayOf(0x00, 0x00)
+            cachedFileKey = key
+            cachedFile = empty
+            return empty
+        }
+
+        // Type 4 Tag NDEF file: 2-byte big-endian NLEN, then the NDEF message.
         val file = ByteArray(2 + bytes.size)
         file[0] = ((bytes.size ushr 8) and 0xFF).toByte()
         file[1] = (bytes.size and 0xFF).toByte()
@@ -142,13 +193,17 @@ object NfcHelper {
         if (!tagActive) return null
         val name = senderName.ifBlank { "Android" }
         if (senderId.isBlank() && name.isBlank()) return null
-        val builder = Uri.Builder()
-            .scheme(SCHEME)
-            .authority(HOST)
-            .appendQueryParameter("v", "1")
-            .appendQueryParameter("n", name.take(40))
-        if (senderId.isNotBlank()) builder.appendQueryParameter("i", senderId)
-        return builder.build().toString()
+
+        val payload = JSONObject().apply {
+            put("v", 1)
+            put("n", name.take(40))
+            if (senderId.isNotBlank()) put("i", senderId)
+        }
+        val encoded = Base64.encodeToString(
+            payload.toString().toByteArray(Charsets.UTF_8),
+            Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING,
+        )
+        return "$PAGE_URL#$FRAGMENT_PREFIX$encoded"
     }
 
     private fun invalidate() {
@@ -158,9 +213,52 @@ object NfcHelper {
 
     fun parseSender(raw: String): Sender? {
         val uri = runCatching { Uri.parse(raw) }.getOrNull() ?: return null
+
+        // New form: https://github.com/TheLuFik1112/OpenBridge#ob=<base64url>
+        val fragment = uri.fragment.orEmpty()
+        if (fragment.startsWith(FRAGMENT_PREFIX)) {
+            parseFragment(fragment.removePrefix(FRAGMENT_PREFIX))?.let { return it }
+        }
+
+        // Legacy custom scheme: openbridge://nfc?v=1&n=…&i=…
         if (!uri.scheme.equals(SCHEME, ignoreCase = true)) return null
         val id = uri.getQueryParameter("i").orEmpty().trim()
         val name = uri.getQueryParameter("n").orEmpty().trim()
+        if (id.isBlank() && name.isBlank()) return null
+        return Sender(deviceId = id, name = name)
+    }
+
+    private fun parseFragment(encoded: String): Sender? {
+        if (encoded.isBlank()) return null
+
+        val json = runCatching {
+            val bytes = Base64.decode(
+                encoded,
+                Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING,
+            )
+            JSONObject(String(bytes, Charsets.UTF_8))
+        }.getOrNull()
+
+        if (json != null) {
+            val id = json.optString("i").trim()
+            val name = json.optString("n").trim()
+            if (id.isBlank() && name.isBlank()) return null
+            return Sender(deviceId = id, name = name)
+        }
+
+        // Older experimental form: v1|<deviceId>|<name>
+        val plain = runCatching {
+            val bytes = Base64.decode(
+                encoded,
+                Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING,
+            )
+            String(bytes, Charsets.UTF_8)
+        }.getOrNull() ?: return null
+
+        val parts = plain.split('|')
+        if (parts.size < 2) return null
+        val id = parts.getOrElse(1) { "" }.trim()
+        val name = parts.getOrElse(2) { "" }.trim()
         if (id.isBlank() && name.isBlank()) return null
         return Sender(deviceId = id, name = name)
     }
@@ -210,4 +308,7 @@ object NfcHelper {
 
         return intent.data?.toString()?.takeIf { it.isNotBlank() }
     }
+
+    /** Max NDEF message size advertised in the CC file (0x0FFE - NLEN). */
+    private const val MAX_NDEF_BYTES = 0x0FFE - 2
 }

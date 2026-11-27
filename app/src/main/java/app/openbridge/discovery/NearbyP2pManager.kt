@@ -5,6 +5,8 @@ import android.net.Uri
 import androidx.compose.runtime.Immutable
 import app.openbridge.core.Diag
 import app.openbridge.net.Downloads
+import app.openbridge.util.NfcHelper
+import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.nearby.Nearby
 import com.google.android.gms.nearby.connection.AdvertisingOptions
 import com.google.android.gms.nearby.connection.ConnectionInfo
@@ -97,8 +99,11 @@ class NearbyP2pManager(
         const val TOTAL_PREFIX = "FD/TOTAL:"
         const val ERROR_PREFIX = "FD/ERR:"
         const val MAX_ENDPOINT_NAME = 120
+        const val STATUS_OK = 0
+        const val STATUS_ERROR = 13
         const val CONNECT_TIMEOUT_MS = 20_000L
         const val DISCOVERY_TIMEOUT_MS = 22_000L
+        const val QUICK_DISCOVERY_MS = 6_000L
         const val PAYLOAD_TIMEOUT_MS = 180_000L
         const val PULL_TIMEOUT_MS = 300_000L
         const val MAX_BYTES_PAYLOAD = 90_000
@@ -165,6 +170,18 @@ class NearbyP2pManager(
     @Volatile
     private var running = false
 
+    /** True while this phone is sending or pulling, so two runs never overlap. */
+    @Volatile
+    private var isTransferring = false
+
+    /** Endpoint that currently owns the transfer, if any. */
+    @Volatile
+    private var activeEndpointId: String? = null
+
+    /** Bumped on every radio restart so a burst of errors resets only once. */
+    @Volatile
+    private var radioGeneration = 0
+
     private var refreshJob: Job? = null
 
     fun isAvailable(): Boolean = client != null
@@ -184,35 +201,7 @@ class NearbyP2pManager(
         }
         if (running) return
         running = true
-
-        val advertising = AdvertisingOptions.Builder()
-            .setStrategy(strategy)
-            .build()
-        val discovery = DiscoveryOptions.Builder()
-            .setStrategy(strategy)
-            .build()
-
-        client.startAdvertising(localName(), SERVICE_ID, lifecycleCallback, advertising)
-            .addOnSuccessListener { Diag.log("nearby", "startAdvertising ok") }
-            .addOnFailureListener { error ->
-                Diag.log("nearby", "startAdvertising failed: $error")
-
-                if (error.message?.contains("8001") == true || error.message?.contains("ALREADY") == true) {
-                    client.stopAdvertising()
-                    client.startAdvertising(localName(), SERVICE_ID, lifecycleCallback, advertising)
-                }
-            }
-
-        client.startDiscovery(SERVICE_ID, endpointCallback, discovery)
-            .addOnSuccessListener { Diag.log("nearby", "startDiscovery ok") }
-            .addOnFailureListener { error ->
-                Diag.log("nearby", "startDiscovery failed: $error")
-
-                if (error.message?.contains("8002") == true || error.message?.contains("ALREADY") == true) {
-                    client.stopDiscovery()
-                    client.startDiscovery(SERVICE_ID, endpointCallback, discovery)
-                }
-            }
+        startRadio(client, retry = true)
 
         refreshJob = scope.launch(Dispatchers.IO) {
             while (isActive && running) {
@@ -231,6 +220,90 @@ class NearbyP2pManager(
                 }
             }
         }
+    }
+
+    /**
+     * Starts advertising and discovery. Any Nearby error is logged with its
+     * exact status code, then the radio is reset once and the start is
+     * repeated — a stale session is the usual cause, not Bluetooth.
+     */
+    private fun startRadio(client: ConnectionsClient, retry: Boolean) {
+        val generation = ++radioGeneration
+        val advertising = AdvertisingOptions.Builder()
+            .setStrategy(strategy)
+            .build()
+        val discovery = DiscoveryOptions.Builder()
+            .setStrategy(strategy)
+            .build()
+
+        client.startAdvertising(localName(), SERVICE_ID, lifecycleCallback, advertising)
+            .addOnSuccessListener { Diag.log("nearby", "startAdvertising ok") }
+            .addOnFailureListener { error ->
+                Diag.log("nearby", "startAdvertising failed: ${describe(error)}")
+                if (retry && generation == radioGeneration) {
+                    resetRadio("advertising: ${describe(error)}")
+                    if (running) startRadio(client, retry = false)
+                }
+            }
+
+        client.startDiscovery(SERVICE_ID, endpointCallback, discovery)
+            .addOnSuccessListener { Diag.log("nearby", "startDiscovery ok") }
+            .addOnFailureListener { error ->
+                Diag.log("nearby", "startDiscovery failed: ${describe(error)}")
+                if (retry && generation == radioGeneration) {
+                    resetRadio("discovery: ${describe(error)}")
+                    if (running) startRadio(client, retry = false)
+                }
+            }
+    }
+
+    private fun statusCode(error: Throwable): Int? = (error as? ApiException)?.statusCode
+
+    private fun describe(error: Throwable): String {
+        val api = error as? ApiException ?: return error.message ?: error.javaClass.simpleName
+        return "${statusName(api.statusCode)} (${api.statusCode}): ${api.message.orEmpty()}"
+    }
+
+    private fun statusName(code: Int): String = when (code) {
+        STATUS_OK -> "STATUS_OK"
+        STATUS_ERROR -> "STATUS_ERROR"
+        8000 -> "STATUS_NETWORK_NOT_CONNECTED"
+        8001 -> "STATUS_ALREADY_ADVERTISING"
+        8002 -> "STATUS_ALREADY_DISCOVERING"
+        8003 -> "STATUS_ALREADY_CONNECTED_TO_ENDPOINT"
+        8004 -> "STATUS_CONNECTION_REJECTED"
+        8005 -> "STATUS_NOT_CONNECTED_TO_ENDPOINT"
+        8007 -> "STATUS_BLUETOOTH_ERROR"
+        8008 -> "STATUS_ALREADY_HAVE_ACTIVE_STRATEGY"
+        8009 -> "STATUS_OUT_OF_ORDER_API_CALL"
+        8011 -> "STATUS_ENDPOINT_UNKNOWN"
+        8012 -> "STATUS_ENDPOINT_IO_ERROR"
+        8013 -> "STATUS_PAYLOAD_IO_ERROR"
+        else -> "STATUS_$code"
+    }
+
+    /**
+     * Drops every Nearby session and endpoint mapping so the next transfer
+     * starts from a clean radio. Used after errors and before a new transfer.
+     */
+    private fun resetRadio(reason: String) {
+        Diag.log("nearby", "сброс Nearby: $reason")
+        runCatching { client?.stopAllEndpoints() }
+        runCatching { client?.stopDiscovery() }
+        runCatching { client?.stopAdvertising() }
+        endpoints.clear()
+        devices.clear()
+        names.clear()
+        connections.clear()
+        outgoing.clear()
+        pendingFileNames.clear()
+        pendingFiles.clear()
+        pullCounters.clear()
+        pullTotals.clear()
+        _connected.value = emptySet()
+        _progress.value = null
+        _incoming.value = null
+        activeEndpointId = null
     }
 
     fun stop() {
@@ -254,6 +327,9 @@ class NearbyP2pManager(
         _connected.value = emptySet()
         _incoming.value = null
         _progress.value = null
+        isTransferring = false
+        activeEndpointId = null
+        NfcHelper.clearHandoff()
         Diag.log("nearby", "остановлен")
     }
 
@@ -337,7 +413,14 @@ class NearbyP2pManager(
                 _connected.value = connections.values.toSet()
                 Diag.log("nearby", "соединение установлено: ${names[endpointId]} ($deviceId)")
             } else {
-                Diag.log("nearby", "соединение не удалось: ${result.status.statusMessage}")
+                val code = result.status.statusCode
+                Diag.log(
+                    "nearby",
+                    "соединение не удалось: ${statusName(code)} ($code) ${result.status.statusMessage}",
+                )
+                if (code == 8007 || code == 8012) {
+                    resetRadio("connection: ${statusName(code)}")
+                }
             }
             connectionWaiters.remove(endpointId)?.complete(ok)
         }
@@ -345,6 +428,15 @@ class NearbyP2pManager(
         override fun onDisconnected(endpointId: String) {
             val deviceId = connections.remove(endpointId) ?: devices[endpointId]
             _connected.value = connections.values.toSet()
+
+            if (activeEndpointId == endpointId) {
+                activeEndpointId = null
+                isTransferring = false
+                _progress.value = null
+            }
+            pendingFileNames.remove(endpointId)
+            pendingFiles.entries.removeIf { (_, pending) -> pending.endpointId == endpointId }
+
             Diag.log("nearby", "отключились: $deviceId")
 
             scope.launch {
@@ -366,14 +458,24 @@ class NearbyP2pManager(
     fun accept(endpointId: String) {
         val request = _incoming.value?.takeIf { it.endpointId == endpointId } ?: return
         _incoming.value = null
+        activeEndpointId = endpointId
         acceptInternal(endpointId, request.deviceId)
     }
 
     fun decline(endpointId: String) {
-        val request = _incoming.value?.takeIf { it.endpointId == endpointId } ?: return
+        val request = _incoming.value?.takeIf { it.endpointId == endpointId }
         _incoming.value = null
         runCatching { client?.rejectConnection(endpointId) }
-        Diag.log("nearby", "запрос отклонён: ${request.name}")
+        runCatching { client?.disconnectFromEndpoint(endpointId) }
+        connections.remove(endpointId)
+        _connected.value = connections.values.toSet()
+        if (activeEndpointId == endpointId) {
+            activeEndpointId = null
+            isTransferring = false
+            _progress.value = null
+        }
+        NfcHelper.clearHandoff()
+        Diag.log("nearby", "запрос отклонён: ${request?.name ?: endpointId}")
     }
 
     suspend fun send(
@@ -381,32 +483,81 @@ class NearbyP2pManager(
         items: List<NearbyItem>,
         onProgress: (Float, String) -> Unit,
     ): Result<Unit> = withContext(Dispatchers.IO) {
-        runCatching {
-            require(items.isNotEmpty()) { "Нечего отправлять" }
-            val client = client ?: error("Google Play Services недоступен")
-
-            val endpointId = endpoints[deviceId]
-                ?: connections.entries.firstOrNull { it.value == deviceId }?.key
-                ?: error("Устройство не найдено поблизости")
-
-            if (!connections.containsKey(endpointId)) {
-                val peerName = names[endpointId] ?: "устройство"
-                onProgress(0f, "Соединяемся с $peerName…")
-                if (!connect(client, endpointId)) error("Не удалось соединиться")
-            }
-
-            if (!sendToEndpoint(client, endpointId, items, onProgress)) {
-                error("Передача прервалась")
-            }
-
-            if (!isTrusted(deviceId)) {
-                delay(500)
-                disconnect(client, endpointId)
-            }
-        }.onFailure { error ->
-            Diag.log("nearby", "send failed: $error")
-            _progress.value = null
+        if (isTransferring) {
+            return@withContext Result.failure(IllegalStateException("Уже идёт другая передача"))
         }
+        isTransferring = true
+        var endpoint: String? = null
+        try {
+            runCatching {
+                require(items.isNotEmpty()) { "Нечего отправлять" }
+                val client = client ?: error("Google Play Services недоступен")
+
+                val endpointId = beginTransfer(client, deviceId)
+                    ?: error("Устройство не найдено поблизости")
+                endpoint = endpointId
+                activeEndpointId = endpointId
+
+                if (!connections.containsKey(endpointId)) {
+                    val peerName = names[endpointId] ?: "устройство"
+                    onProgress(0f, "Соединяемся с $peerName…")
+                    if (!connect(client, deviceId, endpointId)) error("Не удалось соединиться")
+                }
+
+                if (!sendToEndpoint(client, endpointId, items, onProgress)) {
+                    error("Передача прервалась")
+                }
+            }.onFailure { error ->
+                Diag.log("nearby", "send failed: $error")
+                _progress.value = null
+            }
+        } finally {
+            endpoint?.let { ep -> client?.let { disconnect(it, ep) } }
+            isTransferring = false
+            activeEndpointId = null
+            NfcHelper.clearHandoff()
+        }
+    }
+
+    /**
+     * Puts the radio into a clean state before a new transfer.
+     *
+     * A previous session can leave discovered endpoints behind, which makes a
+     * reverse transfer (B -> A) collide with it. Discovery is restarted and
+     * only endpoints with a live connection are kept.
+     */
+    private suspend fun beginTransfer(
+        client: ConnectionsClient,
+        deviceId: String,
+        name: String = "",
+        waitMs: Long = DISCOVERY_TIMEOUT_MS,
+    ): String? {
+        connections.entries.firstOrNull { it.value == deviceId }?.key?.let { return it }
+
+        val preferred = endpoints[deviceId]
+        val preferredName = preferred?.let { names[it] }
+        runCatching { client.stopDiscovery() }
+        endpoints.entries.removeIf { (_, ep) -> !connections.containsKey(ep) }
+        devices.entries.removeIf { (ep, _) -> !connections.containsKey(ep) }
+        names.entries.removeIf { (ep, _) -> !connections.containsKey(ep) }
+        if (preferred != null && preferredName != null) names[preferred] = preferredName
+        outgoing.clear()
+
+        if (running) {
+            client.startDiscovery(
+                SERVICE_ID,
+                endpointCallback,
+                DiscoveryOptions.Builder().setStrategy(strategy).build(),
+            ).addOnFailureListener { error ->
+                Diag.log("nearby", "startDiscovery failed: ${describe(error)}")
+                resetRadio("discovery: ${describe(error)}")
+            }
+        }
+
+        if (preferred == null) return awaitEndpoint(deviceId, name, waitMs)
+
+        // The old id may be gone after the reset: prefer a fresh discovery hit.
+        return awaitEndpoint(deviceId, name, minOf(waitMs, QUICK_DISCOVERY_MS)) ?: preferred
     }
 
     private suspend fun sendToEndpoint(
@@ -463,20 +614,43 @@ class NearbyP2pManager(
         client.sendPayload(endpointId, payload)
             .addOnFailureListener { error ->
                 payloadWaiters.remove(payload.id)?.complete(false)
-                Diag.log("nearby", "sendPayload failed: $error")
+                Diag.log("nearby", "sendPayload failed: ${describe(error)}")
+                val code = statusCode(error)
+                if (code == 8007 || code == 8012 || code == 8013) {
+                    resetRadio("payload: ${describe(error)}")
+                }
             }
         val delivered = withTimeoutOrNull(PAYLOAD_TIMEOUT_MS) { waiter.await() } ?: false
         payloadWaiters.remove(payload.id)
         return delivered
     }
 
-    private suspend fun connect(client: ConnectionsClient, endpointId: String): Boolean {
+    private suspend fun connect(
+        client: ConnectionsClient,
+        deviceId: String,
+        endpointId: String,
+    ): Boolean {
+        if (requestConnection(client, endpointId)) return true
+
+        // One clean reset and one retry: a stale session is far more likely
+        // than an actually broken radio.
+        Diag.log("nearby", "переподключение после сброса: ${names[endpointId] ?: deviceId}")
+        resetRadio("connect: ${names[endpointId] ?: deviceId}")
+        if (running) startRadio(client, retry = false)
+        val fresh = awaitEndpoint(deviceId, "", QUICK_DISCOVERY_MS) ?: endpointId
+        return requestConnection(client, fresh)
+    }
+
+    private suspend fun requestConnection(
+        client: ConnectionsClient,
+        endpointId: String,
+    ): Boolean {
         val waiter = CompletableDeferred<Boolean>()
         connectionWaiters[endpointId] = waiter
         outgoing.add(endpointId)
         client.requestConnection(localName(), endpointId, lifecycleCallback)
             .addOnFailureListener { error ->
-                Diag.log("nearby", "requestConnection failed: $error")
+                Diag.log("nearby", "requestConnection failed: ${describe(error)}")
                 outgoing.remove(endpointId)
                 connectionWaiters.remove(endpointId)?.complete(false)
             }
@@ -490,48 +664,65 @@ class NearbyP2pManager(
         name: String,
         onAccepted: () -> Unit = {},
     ): Result<PullSummary> = withContext(Dispatchers.IO) {
-        runCatching {
-            val client = client ?: error("blocked")
-            if (!running) start()
+        if (isTransferring) {
+            return@withContext Result.failure(IllegalStateException("Уже идёт другая передача"))
+        }
+        isTransferring = true
+        var endpoint: String? = null
+        try {
+            runCatching {
+                val client = client ?: error("blocked")
+                if (!running) start()
 
-            Diag.log("nearby", "NFC: ищем отправителя $name ($deviceId)")
-            val endpointId = awaitEndpoint(deviceId, name) ?: error("no-peer")
+                Diag.log("nearby", "NFC: ищем отправителя $name ($deviceId)")
+                val endpointId = beginTransfer(client, deviceId, name) ?: error("no-peer")
+                endpoint = endpointId
+                activeEndpointId = endpointId
 
-            if (!connections.containsKey(endpointId)) {
-                if (!connect(client, endpointId)) error("no-peer")
-            }
-            onAccepted()
-            val peerName = names[endpointId] ?: name.ifBlank { "устройство" }
-            Diag.log("nearby", "NFC: соединение с $peerName, просим пакет")
-
-            val waiter = CompletableDeferred<String>()
-            controlWaiters[endpointId] = waiter
-            val counter = IntArray(2)
-            pullCounters[endpointId] = counter
-            try {
-                if (!deliver(client, endpointId, Payload.fromBytes(PULL_PREFIX.toByteArray()))) {
-                    error("no-answer")
+                if (!connections.containsKey(endpointId)) {
+                    if (!connect(client, deviceId, endpointId)) error("no-peer")
                 }
-                val answer = withTimeoutOrNull(PULL_TIMEOUT_MS) { waiter.await() }
-                    ?: error("no-answer")
-                when (answer) {
-                    "done" -> PullSummary(texts = counter[0], files = counter[1])
-                    "empty" -> error("empty")
-                    else -> error("failed")
+                onAccepted()
+                val peerName = names[endpointId] ?: name.ifBlank { "устройство" }
+                Diag.log("nearby", "NFC: соединение с $peerName, просим пакет")
+
+                val waiter = CompletableDeferred<String>()
+                controlWaiters[endpointId] = waiter
+                val counter = IntArray(2)
+                pullCounters[endpointId] = counter
+                try {
+                    if (!deliver(client, endpointId, Payload.fromBytes(PULL_PREFIX.toByteArray()))) {
+                        error("no-answer")
+                    }
+                    val answer = withTimeoutOrNull(PULL_TIMEOUT_MS) { waiter.await() }
+                        ?: error("no-answer")
+                    when (answer) {
+                        "done" -> PullSummary(texts = counter[0], files = counter[1])
+                        "empty" -> error("empty")
+                        else -> error("failed")
+                    }
+                } finally {
+                    controlWaiters.remove(endpointId)
+                    pullCounters.remove(endpointId)
+                    pullTotals.remove(endpointId)
                 }
-            } finally {
-                controlWaiters.remove(endpointId)
-                pullCounters.remove(endpointId)
-                pullTotals.remove(endpointId)
-                if (!isTrusted(deviceId)) disconnect(client, endpointId)
-            }
-        }.onFailure { Diag.log("nearby", "pull failed: $it") }
+            }.onFailure { Diag.log("nearby", "pull failed: $it") }
+        } finally {
+            endpoint?.let { ep -> client?.let { disconnect(it, ep) } }
+            isTransferring = false
+            activeEndpointId = null
+            NfcHelper.clearHandoff()
+        }
     }
 
-    private suspend fun awaitEndpoint(deviceId: String, name: String): String? {
+    private suspend fun awaitEndpoint(
+        deviceId: String,
+        name: String,
+        timeoutMs: Long = DISCOVERY_TIMEOUT_MS,
+    ): String? {
         val startedAt = System.currentTimeMillis()
         var nudged = false
-        while (System.currentTimeMillis() - startedAt < DISCOVERY_TIMEOUT_MS) {
+        while (System.currentTimeMillis() - startedAt < timeoutMs) {
             connections.entries.firstOrNull { it.value.isNotBlank() && it.value == deviceId }
                 ?.key?.let { return it }
             if (deviceId.isNotBlank()) endpoints[deviceId]?.let { return it }
@@ -632,6 +823,23 @@ class NearbyP2pManager(
         val counter = pullCounters[endpointId] ?: return
         val done = (counter[0] + counter[1]).coerceAtMost(total)
         _progress.value = NearbyProgress(peerName, done.toFloat() / total, "")
+    }
+
+    /**
+     * Drops a payload that never completed: the GMS temp file is discarded and
+     * any partial copy of ours is deleted, so a truncated file is never kept.
+     */
+    private fun discardPending(payloadId: Long, endpointId: String) {
+        val pending = pendingFiles.remove(payloadId)
+        val name = pendingFileNames.remove(endpointId)
+        if (name != null) {
+            val safeName = name.substringAfterLast('/').ifBlank { "file" }
+            val leftover = File(File(context.cacheDir, "nearby-in"), safeName)
+            runCatching { leftover.delete() }
+            Diag.log("nearby", "[ERR] файл $safeName не принят — частичный файл удалён")
+        } else if (pending != null) {
+            Diag.log("nearby", "[ERR] пейлоад $payloadId от ${pending.peerName} не принят")
+        }
     }
 
     /**
@@ -797,9 +1005,9 @@ class NearbyP2pManager(
 
                 PayloadTransferUpdate.Status.FAILURE -> {
                     waiter?.complete(false)
-                    pendingFiles.remove(update.payloadId)
-                    pendingFileNames.remove(endpointId)
+                    discardPending(update.payloadId, endpointId)
                     controlWaiters.remove(endpointId)?.complete("failed")
+                    if (activeEndpointId == endpointId) _progress.value = null
                     _events.value = NearbyEvent.Failed(
                         names[endpointId] ?: "устройство",
                         "получатель не принял данные",
@@ -808,9 +1016,10 @@ class NearbyP2pManager(
 
                 PayloadTransferUpdate.Status.CANCELED -> {
                     waiter?.complete(false)
-                    val dropped = pendingFiles.remove(update.payloadId)
-                    pendingFileNames.remove(endpointId)
+                    val dropped = pendingFiles[update.payloadId]
+                    discardPending(update.payloadId, endpointId)
                     controlWaiters.remove(endpointId)?.complete("failed")
+                    if (activeEndpointId == endpointId) _progress.value = null
                     Diag.log("nearby", "[ERR] передача отменена (${dropped?.peerName ?: endpointId})")
                     _events.value = NearbyEvent.Failed(
                         names[endpointId] ?: dropped?.peerName ?: "устройство",

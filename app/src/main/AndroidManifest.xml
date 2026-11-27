@@ -62,11 +62,19 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- NFC: метка OpenBridge несёт адрес openbridge://nfc?… с именем отправителя.
-                 Такой адрес понимает только OpenBridge, поэтому выбора «браузер или
-                 приложение» не возникает и локальный портал по NFC не открывается.
-                 Страница скачивания лежит в метке вторым адресом и достаётся
-                 телефонам без приложения. -->
+            <!-- NFC: метка несёт обычный HTTPS-адрес
+                 https://github.com/TheLuFik1112/OpenBridge#ob=<payload>.
+                 Телефон без OpenBridge откроет страницу в браузере, телефон с
+                 OpenBridge перехватит её здесь и начнёт передачу по Nearby. -->
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data
+                    android:scheme="https"
+                    android:host="github.com"
+                    android:pathPrefix="/TheLuFik1112/OpenBridge" />
+            </intent-filter>
+            <!-- Старые метки с openbridge://nfc?… продолжают работать. -->
             <intent-filter>
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
