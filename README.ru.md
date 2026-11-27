@@ -11,9 +11,9 @@
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Лицензия](https://img.shields.io/badge/лицензия-MIT-121212?style=flat-square)](LICENSE)
 
-[English](README.md) · **Русский**
-
 [Скачать последний APK](https://github.com/TheLuFik1112/OpenBridge/releases/latest)
+
+[English](README.md) · **Русский**
 
 </div>
 

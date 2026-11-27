@@ -11,9 +11,9 @@ Direct device-to-device sharing. No internet, no cloud, no accounts.
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.1-7F52FF?style=flat-square&logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/license-MIT-121212?style=flat-square)](LICENSE)
 
-**English** · [Русский](README.ru.md)
-
 [Download latest APK](https://github.com/TheLuFik1112/OpenBridge/releases/latest)
+
+**English** · [Русский](README.ru.md)
 
 </div>
 

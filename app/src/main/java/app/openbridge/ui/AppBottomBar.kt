@@ -35,7 +35,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.openbridge.text.AppStrings
-import app.openbridge.theme.LocalThemeConfig
 import app.openbridge.theme.NAV_DETACHED_ROUND
 import app.openbridge.theme.NAV_FLOATING
 import app.openbridge.theme.NAV_MINIMAL
