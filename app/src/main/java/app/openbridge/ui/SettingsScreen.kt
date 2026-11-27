@@ -3,6 +3,14 @@ package app.openbridge.ui
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -77,7 +85,6 @@ fun SettingsScreen(viewModel: AppViewModel) {
     val autoAccept by viewModel.autoAccept.collectAsState()
     val developerMode by viewModel.developerMode.collectAsState()
     val autoSendReports by viewModel.autoSendReports.collectAsState()
-    val activeTheme by viewModel.activeTheme.collectAsState()
 
     var renameOpen by rememberSaveable { mutableStateOf(false) }
     var langOpen by rememberSaveable { mutableStateOf(false) }
@@ -91,271 +98,290 @@ fun SettingsScreen(viewModel: AppViewModel) {
     var taps by rememberSaveable { mutableStateOf(0) }
     var lastTapAt by remember { mutableLongStateOf(0L) }
 
-    if (pluginsOpen) {
-        PluginsScreen(viewModel = viewModel, onBack = { pluginsOpen = false })
-        return
-    }
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item(key = "general") {
-            SettingsCard(strings.generalCard) {
-                ValueRow(
-                    title = strings.themeLabel,
-                    value = when (themeMode) {
-                        THEME_LIGHT -> strings.themeLight
-                        THEME_SYSTEM -> strings.themeSystem
-                        else -> strings.themeDark
-                    },
-                    action = strings.btnChange,
-                    onClick = { themeOpen = true },
-                )
-                RowDivider()
-                ValueRow(
-                    title = strings.languageLabel,
-                    value = when (appLanguage) {
-                        "en" -> strings.langEn
-                        "ru" -> strings.langRu
-                        else -> strings.langSystem
-                    },
-                    action = strings.btnChange,
-                    onClick = { langOpen = true },
-                )
-                RowDivider()
-                ValueRow(
-                    title = strings.pluginsLabel,
-                    value = activeTheme.name,
-                    action = strings.btnOpen,
-                    onClick = { pluginsOpen = true },
-                )
+    AnimatedContent(
+        targetState = pluginsOpen,
+        transitionSpec = {
+            val duration = 240
+            val easing = FastOutSlowInEasing
+            if (targetState) {
+                (slideInHorizontally(tween(duration, easing = easing)) { it / 4 } +
+                    fadeIn(tween(duration, easing = easing))) togetherWith
+                    (slideOutHorizontally(tween(duration, easing = easing)) { -it / 6 } +
+                        fadeOut(tween(duration, easing = easing)))
+            } else {
+                (slideInHorizontally(tween(duration, easing = easing)) { -it / 6 } +
+                    fadeIn(tween(duration, easing = easing))) togetherWith
+                    (slideOutHorizontally(tween(duration, easing = easing)) { it / 4 } +
+                        fadeOut(tween(duration, easing = easing)))
             }
-        }
-
-        item(key = "receive") {
-            SettingsCard(strings.receiveCard) {
-                SwitchRow(
-                    title = strings.autoAcceptTitle,
-                    subtitle = strings.autoAcceptSubtitle,
-                    checked = autoAccept,
-                    onCheckedChange = viewModel::setAutoAccept,
-                )
-                RowDivider()
-                GroupLabel(strings.trustedCard)
-                if (trusted.none { !it.revoked }) {
-                    Text(
-                        strings.trustedEmpty,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    trusted.filterNot { it.revoked }.forEach { peer ->
-                        Row(
-                            Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Rounded.Shield,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp),
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(peer.name, style = MaterialTheme.typography.bodyMedium)
-                                Text(
-                                    peer.fingerprint.take(16),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
-                            IconButton(onClick = { viewModel.revoke(peer.id) }) {
-                                Icon(Icons.Rounded.Delete, contentDescription = strings.btnRevoke)
-                            }
-                        }
+        },
+        label = "settingsPlugins",
+    ) { pluginsVisible ->
+        if (pluginsVisible) {
+            PluginsScreen(viewModel = viewModel, onBack = { pluginsOpen = false })
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                item(key = "general") {
+                    SettingsCard(strings.generalCard) {
+                        ValueRow(
+                            title = strings.themeLabel,
+                            value = when (themeMode) {
+                                THEME_LIGHT -> strings.themeLight
+                                THEME_SYSTEM -> strings.themeSystem
+                                else -> strings.themeDark
+                            },
+                            action = strings.btnChange,
+                            onClick = { themeOpen = true },
+                        )
+                        RowDivider()
+                        ValueRow(
+                            title = strings.languageLabel,
+                            value = when (appLanguage) {
+                                "en" -> strings.langEn
+                                "ru" -> strings.langRu
+                                else -> strings.langSystem
+                            },
+                            action = strings.btnChange,
+                            onClick = { langOpen = true },
+                        )
+                        RowDivider()
+                        ValueRow(
+                            title = strings.pluginsLabel,
+                            value = strings.pluginsSubtitle,
+                            action = strings.btnOpen,
+                            onClick = { pluginsOpen = true },
+                        )
                     }
                 }
-                RowDivider()
-                SwitchRow(
-                    title = strings.serviceTitle,
-                    subtitle = strings.serviceSubtitle,
-                    checked = serviceEnabled,
-                    onCheckedChange = viewModel::setServiceEnabled,
-                )
-                RowDivider()
-                ActionRow(
-                    title = strings.overlayTitle,
-                    subtitle = if (overlayGranted) strings.overlaySubtitleAllowed else strings.overlaySubtitleNeeded,
-                    action = if (overlayGranted) strings.btnConfigure else strings.btnAllow,
-                ) {
-                    requestOverlayPermission(context)
-                    overlayGranted = hasOverlayPermission(context)
-                }
-                RowDivider()
-                ActionRow(
-                    title = strings.batteryTitle,
-                    subtitle = if (batteryOk) strings.batterySubtitleAllowed else strings.batterySubtitleNeeded,
-                    action = strings.btnOpen,
-                ) {
-                    requestIgnoreBatteryOptimizations(context)
-                    batteryOk = isIgnoringBatteryOptimizations(context)
-                }
-                RowDivider()
-                ActionRow(
-                    title = strings.notificationsTitle,
-                    subtitle = strings.notificationsSubtitle,
-                    action = strings.btnOpen,
-                ) {
-                    openAppNotificationSettings(context)
-                }
-            }
-        }
 
-        item(key = "network") {
-            SettingsCard(strings.networkCard) {
-                ValueRow(
-                    title = strings.deviceNameLabel,
-                    value = deviceName,
-                    action = strings.btnChange,
-                    onClick = { renameOpen = true },
-                )
-            }
-        }
-
-        item(key = "other") {
-            SettingsCard(strings.otherCard) {
-                SwitchRow(
-                    title = strings.reportsTitle,
-                    subtitle = if (autoSendReports) strings.reportsSubtitleAuto else strings.reportsSubtitleManual,
-                    checked = autoSendReports,
-                    onCheckedChange = viewModel::setAutoSendReports,
-                )
-                RowDivider()
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest, FlatShape)
-                        .flatBorder()
-                        .clickable {
-                            if (developerMode) return@clickable
-                            val now = System.currentTimeMillis()
-                            taps = if (now - lastTapAt > 1_500) 1 else taps + 1
-                            lastTapAt = now
-                            if (taps >= 7) {
-                                taps = 0
-                                viewModel.setDeveloperMode(true)
-                                Toast.makeText(
-                                    context,
-                                    "Developer mode enabled",
-                                    Toast.LENGTH_SHORT,
-                                ).show()
-                            } else if (taps >= 4) {
-                                Toast.makeText(context, "${7 - taps}", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
+                item(key = "receive") {
+                    SettingsCard(strings.receiveCard) {
+                        SwitchRow(
+                            title = strings.autoAcceptTitle,
+                            subtitle = strings.autoAcceptSubtitle,
+                            checked = autoAccept,
+                            onCheckedChange = viewModel::setAutoAccept,
+                        )
+                        RowDivider()
+                        GroupLabel(strings.trustedCard)
+                        if (trusted.none { !it.revoked }) {
                             Text(
-                                "OpenBridge",
-                                style = MaterialTheme.typography.bodyLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Spacer(Modifier.height(2.dp))
-                            Text(
-                                "${strings.versionLabel} $APP_VERSION",
+                                strings.trustedEmpty,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
                             )
+                        } else {
+                            trusted.filterNot { it.revoked }.forEach { peer ->
+                                Row(
+                                    Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.Shield,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(peer.name, style = MaterialTheme.typography.bodyMedium)
+                                        Text(
+                                            peer.fingerprint.take(16),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                    IconButton(onClick = { viewModel.revoke(peer.id) }) {
+                                        Icon(Icons.Rounded.Delete, contentDescription = strings.btnRevoke)
+                                    }
+                                }
+                            }
                         }
-                        if (developerMode) {
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                "dev",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
+                        RowDivider()
+                        SwitchRow(
+                            title = strings.serviceTitle,
+                            subtitle = strings.serviceSubtitle,
+                            checked = serviceEnabled,
+                            onCheckedChange = viewModel::setServiceEnabled,
+                        )
+                        RowDivider()
+                        ActionRow(
+                            title = strings.overlayTitle,
+                            subtitle = if (overlayGranted) strings.overlaySubtitleAllowed else strings.overlaySubtitleNeeded,
+                            action = if (overlayGranted) strings.btnConfigure else strings.btnAllow,
+                        ) {
+                            requestOverlayPermission(context)
+                            overlayGranted = hasOverlayPermission(context)
+                        }
+                        RowDivider()
+                        ActionRow(
+                            title = strings.batteryTitle,
+                            subtitle = if (batteryOk) strings.batterySubtitleAllowed else strings.batterySubtitleNeeded,
+                            action = strings.btnOpen,
+                        ) {
+                            requestIgnoreBatteryOptimizations(context)
+                            batteryOk = isIgnoringBatteryOptimizations(context)
+                        }
+                        RowDivider()
+                        ActionRow(
+                            title = strings.notificationsTitle,
+                            subtitle = strings.notificationsSubtitle,
+                            action = strings.btnOpen,
+                        ) {
+                            openAppNotificationSettings(context)
                         }
                     }
                 }
 
-                Spacer(Modifier.height(8.dp))
-                HorizontalDivider()
-                AboutLink(label = strings.aboutCard, url = REPO_URL)
-                AboutLink(label = strings.licenseLabel, url = LICENSE_URL)
-            }
-        }
+                item(key = "network") {
+                    SettingsCard(strings.networkCard) {
+                        ValueRow(
+                            title = strings.deviceNameLabel,
+                            value = deviceName,
+                            action = strings.btnChange,
+                            onClick = { renameOpen = true },
+                        )
+                    }
+                }
 
-        if (developerMode) {
-            item(key = "developer") {
-                SettingsCard("Developer Options") {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Rounded.BugReport,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp),
+                item(key = "other") {
+                    SettingsCard(strings.otherCard) {
+                        SwitchRow(
+                            title = strings.reportsTitle,
+                            subtitle = if (autoSendReports) strings.reportsSubtitleAuto else strings.reportsSubtitleManual,
+                            checked = autoSendReports,
+                            onCheckedChange = viewModel::setAutoSendReports,
                         )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            "Technical diagnostics & logs",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+                        RowDivider()
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest, FlatShape)
+                                .flatBorder()
+                                .clickable {
+                                    if (developerMode) return@clickable
+                                    val now = System.currentTimeMillis()
+                                    taps = if (now - lastTapAt > 1_500) 1 else taps + 1
+                                    lastTapAt = now
+                                    if (taps >= 7) {
+                                        taps = 0
+                                        viewModel.setDeveloperMode(true)
+                                        Toast.makeText(
+                                            context,
+                                            "Developer mode enabled",
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
+                                    } else if (taps >= 4) {
+                                        Toast.makeText(context, "${7 - taps}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        "OpenBridge",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        "${strings.versionLabel} $APP_VERSION",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                                if (developerMode) {
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        "dev",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(Modifier.height(8.dp))
+                        HorizontalDivider()
+                        AboutLink(label = strings.aboutCard, url = REPO_URL)
+                        AboutLink(label = strings.licenseLabel, url = LICENSE_URL)
                     }
-                    Spacer(Modifier.height(10.dp))
-                    HorizontalDivider()
-                    Spacer(Modifier.height(10.dp))
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        FlatSecondaryButton(
-                            text = "Check server",
-                            onClick = { viewModel.checkServer() },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        FlatSecondaryButton(
-                            text = "Save logs",
-                            onClick = { viewModel.saveLogs() },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                }
+
+                if (developerMode) {
+                    item(key = "developer") {
+                        SettingsCard("Developer Options") {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Rounded.BugReport,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "Technical diagnostics & logs",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                            Spacer(Modifier.height(10.dp))
+                            HorizontalDivider()
+                            Spacer(Modifier.height(10.dp))
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                FlatSecondaryButton(
+                                    text = "Check server",
+                                    onClick = { viewModel.checkServer() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                FlatSecondaryButton(
+                                    text = "Save logs",
+                                    onClick = { viewModel.saveLogs() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                FlatSecondaryButton(
+                                    text = "Restart server",
+                                    onClick = { viewModel.restartServer() },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                                FlatSecondaryButton(
+                                    text = "Statistics",
+                                    onClick = { statsOpen = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                )
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            FlatSecondaryButton(
+                                text = "Show logs",
+                                onClick = { logsOpen = true },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Spacer(Modifier.height(10.dp))
+                            TextButton(
+                                onClick = {
+                                    viewModel.setDeveloperMode(false)
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) { Text("Hide section") }
+                        }
                     }
-                    Spacer(Modifier.height(8.dp))
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        FlatSecondaryButton(
-                            text = "Restart server",
-                            onClick = { viewModel.restartServer() },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                        FlatSecondaryButton(
-                            text = "Statistics",
-                            onClick = { statsOpen = true },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    FlatSecondaryButton(
-                        text = "Show logs",
-                        onClick = { logsOpen = true },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(10.dp))
-                    TextButton(
-                        onClick = {
-                            viewModel.setDeveloperMode(false)
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Hide section") }
                 }
             }
         }

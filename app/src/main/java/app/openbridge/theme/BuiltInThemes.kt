@@ -1,12 +1,11 @@
 package app.openbridge.theme
 
 /**
- * Built-in presets. They use exactly the same [ThemeConfig] schema as imported
- * plugins, so the plugin engine can be tested by switching between them.
+ * Built-in presets. Only the Flat Technical default ships inside the app;
+ * every other style is a plugin file imported by the user.
  */
 object BuiltInThemes {
     const val DEFAULT_ID = "default_flat"
-    const val MATERIAL3_ID = "builtin_m3"
 
     val DefaultFlat = ThemeConfig(
         id = DEFAULT_ID,
@@ -37,36 +36,7 @@ object BuiltInThemes {
         ),
     )
 
-    val Material3 = ThemeConfig(
-        id = MATERIAL3_ID,
-        name = "Material 3",
-        author = "OpenBridge",
-        version = "1.0",
-        controlsStyle = STYLE_MATERIAL3,
-        cornerRadiusDp = 20,
-        borderWidthDp = 0,
-        font = FONT_SANS,
-        dark = ThemePalette(
-            background = "#101014",
-            surface = "#1C1B1F",
-            surfaceElevated = "#2B2930",
-            border = "#49454F",
-            accent = "#D0BCFF",
-            textPrimary = "#E6E1E5",
-            textSecondary = "#CAC4D0",
-        ),
-        light = ThemePalette(
-            background = "#FEF7FF",
-            surface = "#FFFFFF",
-            surfaceElevated = "#F3EDF7",
-            border = "#CAC4D0",
-            accent = "#6750A4",
-            textPrimary = "#1D1B20",
-            textSecondary = "#49454F",
-        ),
-    )
-
-    val all: List<ThemeConfig> = listOf(DefaultFlat, Material3)
+    val all: List<ThemeConfig> = listOf(DefaultFlat)
 
     fun byId(id: String?): ThemeConfig? = all.firstOrNull { it.id == id }
 

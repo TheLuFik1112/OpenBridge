@@ -224,7 +224,7 @@ object RuStrings : AppStrings {
 
     override val pluginsLabel = "Плагины"
     override val pluginsTitle = "Плагины"
-    override val pluginsSubtitle = "Темы оформления"
+    override val pluginsSubtitle = "Темы оформления и расширения"
     override val pluginsImport = "+ Установить (.OBP / .JSON)"
     override val pluginsActive = "Активна"
     override val pluginsDelete = "Удалить"
@@ -345,7 +345,7 @@ object EnStrings : AppStrings {
 
     override val pluginsLabel = "Plugins"
     override val pluginsTitle = "Plugins"
-    override val pluginsSubtitle = "Theme styling"
+    override val pluginsSubtitle = "Themes and extensions"
     override val pluginsImport = "+ Import plugin (.OBP / .JSON)"
     override val pluginsActive = "Active"
     override val pluginsDelete = "Delete"

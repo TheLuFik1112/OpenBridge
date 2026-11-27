@@ -1,0 +1,28 @@
+{
+  "id": "builtin_m3",
+  "name": "Material 3",
+  "author": "OpenBridge",
+  "version": "1.0",
+  "controlsStyle": "material3",
+  "cornerRadiusDp": 20,
+  "borderWidthDp": 0,
+  "font": "sans",
+  "dark": {
+    "background": "#101014",
+    "surface": "#1C1B1F",
+    "surfaceElevated": "#2B2930",
+    "border": "#49454F",
+    "accent": "#D0BCFF",
+    "textPrimary": "#E6E1E5",
+    "textSecondary": "#CAC4D0"
+  },
+  "light": {
+    "background": "#FEF7FF",
+    "surface": "#FFFFFF",
+    "surfaceElevated": "#F3EDF7",
+    "border": "#CAC4D0",
+    "accent": "#6750A4",
+    "textPrimary": "#1D1B20",
+    "textSecondary": "#49454F"
+  }
+}
