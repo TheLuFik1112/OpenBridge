@@ -245,10 +245,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             activeThemeState.value = it
                         }
                     }
-                    messages.value = s.pluginImported(theme.name)
+                    messages.value = s.themeImported(theme.name)
                 }
                 .onFailure { error ->
-                    messages.value = "${s.pluginImportFailed}: ${error.message ?: "unknown error"}"
+                    messages.value = "${s.themeImportFailed}: ${error.message ?: "unknown error"}"
                 }
         }
     }
@@ -262,9 +262,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if (themePluginState.value == id) {
                     applyTheme(list, BuiltInThemes.DEFAULT_ID)
                 }
-                messages.value = s.pluginDeleted
+                messages.value = s.themeDeleted
             } else {
-                messages.value = s.pluginDeleteFailed
+                messages.value = s.themeDeleteFailed
             }
         }
     }

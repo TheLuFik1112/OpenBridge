@@ -101,7 +101,7 @@ fun NfcPanel(
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = title.uppercase(),
+                    text = labelCase(title),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = FlatAccent,

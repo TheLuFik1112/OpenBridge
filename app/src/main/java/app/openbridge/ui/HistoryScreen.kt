@@ -120,7 +120,7 @@ private fun HistoryRow(entry: HistoryEntry) {
             )
             Spacer(Modifier.width(10.dp))
             Text(
-                text = entry.peerName.uppercase(),
+                text = labelCase(entry.peerName),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 color = FlatTextPrimary,

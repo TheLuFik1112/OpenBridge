@@ -198,7 +198,7 @@ fun HomeScreen(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = strings.nfcPullHint.uppercase(),
+                            text = labelCase(strings.nfcPullHint),
                             style = MaterialTheme.typography.labelSmall,
                             color = FlatTextMuted,
                         )
@@ -323,7 +323,7 @@ private fun StatusCard(
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = deviceName.uppercase(),
+                    text = labelCase(deviceName),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = FlatTextPrimary,
@@ -355,7 +355,7 @@ private fun StatusCard(
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    text = strings.btnQr.uppercase(),
+                    text = labelCase(strings.btnQr),
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = FlatTextPrimary,
@@ -404,7 +404,7 @@ private fun StatusCard(
                     )
                     Spacer(Modifier.width(5.dp))
                     Text(
-                        text = (if (copied) strings.btnCopied else strings.btnCopy).uppercase(),
+                        text = labelCase(if (copied) strings.btnCopied else strings.btnCopy),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (copied) FlatAccent else FlatTextSecondary,
@@ -518,7 +518,7 @@ private fun QueueCard(
                 color = FlatTextSecondary,
             )
             androidx.compose.material3.TextButton(onClick = onClear) {
-                Text(text = strings.btnClear.uppercase(), style = MaterialTheme.typography.labelMedium, color = FlatAccent)
+                Text(text = labelCase(strings.btnClear), style = MaterialTheme.typography.labelMedium, color = FlatAccent)
             }
         }
     }
@@ -546,7 +546,7 @@ private fun RowScope.QuickAction(
             Icon(icon, contentDescription = null, tint = FlatTextPrimary, modifier = Modifier.size(18.dp))
             Spacer(Modifier.height(2.dp))
             Text(
-                text = label.uppercase(),
+                text = labelCase(label),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = FlatTextPrimary,
@@ -566,7 +566,7 @@ private fun SendingCard(strings: AppStrings, state: SendState) {
     ) {
         Column {
             Text(
-                text = strings.transferringTo(state.peerName).uppercase(),
+                text = labelCase(strings.transferringTo(state.peerName)),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = FlatTextPrimary,
@@ -664,7 +664,7 @@ private fun PeerRow(
                     Icon(Icons.Rounded.Send, contentDescription = null, tint = FlatAccent, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        text = strings.btnSend.uppercase(),
+                        text = labelCase(strings.btnSend),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (enabled) FlatAccent else FlatTextMuted,

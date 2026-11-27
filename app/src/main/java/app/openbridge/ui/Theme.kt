@@ -1,5 +1,7 @@
 package app.openbridge.ui
 
+import android.content.Context
+import android.graphics.Typeface
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -28,11 +30,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.openbridge.R
 import app.openbridge.theme.BuiltInThemes
+import app.openbridge.theme.FONT_CUSTOM
 import app.openbridge.theme.FONT_SANS
-import app.openbridge.theme.STYLE_MATERIAL3
+import app.openbridge.theme.FONT_SERIF
+import app.openbridge.theme.NAV_FLOATING
 import app.openbridge.theme.ThemeConfig
 import app.openbridge.theme.ThemePalette
+import app.openbridge.theme.ThemeTypography
 import app.openbridge.theme.parseThemeColor
+import app.openbridge.theme.themeDir
+import java.io.File
 
 const val THEME_DARK = "dark"
 const val THEME_LIGHT = "light"
@@ -86,7 +93,7 @@ val FlatLightPalette = FlatPalette(
 
 val LocalFlatPalette = staticCompositionLocalOf { FlatDarkPalette }
 
-/** Theme plugin currently applied to the UI. Shared components read geometry from it. */
+/** Theme file currently applied to the UI. Shared components read geometry from it. */
 val LocalThemeConfig = staticCompositionLocalOf { BuiltInThemes.DefaultFlat }
 
 val FlatBackground: Color
@@ -125,30 +132,46 @@ val FlatTextSecondary: Color
 val FlatTextMuted: Color
     @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.textMuted
 
+/** Card radius, used by cards, sheets and dialogs. */
 val FlatCornerRadius: Dp
-    @Composable @ReadOnlyComposable get() = LocalThemeConfig.current.cornerRadiusDp.dp
+    @Composable @ReadOnlyComposable get() = LocalThemeConfig.current.shapes.cardRadiusDp.dp
 
+/** Card outline width; 0 hides card borders. */
 val FlatBorderWidth: Dp
-    @Composable @ReadOnlyComposable get() = LocalThemeConfig.current.borderWidthDp.dp
+    @Composable @ReadOnlyComposable get() = LocalThemeConfig.current.components.cardBorderWidthDp.dp
 
+val FlatCardElevation: Dp
+    @Composable @ReadOnlyComposable get() = LocalThemeConfig.current.components.cardElevationDp.dp
+
+/** Shape for cards, sheets and anything that follows the card geometry. */
 val FlatShape: Shape
     @Composable @ReadOnlyComposable get() = RoundedCornerShape(FlatCornerRadius)
 
-val IsMaterialControls: Boolean
+val FlatButtonShape: Shape
     @Composable @ReadOnlyComposable get() =
-        LocalThemeConfig.current.controlsStyle == STYLE_MATERIAL3
+        RoundedCornerShape(LocalThemeConfig.current.shapes.buttonRadiusDp.dp)
 
-val FlatThemeFont: FontFamily
+val FlatBadgeShape: Shape
     @Composable @ReadOnlyComposable get() =
-        if (LocalThemeConfig.current.font == FONT_SANS) FontFamily.SansSerif else MonoFont
+        RoundedCornerShape(LocalThemeConfig.current.shapes.badgeRadiusDp.dp)
 
-/** Adds the plugin border, unless the active theme asks for borderless controls. */
+val IsFloatingNav: Boolean
+    @Composable @ReadOnlyComposable get() =
+        LocalThemeConfig.current.components.navBarStyle == NAV_FLOATING
+
+/** Applies the theme's label casing (technical themes use ALL CAPS). */
+@Composable
+@ReadOnlyComposable
+fun labelCase(text: String): String =
+    if (LocalThemeConfig.current.typography.uppercaseLabels) text.uppercase() else text
+
+/** Adds the active theme's border, unless the theme asks for borderless cards. */
 @Composable
 fun Modifier.flatBorder(
     color: Color = FlatBorder,
     shape: Shape = FlatShape,
+    width: Dp = FlatBorderWidth,
 ): Modifier {
-    val width = FlatBorderWidth
     return if (width > 0.dp) border(BorderStroke(width, color), shape) else this
 }
 
@@ -158,36 +181,61 @@ private val MonoFont = FontFamily(
     Font(R.font.ioskeylemonnl_bold, FontWeight.Bold),
 )
 
-private fun buildTypography(config: ThemeConfig): Typography {
-    val family = if (config.font == FONT_SANS) FontFamily.SansSerif else MonoFont
-    val flat = config.controlsStyle != STYLE_MATERIAL3
-    val wide = if (flat) 1.5.sp else 0.sp
-    val medium = if (flat) 0.5.sp else 0.sp
+/** Fonts shipped with the app (everything except a theme's own `.ttf`/`.otf`). */
+fun builtInFontFamily(typography: ThemeTypography): FontFamily = when (typography.font) {
+    FONT_SANS -> FontFamily.SansSerif
+    FONT_SERIF -> FontFamily.Serif
+    else -> MonoFont
+}
 
-    fun text(size: Int, weight: FontWeight, spacing: androidx.compose.ui.unit.TextUnit) =
-        TextStyle(
-            fontSize = size.sp,
-            fontWeight = weight,
-            letterSpacing = spacing,
-            fontFamily = family,
-        )
+/**
+ * Loads the theme font. A custom font lives in `filesDir/themes/<id>/<fontFile>`;
+ * anything unreadable falls back to the platform default instead of crashing.
+ */
+fun resolveThemeFontFamily(context: Context, config: ThemeConfig): FontFamily {
+    val typography = config.typography
+    if (typography.font != FONT_CUSTOM) return builtInFontFamily(typography)
+
+    val name = typography.fontFile ?: return FontFamily.Default
+    val file = File(themeDir(context, config.id), name)
+    if (!file.isFile) return FontFamily.Default
+
+    val readable = runCatching { Typeface.createFromFile(file) }.isSuccess
+    if (!readable) return FontFamily.Default
+
+    return runCatching { FontFamily(Font(file)) }.getOrDefault(FontFamily.Default)
+}
+
+private fun buildTypography(
+    typography: ThemeTypography,
+    family: FontFamily,
+): Typography {
+    val spacing = typography.letterSpacingSp
+    fun text(size: Int, weight: FontWeight, letterSpacing: Float) = TextStyle(
+        fontSize = size.sp,
+        fontWeight = weight,
+        letterSpacing = letterSpacing.sp,
+        fontFamily = family,
+    )
+
+    val bodySpacing = spacing * 0.4f
 
     return Typography(
-        displayLarge = text(30, FontWeight.Bold, wide),
-        displayMedium = text(24, FontWeight.Bold, wide),
-        displaySmall = text(20, FontWeight.Bold, wide),
-        headlineLarge = text(24, FontWeight.Bold, wide),
-        headlineMedium = text(20, FontWeight.Bold, wide),
-        headlineSmall = text(16, FontWeight.Bold, wide),
-        titleLarge = text(18, FontWeight.Bold, wide),
-        titleMedium = text(16, FontWeight.Bold, wide),
-        titleSmall = text(14, FontWeight.Bold, wide),
-        bodyLarge = text(15, FontWeight.Medium, medium),
-        bodyMedium = text(14, FontWeight.Medium, medium),
-        bodySmall = text(12, FontWeight.Normal, medium),
-        labelLarge = text(14, FontWeight.Bold, if (flat) 1.sp else 0.sp),
-        labelMedium = text(12, FontWeight.Bold, if (flat) 1.5.sp else 0.sp),
-        labelSmall = text(11, FontWeight.Bold, if (flat) 1.5.sp else 0.sp),
+        displayLarge = text(30, FontWeight.Bold, spacing),
+        displayMedium = text(24, FontWeight.Bold, spacing),
+        displaySmall = text(20, FontWeight.Bold, spacing),
+        headlineLarge = text(24, FontWeight.Bold, spacing),
+        headlineMedium = text(20, FontWeight.Bold, spacing),
+        headlineSmall = text(16, FontWeight.Bold, spacing),
+        titleLarge = text(18, FontWeight.Bold, spacing),
+        titleMedium = text(16, FontWeight.Bold, spacing),
+        titleSmall = text(14, FontWeight.Bold, spacing),
+        bodyLarge = text(15, FontWeight.Medium, bodySpacing),
+        bodyMedium = text(14, FontWeight.Medium, bodySpacing),
+        bodySmall = text(12, FontWeight.Normal, bodySpacing),
+        labelLarge = text(14, FontWeight.Bold, spacing),
+        labelMedium = text(12, FontWeight.Bold, spacing),
+        labelSmall = text(11, FontWeight.Bold, spacing),
     )
 }
 
@@ -220,7 +268,7 @@ private fun paletteFor(config: ThemeConfig, dark: Boolean): FlatPalette =
     (if (dark) config.dark else config.light).toFlatPalette()
 
 private fun shapesFor(config: ThemeConfig): Shapes {
-    val radius = config.cornerRadiusDp.toFloat()
+    val radius = config.shapes.cardRadiusDp.toFloat()
     fun shape(factor: Float) = RoundedCornerShape((radius * factor).dp)
     return Shapes(
         extraSmall = shape(0.35f),
@@ -308,12 +356,14 @@ fun isDarkTheme(mode: String): Boolean = when (mode) {
 fun OpenBridgeTheme(
     mode: String = THEME_SYSTEM,
     theme: ThemeConfig = BuiltInThemes.DefaultFlat,
+    fontFamily: FontFamily? = null,
     content: @Composable () -> Unit,
 ) {
     val dark = isDarkTheme(mode)
+    val family = fontFamily ?: builtInFontFamily(theme.typography)
     val palette = remember(theme, dark) { paletteFor(theme, dark) }
-    val typography = remember(theme.font, theme.controlsStyle) { buildTypography(theme) }
-    val shapes = remember(theme.cornerRadiusDp) { shapesFor(theme) }
+    val typography = remember(theme.typography, family) { buildTypography(theme.typography, family) }
+    val shapes = remember(theme.shapes) { shapesFor(theme) }
     val colors = remember(palette, dark) { if (dark) darkColors(palette) else lightColors(palette) }
 
     CompositionLocalProvider(

@@ -18,11 +18,15 @@
 -keep class app.openbridge.net.PortalFile { *; }
 -keepclassmembers class app.openbridge.net.PortalFile { *; }
 
-# Theme plugins are deserialised from user-supplied .json/.obp files at runtime.
+# Themes are deserialised from user-supplied .json/.obp files at runtime, so every
+# DTO and the v1 migration schema must keep its properties and serializers.
 -keep class app.openbridge.theme.ThemeConfig { *; }
 -keep class app.openbridge.theme.ThemePalette { *; }
--keep class app.openbridge.theme.ThemeConfig$$serializer { *; }
--keep class app.openbridge.theme.ThemePalette$$serializer { *; }
+-keep class app.openbridge.theme.ThemeShapes { *; }
+-keep class app.openbridge.theme.ThemeComponents { *; }
+-keep class app.openbridge.theme.ThemeTypography { *; }
+-keep class app.openbridge.theme.LegacyThemeConfig { *; }
+-keep class app.openbridge.theme.**$$serializer { *; }
 -keepclassmembers class app.openbridge.theme.** {
     *** Companion;
     *** serializer(...);

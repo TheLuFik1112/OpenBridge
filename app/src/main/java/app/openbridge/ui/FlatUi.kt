@@ -1,7 +1,9 @@
 package app.openbridge.ui
 
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,19 +26,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import app.openbridge.theme.BUTTON_OUTLINED
+import app.openbridge.theme.BUTTON_TONAL
+import app.openbridge.theme.SWITCH_FLAT
+import app.openbridge.theme.SWITCH_IOS
 
 @Composable
 fun FlatCard(
     modifier: Modifier = Modifier,
-    background: Color = MaterialTheme.colorScheme.surface,
+    background: Color = FlatSurface,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val elevation = FlatCardElevation
     Column(
         modifier = modifier
+            .then(if (elevation > 0.dp) Modifier.shadow(elevation, FlatShape, clip = false) else Modifier)
             .fillMaxWidth()
             .background(background, FlatShape)
             .flatBorder()
@@ -53,7 +62,7 @@ fun SectionHeader(
     modifier: Modifier = Modifier,
 ) {
     Text(
-        text = if (index == null) title.uppercase() else "$index — ${title.uppercase()}",
+        text = if (index == null) labelCase(title) else "$index — ${labelCase(title)}",
         style = MaterialTheme.typography.labelMedium,
         color = FlatTextSecondary,
         modifier = modifier.padding(top = 8.dp, bottom = 10.dp),
@@ -67,20 +76,44 @@ fun FlatPrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val style = LocalThemeConfig.current.components.buttonStyle
+    val shape = FlatButtonShape
+    val background = when (style) {
+        BUTTON_TONAL -> FlatAccentDimBg
+        BUTTON_OUTLINED -> Color.Transparent
+        else -> FlatAccent
+    }
+    val foreground = when (style) {
+        BUTTON_TONAL, BUTTON_OUTLINED -> FlatAccent
+        else -> MaterialTheme.colorScheme.onPrimary
+    }
+    val outline = if (style == BUTTON_OUTLINED) {
+        maxOf(1.dp, FlatBorderWidth)
+    } else {
+        0.dp
+    }
+
     Box(
         modifier = modifier
             .height(46.dp)
-            .background(FlatAccent, FlatShape)
-            .clip(FlatShape)
+            .background(background, shape)
+            .then(
+                if (outline > 0.dp) {
+                    Modifier.border(BorderStroke(outline, FlatAccent), shape)
+                } else {
+                    Modifier
+                },
+            )
+            .clip(shape)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = text.uppercase(),
+            text = labelCase(text),
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = foreground,
         )
     }
 }
@@ -92,21 +125,19 @@ fun FlatSecondaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
 ) {
+    val shape = FlatButtonShape
     Box(
         modifier = modifier
             .height(42.dp)
-            .background(
-                if (IsMaterialControls) FlatSurfaceElevated else FlatSurface,
-                FlatShape,
-            )
-            .flatBorder(FlatBorderActive)
-            .clip(FlatShape)
+            .background(FlatSurfaceElevated, shape)
+            .flatBorder(FlatBorderActive, shape, width = maxOf(1.dp, FlatBorderWidth))
+            .clip(shape)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = text.uppercase(),
+            text = labelCase(text),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
             color = FlatTextPrimary,
@@ -120,14 +151,17 @@ fun FlatToggle(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val material = IsMaterialControls
-    val width = if (material) 52.dp else 44.dp
-    val height = if (material) 32.dp else 24.dp
-    val inset = if (material) 4.dp else 3.dp
-    val thumbSize = if (material) 24.dp else 18.dp
+    val style = LocalThemeConfig.current.components.switchStyle
+    val ios = style == SWITCH_IOS
+    val flat = style == SWITCH_FLAT
+
+    val width = if (flat) 44.dp else if (ios) 46.dp else 52.dp
+    val height = if (flat) 24.dp else if (ios) 28.dp else 32.dp
+    val inset = if (ios) 3.dp else if (flat) 3.dp else 4.dp
+    val thumbSize = if (flat) 18.dp else if (ios) 22.dp else 24.dp
     val travel = width - inset * 2f - thumbSize
-    val trackShape = if (material) CircleShape else RoundedCornerShape(FlatCornerRadius)
-    val thumbShape = if (material) CircleShape else RoundedCornerShape(FlatCornerRadius)
+    val trackShape = if (flat) FlatBadgeShape else CircleShape
+    val thumbShape = if (flat) RoundedCornerShape(FlatCornerRadius) else CircleShape
 
     val thumbOffset = animateDpAsState(
         targetValue = if (checked) travel else 0.dp,
@@ -163,7 +197,7 @@ fun FlatCheckbox(
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    val shape = if (IsMaterialControls) RoundedCornerShape(4.dp) else FlatShape
+    val shape = FlatBadgeShape
     Box(
         modifier = modifier
             .size(22.dp)
@@ -171,6 +205,7 @@ fun FlatCheckbox(
             .flatBorder(
                 color = if (checked) FlatAccent else if (enabled) FlatBorderActive else FlatBorder,
                 shape = shape,
+                width = maxOf(1.dp, FlatBorderWidth),
             ),
         contentAlignment = Alignment.Center,
     ) {
@@ -192,7 +227,7 @@ fun FlatProgress(
     height: Int = 6,
 ) {
     val safe = fraction.coerceIn(0f, 1f)
-    val shape = if (IsMaterialControls) CircleShape else FlatShape
+    val shape = FlatButtonShape
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -217,7 +252,7 @@ fun FlatTextAction(
     enabled: Boolean = true,
 ) {
     Text(
-        text = text.uppercase(),
+        text = labelCase(text),
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.Bold,
         color = if (enabled) FlatAccent else FlatTextMuted,

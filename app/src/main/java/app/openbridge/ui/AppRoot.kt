@@ -62,17 +62,6 @@ import androidx.core.view.WindowCompat
 import app.openbridge.text.AppStrings
 import kotlinx.coroutines.launch
 
-private data class Tab(
-    val label: (AppStrings) -> String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-)
-
-private val tabs = listOf(
-    Tab(label = { it.tabSend }, icon = Icons.Rounded.Send),
-    Tab(label = { it.tabHistory }, icon = Icons.Rounded.History),
-    Tab(label = { it.tabSettings }, icon = Icons.Rounded.Settings),
-)
-
 @Composable
 fun AppRoot(viewModel: AppViewModel) {
     val themeMode by viewModel.themeMode.collectAsState()
@@ -89,7 +78,9 @@ fun AppRoot(viewModel: AppViewModel) {
         }
     }
 
-    OpenBridgeTheme(mode = themeMode, theme = activeTheme) {
+    val themeFont = remember(activeTheme) { resolveThemeFontFamily(context, activeTheme) }
+
+    OpenBridgeTheme(mode = themeMode, theme = activeTheme, fontFamily = themeFont) {
         AppContent(viewModel)
     }
 }
@@ -160,7 +151,7 @@ private fun AppContent(viewModel: AppViewModel) {
     ) { uri -> uri?.let { viewModel.addFolder(it) } }
 
     val coroutineScope = rememberCoroutineScope()
-    val pagerState = rememberPagerState { tabs.size }
+    val pagerState = rememberPagerState { AppTabs.size }
     val selectedTab = pagerState.currentPage
     LaunchedEffect(pagerState.currentPage) {
         viewModel.closeNfcSheet()
@@ -177,7 +168,7 @@ private fun AppContent(viewModel: AppViewModel) {
                     ),
                     title = {
                         Text(
-                            text = tabs[selectedTab].label(strings).uppercase(),
+                            text = labelCase(AppTabs[selectedTab].label(strings)),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
@@ -186,90 +177,14 @@ private fun AppContent(viewModel: AppViewModel) {
                 )
             },
             bottomBar = {
-                val material = IsMaterialControls
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(FlatBackground),
-                ) {
-                    if (FlatBorderWidth > 0.dp) {
-                        HorizontalDivider(thickness = FlatBorderWidth, color = FlatBorder)
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(if (material) 72.dp else 64.dp)
-                            .padding(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        tabs.forEachIndexed { index, tab ->
-                            val selected = selectedTab == index
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable {
-                                        coroutineScope.launch {
-                                            pagerState.animateScrollToPage(index)
-                                        }
-                                    },
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
-                            ) {
-                                if (material) {
-                                    Box(
-                                        modifier = Modifier
-                                            .width(56.dp)
-                                            .height(30.dp)
-                                            .background(
-                                                if (selected) FlatAccentDimBg else Color.Transparent,
-                                                CircleShape,
-                                            ),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Icon(
-                                            imageVector = tab.icon,
-                                            contentDescription = tab.label(strings),
-                                            tint = if (selected) FlatAccent else FlatTextSecondary,
-                                            modifier = Modifier.size(20.dp),
-                                        )
-                                    }
-                                    Spacer(Modifier.height(4.dp))
-                                    Text(
-                                        text = tab.label(strings).uppercase(),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                        color = if (selected) FlatTextPrimary else FlatTextSecondary,
-                                    )
-                                } else {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(2.dp)
-                                            .background(
-                                                if (selected) FlatAccent else Color.Transparent,
-                                                RoundedCornerShape(0.dp),
-                                            ),
-                                    )
-                                    Spacer(Modifier.height(8.dp))
-                                    Icon(
-                                        imageVector = tab.icon,
-                                        contentDescription = tab.label(strings),
-                                        tint = if (selected) FlatAccent else FlatTextMuted,
-                                        modifier = Modifier.size(20.dp),
-                                    )
-                                    Spacer(Modifier.height(2.dp))
-                                    Text(
-                                        text = tab.label(strings).uppercase(),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                        color = if (selected) FlatAccent else FlatTextMuted,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                AppBottomBar(
+                    tabs = AppTabs,
+                    selected = selectedTab,
+                    strings = strings,
+                    onSelect = { index ->
+                        coroutineScope.launch { pagerState.animateScrollToPage(index) }
+                    },
+                )
             },
             snackbarHost = { SnackbarHost(snackbarHostState) },
         ) { padding ->
