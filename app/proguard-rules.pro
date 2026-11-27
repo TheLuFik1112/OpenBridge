@@ -18,6 +18,16 @@
 -keep class app.openbridge.net.PortalFile { *; }
 -keepclassmembers class app.openbridge.net.PortalFile { *; }
 
+# Theme plugins are deserialised from user-supplied .json/.obp files at runtime.
+-keep class app.openbridge.theme.ThemeConfig { *; }
+-keep class app.openbridge.theme.ThemePalette { *; }
+-keep class app.openbridge.theme.ThemeConfig$$serializer { *; }
+-keep class app.openbridge.theme.ThemePalette$$serializer { *; }
+-keepclassmembers class app.openbridge.theme.** {
+    *** Companion;
+    *** serializer(...);
+}
+
 # Ktor server and CIO engine resolve converters and engines by type at runtime.
 -keep class io.ktor.** { *; }
 -dontwarn io.ktor.**

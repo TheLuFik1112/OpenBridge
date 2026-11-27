@@ -79,22 +79,16 @@ fun NfcPanel(
                     }
                 }
             }
-            .background(FlatAccentDimBg, RoundedCornerShape(0.dp))
-            .border(
-                androidx.compose.foundation.BorderStroke(1.dp, FlatBorder),
-                RoundedCornerShape(0.dp),
-            )
+            .background(FlatAccentDimBg, FlatShape)
+            .flatBorder()
             .padding(start = 10.dp, end = 14.dp, top = 12.dp, bottom = 12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(52.dp)
-                    .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
-                    .border(
-                        androidx.compose.foundation.BorderStroke(1.dp, FlatBorder),
-                        RoundedCornerShape(0.dp),
-                    ),
+                    .background(FlatSurfaceElevated, FlatShape)
+                    .flatBorder(),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -130,17 +124,14 @@ fun NfcPanel(
                     modifier = Modifier
                         .weight(1f)
                         .height(6.dp)
-                        .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
-                        .border(
-                            androidx.compose.foundation.BorderStroke(1.dp, FlatBorder),
-                            RoundedCornerShape(0.dp),
-                        ),
+                        .background(FlatSurfaceElevated, FlatShape)
+                        .flatBorder(),
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(fraction)
                             .height(6.dp)
-                            .background(FlatAccent, RoundedCornerShape(0.dp)),
+                            .background(FlatAccent, FlatShape),
                     )
                 }
                 Spacer(Modifier.width(10.dp))

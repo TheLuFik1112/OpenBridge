@@ -54,9 +54,9 @@ fun QrDialog(payload: String, onDismiss: () -> Unit) {
                 .fillMaxWidth()
                 .background(
                     MaterialTheme.colorScheme.surface,
-                    RoundedCornerShape(0.dp),
+                    FlatShape,
                 )
-                .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+                .flatBorder()
                 .padding(20.dp),
         ) {
             Column(

@@ -43,16 +43,16 @@ fun NearbyIncomingSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(0.dp))
-                .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+                .background(MaterialTheme.colorScheme.surface, FlatShape)
+                .flatBorder()
                 .padding(20.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
-                        .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp)),
+                        .background(FlatSurfaceElevated, FlatShape)
+                        .flatBorder(),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -118,7 +118,7 @@ fun NearbyProgressDialog(
     onDismiss: () -> Unit,
 ) {
     androidx.compose.material3.AlertDialog(
-        shape = RoundedCornerShape(0.dp),
+        shape = FlatShape,
         containerColor = FlatSurface,
         onDismissRequest = onDismiss,
         confirmButton = {

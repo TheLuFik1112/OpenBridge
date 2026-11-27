@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.pager.HorizontalPager
@@ -75,6 +76,7 @@ private val tabs = listOf(
 @Composable
 fun AppRoot(viewModel: AppViewModel) {
     val themeMode by viewModel.themeMode.collectAsState()
+    val activeTheme by viewModel.activeTheme.collectAsState()
     val dark = isDarkTheme(themeMode)
     val view = LocalView.current
     val context = LocalContext.current
@@ -87,7 +89,7 @@ fun AppRoot(viewModel: AppViewModel) {
         }
     }
 
-    OpenBridgeTheme(mode = themeMode) {
+    OpenBridgeTheme(mode = themeMode, theme = activeTheme) {
         AppContent(viewModel)
     }
 }
@@ -184,16 +186,19 @@ private fun AppContent(viewModel: AppViewModel) {
                 )
             },
             bottomBar = {
+                val material = IsMaterialControls
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(FlatBackground),
                 ) {
-                    HorizontalDivider(thickness = 1.dp, color = FlatBorder)
+                    if (FlatBorderWidth > 0.dp) {
+                        HorizontalDivider(thickness = FlatBorderWidth, color = FlatBorder)
+                    }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(64.dp)
+                            .height(if (material) 72.dp else 64.dp)
                             .padding(horizontal = 8.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically,
@@ -211,29 +216,56 @@ private fun AppContent(viewModel: AppViewModel) {
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center,
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(2.dp)
-                                        .background(
-                                            if (selected) FlatAccent else Color.Transparent,
-                                            RoundedCornerShape(0.dp),
-                                        ),
-                                )
-                                Spacer(Modifier.height(8.dp))
-                                Icon(
-                                    imageVector = tab.icon,
-                                    contentDescription = tab.label(strings),
-                                    tint = if (selected) FlatAccent else FlatTextMuted,
-                                    modifier = Modifier.size(20.dp),
-                                )
-                                Spacer(Modifier.height(2.dp))
-                                Text(
-                                    text = tab.label(strings).uppercase(),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                                    color = if (selected) FlatAccent else FlatTextMuted,
-                                )
+                                if (material) {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(56.dp)
+                                            .height(30.dp)
+                                            .background(
+                                                if (selected) FlatAccentDimBg else Color.Transparent,
+                                                CircleShape,
+                                            ),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Icon(
+                                            imageVector = tab.icon,
+                                            contentDescription = tab.label(strings),
+                                            tint = if (selected) FlatAccent else FlatTextSecondary,
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                    }
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        text = tab.label(strings).uppercase(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                        color = if (selected) FlatTextPrimary else FlatTextSecondary,
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .height(2.dp)
+                                            .background(
+                                                if (selected) FlatAccent else Color.Transparent,
+                                                RoundedCornerShape(0.dp),
+                                            ),
+                                    )
+                                    Spacer(Modifier.height(8.dp))
+                                    Icon(
+                                        imageVector = tab.icon,
+                                        contentDescription = tab.label(strings),
+                                        tint = if (selected) FlatAccent else FlatTextMuted,
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        text = tab.label(strings).uppercase(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                        color = if (selected) FlatAccent else FlatTextMuted,
+                                    )
+                                }
                             }
                         }
                     }

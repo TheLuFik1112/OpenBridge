@@ -101,6 +101,19 @@ interface AppStrings {
     val versionLabel: String
     val licenseLabel: String
 
+    val pluginsLabel: String
+    val pluginsTitle: String
+    val pluginsSubtitle: String
+    val pluginsImport: String
+    val pluginsActive: String
+    val pluginsDelete: String
+    val pluginsTapToApply: String
+    fun pluginImported(name: String): String
+    val pluginImportFailed: String
+    val pluginDeleted: String
+    val pluginDeleteFailed: String
+    fun pluginAuthorVersion(author: String, version: String): String
+
     val nearbyIncomingDesc: String
     val btnTrustAlways: String
     val btnDecline: String
@@ -209,6 +222,19 @@ object RuStrings : AppStrings {
     override val versionLabel = "Версия"
     override val licenseLabel = "Лицензия"
 
+    override val pluginsLabel = "Плагины"
+    override val pluginsTitle = "Плагины"
+    override val pluginsSubtitle = "Темы оформления"
+    override val pluginsImport = "+ Установить (.OBP / .JSON)"
+    override val pluginsActive = "Активна"
+    override val pluginsDelete = "Удалить"
+    override val pluginsTapToApply = "Нажмите на тему, чтобы применить"
+    override fun pluginImported(name: String) = "Плагин «$name» установлен"
+    override val pluginImportFailed = "Не удалось установить плагин"
+    override val pluginDeleted = "Плагин удалён"
+    override val pluginDeleteFailed = "Не удалось удалить плагин"
+    override fun pluginAuthorVersion(author: String, version: String) = "$author · v$version"
+
     override val nearbyIncomingDesc = "Телефон рядом хочет передать данные напрямую без роутера через Nearby / Wi-Fi Direct."
     override val btnTrustAlways = "Всегда принимать (Доверенное)"
     override val btnDecline = "Отклонить"
@@ -316,6 +342,19 @@ object EnStrings : AppStrings {
     override val aboutCard = "About"
     override val versionLabel = "Version"
     override val licenseLabel = "License"
+
+    override val pluginsLabel = "Plugins"
+    override val pluginsTitle = "Plugins"
+    override val pluginsSubtitle = "Theme styling"
+    override val pluginsImport = "+ Import plugin (.OBP / .JSON)"
+    override val pluginsActive = "Active"
+    override val pluginsDelete = "Delete"
+    override val pluginsTapToApply = "Tap a theme to apply it"
+    override fun pluginImported(name: String) = "Plugin “$name” installed"
+    override val pluginImportFailed = "Could not import plugin"
+    override val pluginDeleted = "Plugin removed"
+    override val pluginDeleteFailed = "Could not remove plugin"
+    override fun pluginAuthorVersion(author: String, version: String) = "$author · v$version"
 
     override val nearbyIncomingDesc = "Nearby device wants to transfer data directly without a router via Nearby / Wi-Fi Direct."
     override val btnTrustAlways = "Always accept (Trusted)"

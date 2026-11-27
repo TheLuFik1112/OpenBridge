@@ -11,6 +11,7 @@ import app.openbridge.net.Portal
 import app.openbridge.net.ReceiveStore
 import app.openbridge.net.TransferClient
 import app.openbridge.net.TransferServer
+import app.openbridge.plugins.PluginManager
 import app.openbridge.service.IncomingNotifier
 import app.openbridge.service.IncomingPresenter
 import app.openbridge.util.NfcHelper
@@ -42,6 +43,7 @@ class AppGraph(val app: Application) {
         }.also { Diag.log("identity", "ready") }
     }
     val settings by lazy { SettingsRepository(app) }
+    val plugins by lazy { PluginManager(app) }
     val peers by lazy { PeerRepository(app, json) }
     val history by lazy { HistoryRepository(app, json) }
     val portal by lazy { Portal(app, settings) }

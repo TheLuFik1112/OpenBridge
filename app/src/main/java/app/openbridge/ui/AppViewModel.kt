@@ -24,6 +24,8 @@ import app.openbridge.domain.SendState
 import app.openbridge.domain.TransferSender
 import app.openbridge.text.AppStrings
 import app.openbridge.text.resolveStrings
+import app.openbridge.theme.BuiltInThemes
+import app.openbridge.theme.ThemeConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -116,6 +118,23 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val appLanguage: StateFlow<String> = settings.appLanguage.asStateFlow()
     val themeMode: StateFlow<String> = settings.themeMode.asStateFlow()
 
+    private val installedThemes = MutableStateFlow(graph.plugins.builtInThemes())
+    val themes: StateFlow<List<ThemeConfig>> = installedThemes.asStateFlow()
+
+    private val activeThemeState = MutableStateFlow(BuiltInThemes.DefaultFlat)
+    val activeTheme: StateFlow<ThemeConfig> = activeThemeState.asStateFlow()
+
+    private val themePluginState = MutableStateFlow(graph.settings.themePluginId.value)
+    val themePluginId: StateFlow<String> = themePluginState.asStateFlow()
+
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            val list = graph.plugins.loadInstalledThemes()
+            installedThemes.value = list
+            applyTheme(list, settings.themePluginId.value)
+        }
+    }
+
     val queue: StateFlow<List<QueueItem>> = packages.items.asStateFlow()
     val portalUrl: StateFlow<String?> = packages.portalUrl.asStateFlow()
 
@@ -203,6 +222,56 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setThemeMode(mode: String) {
         settings.setThemeMode(mode)
+    }
+
+    fun setThemePlugin(id: String) {
+        val theme = installedThemes.value.firstOrNull { it.id == id } ?: return
+        activeThemeState.value = theme
+        themePluginState.value = theme.id
+        settings.setThemePluginId(theme.id)
+    }
+
+    fun importTheme(uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val s = strings.value
+            graph.plugins.importThemeFromUri(uri)
+                .onSuccess { theme ->
+                    val list = graph.plugins.loadInstalledThemes()
+                    installedThemes.value = list
+                    if (themePluginState.value == theme.id) {
+                        list.firstOrNull { it.id == theme.id }?.let {
+                            activeThemeState.value = it
+                        }
+                    }
+                    messages.value = s.pluginImported(theme.name)
+                }
+                .onFailure { error ->
+                    messages.value = "${s.pluginImportFailed}: ${error.message ?: "unknown error"}"
+                }
+        }
+    }
+
+    fun deleteTheme(id: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val s = strings.value
+            if (graph.plugins.deleteTheme(id)) {
+                val list = graph.plugins.loadInstalledThemes()
+                installedThemes.value = list
+                if (themePluginState.value == id) {
+                    applyTheme(list, BuiltInThemes.DEFAULT_ID)
+                }
+                messages.value = s.pluginDeleted
+            } else {
+                messages.value = s.pluginDeleteFailed
+            }
+        }
+    }
+
+    private fun applyTheme(list: List<ThemeConfig>, id: String) {
+        val theme = list.firstOrNull { it.id == id } ?: BuiltInThemes.DefaultFlat
+        activeThemeState.value = theme
+        themePluginState.value = theme.id
+        if (theme.id != id) settings.setThemePluginId(theme.id)
     }
 
     fun setDeveloperMode(enabled: Boolean) = settings.setDeveloperMode(enabled)

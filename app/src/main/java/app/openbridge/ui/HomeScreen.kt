@@ -293,16 +293,16 @@ private fun StatusCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(FlatSurface, RoundedCornerShape(0.dp))
-            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+            .background(FlatSurface, FlatShape)
+            .flatBorder()
             .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(36.dp)
-                    .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
-                    .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp)),
+                    .background(FlatSurfaceElevated, FlatShape)
+                    .flatBorder(),
                 contentAlignment = Alignment.Center,
             ) {
                 if (isEngineReady) {
@@ -345,7 +345,7 @@ private fun StatusCard(
             OutlinedButton(
                 onClick = onShowQr,
                 enabled = isEngineReady,
-                shape = RoundedCornerShape(0.dp),
+                shape = FlatShape,
             ) {
                 Icon(
                     Icons.Rounded.QrCode2,
@@ -388,7 +388,7 @@ private fun StatusCard(
                 Spacer(Modifier.width(10.dp))
                 Row(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(0.dp))
+                        .clip(FlatShape)
                         .clickable {
                             clipboard.setText(AnnotatedString(url))
                             copied = true
@@ -535,9 +535,9 @@ private fun RowScope.QuickAction(
         modifier = modifier
             .weight(1f)
             .height(56.dp)
-            .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
-            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
-            .clip(RoundedCornerShape(0.dp))
+            .background(FlatSurfaceElevated, FlatShape)
+            .flatBorder()
+            .clip(FlatShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 4.dp),
         contentAlignment = Alignment.Center,
@@ -560,8 +560,8 @@ private fun SendingCard(strings: AppStrings, state: SendState) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(FlatSurface, RoundedCornerShape(0.dp))
-            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+            .background(FlatSurface, FlatShape)
+            .flatBorder()
             .padding(16.dp),
     ) {
         Column {
@@ -599,8 +599,8 @@ private fun PeerRow(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(FlatSurface, RoundedCornerShape(0.dp))
-            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+            .background(FlatSurface, FlatShape)
+            .flatBorder()
             .clickable(enabled = enabled, onClick = onSend)
             .padding(14.dp),
     ) {
@@ -608,8 +608,8 @@ private fun PeerRow(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
-                    .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp)),
+                    .background(FlatSurfaceElevated, FlatShape)
+                    .flatBorder(),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -655,13 +655,7 @@ private fun PeerRow(
             Spacer(Modifier.width(8.dp))
             Box(
                 modifier = Modifier
-                    .border(
-                        androidx.compose.foundation.BorderStroke(
-                            1.dp,
-                            if (enabled) FlatAccent else FlatBorder,
-                        ),
-                        RoundedCornerShape(0.dp),
-                    )
+                    .flatBorder(if (enabled) FlatAccent else FlatBorder)
                     .clickable(enabled = enabled, onClick = onSend)
                     .padding(horizontal = 14.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center,
@@ -685,13 +679,13 @@ private fun PeerRow(
 private fun TextDialog(strings: AppStrings, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
     androidx.compose.material3.AlertDialog(
-        shape = RoundedCornerShape(0.dp),
+        shape = FlatShape,
         containerColor = FlatSurface,
         onDismissRequest = onDismiss,
         title = { Text(strings.textDialogTitle) },
         text = {
             androidx.compose.material3.OutlinedTextField(
-                shape = RoundedCornerShape(0.dp),
+                shape = FlatShape,
                 value = text,
                 onValueChange = { text = it },
                 minLines = 4,

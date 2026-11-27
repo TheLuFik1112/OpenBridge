@@ -19,6 +19,7 @@ class AppSettings(
     val autoSendReports = MutableStateFlow(false)
     val appLanguage = MutableStateFlow(sanitizeLanguage(graph.settings.appLanguage.value))
     val themeMode = MutableStateFlow(sanitizeTheme(graph.settings.themeMode.value))
+    val themePluginId = MutableStateFlow(graph.settings.themePluginId.value)
 
     fun load() {
         val s = graph.settings
@@ -30,6 +31,7 @@ class AppSettings(
         autoSendReports.value = s.autoSendReports.value
         appLanguage.value = sanitizeLanguage(s.appLanguage.value)
         themeMode.value = sanitizeTheme(s.themeMode.value)
+        themePluginId.value = s.themePluginId.value
     }
 
     fun setDeviceName(name: String) {
@@ -77,6 +79,12 @@ class AppSettings(
         themeMode.value = clean
         scope.launch(Dispatchers.IO) { graph.settings.setThemeMode(clean) }
         return clean
+    }
+
+    fun setThemePluginId(id: String) {
+        val clean = id.trim().take(64).ifBlank { "default_flat" }
+        themePluginId.value = clean
+        scope.launch(Dispatchers.IO) { graph.settings.setThemePluginId(clean) }
     }
 
     private fun sanitizeLanguage(lang: String): String =

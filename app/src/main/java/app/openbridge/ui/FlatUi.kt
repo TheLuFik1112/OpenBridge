@@ -1,7 +1,7 @@
 package app.openbridge.ui
 
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,9 +13,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Icon
@@ -26,7 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
@@ -39,8 +38,8 @@ fun FlatCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(background, RoundedCornerShape(0.dp))
-            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+            .background(background, FlatShape)
+            .flatBorder()
             .padding(16.dp),
     ) {
         content()
@@ -57,7 +56,6 @@ fun SectionHeader(
         text = if (index == null) title.uppercase() else "$index — ${title.uppercase()}",
         style = MaterialTheme.typography.labelMedium,
         color = FlatTextSecondary,
-        fontFamily = FontFamily.Monospace,
         modifier = modifier.padding(top = 8.dp, bottom = 10.dp),
     )
 }
@@ -72,8 +70,8 @@ fun FlatPrimaryButton(
     Box(
         modifier = modifier
             .height(46.dp)
-            .background(FlatAccent, RoundedCornerShape(0.dp))
-            .clip(RoundedCornerShape(0.dp))
+            .background(FlatAccent, FlatShape)
+            .clip(FlatShape)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center,
@@ -97,9 +95,12 @@ fun FlatSecondaryButton(
     Box(
         modifier = modifier
             .height(42.dp)
-            .background(FlatSurface, RoundedCornerShape(0.dp))
-            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorderActive), RoundedCornerShape(0.dp))
-            .clip(RoundedCornerShape(0.dp))
+            .background(
+                if (IsMaterialControls) FlatSurfaceElevated else FlatSurface,
+                FlatShape,
+            )
+            .flatBorder(FlatBorderActive)
+            .clip(FlatShape)
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center,
@@ -119,28 +120,38 @@ fun FlatToggle(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val material = IsMaterialControls
+    val width = if (material) 52.dp else 44.dp
+    val height = if (material) 32.dp else 24.dp
+    val inset = if (material) 4.dp else 3.dp
+    val thumbSize = if (material) 24.dp else 18.dp
+    val travel = width - inset * 2f - thumbSize
+    val trackShape = if (material) CircleShape else RoundedCornerShape(FlatCornerRadius)
+    val thumbShape = if (material) CircleShape else RoundedCornerShape(FlatCornerRadius)
+
     val thumbOffset = animateDpAsState(
-        targetValue = if (checked) 20.dp else 0.dp,
+        targetValue = if (checked) travel else 0.dp,
         label = "flatToggleThumb",
     )
+
     Box(
         modifier = modifier
-            .width(44.dp)
-            .height(24.dp)
-            .background(if (checked) FlatAccent else FlatSurfaceElevated, RoundedCornerShape(0.dp))
-            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
-            .padding(3.dp)
-            .clip(RoundedCornerShape(0.dp))
+            .width(width)
+            .height(height)
+            .background(if (checked) FlatAccent else FlatSurfaceElevated, trackShape)
+            .flatBorder(shape = trackShape)
+            .padding(inset)
+            .clip(trackShape)
             .clickable { onCheckedChange(!checked) },
         contentAlignment = Alignment.CenterStart,
     ) {
         Box(
             modifier = Modifier
-                .size(18.dp)
+                .size(thumbSize)
                 .graphicsLayer { translationX = thumbOffset.value.toPx() }
                 .background(
                     if (checked) MaterialTheme.colorScheme.onPrimary else FlatTextMuted,
-                    RoundedCornerShape(0.dp),
+                    thumbShape,
                 ),
         )
     }
@@ -152,16 +163,14 @@ fun FlatCheckbox(
     enabled: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
+    val shape = if (IsMaterialControls) RoundedCornerShape(4.dp) else FlatShape
     Box(
         modifier = modifier
             .size(22.dp)
-            .background(if (checked) FlatAccent else Color.Transparent, RoundedCornerShape(0.dp))
-            .border(
-                androidx.compose.foundation.BorderStroke(
-                    1.dp,
-                    if (checked) FlatAccent else if (enabled) FlatBorderActive else FlatBorder,
-                ),
-                RoundedCornerShape(0.dp),
+            .background(if (checked) FlatAccent else Color.Transparent, shape)
+            .flatBorder(
+                color = if (checked) FlatAccent else if (enabled) FlatBorderActive else FlatBorder,
+                shape = shape,
             ),
         contentAlignment = Alignment.Center,
     ) {
@@ -183,18 +192,19 @@ fun FlatProgress(
     height: Int = 6,
 ) {
     val safe = fraction.coerceIn(0f, 1f)
+    val shape = if (IsMaterialControls) CircleShape else FlatShape
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(height.dp)
-            .background(FlatSurface, RoundedCornerShape(0.dp))
-            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp)),
+            .background(FlatSurface, shape)
+            .flatBorder(shape = shape),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth(safe)
                 .height(height.dp)
-                .background(FlatAccent, RoundedCornerShape(0.dp)),
+                .background(FlatAccent, shape),
         )
     }
 }
@@ -225,7 +235,7 @@ fun AccentCallout(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(FlatAccentDimBg, RoundedCornerShape(0.dp))
+            .background(FlatAccentDimBg, FlatShape)
             .padding(start = 10.dp, end = 12.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -233,7 +243,7 @@ fun AccentCallout(
             modifier = Modifier
                 .width(2.dp)
                 .height(18.dp)
-                .background(FlatAccent, RoundedCornerShape(0.dp)),
+                .background(FlatAccent, RoundedCornerShape(1.dp)),
         )
         Spacer(Modifier.width(8.dp))
         Text(

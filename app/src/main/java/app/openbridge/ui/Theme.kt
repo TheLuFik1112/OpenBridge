@@ -1,7 +1,11 @@
 package app.openbridge.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -9,14 +13,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.openbridge.R
+import app.openbridge.theme.BuiltInThemes
+import app.openbridge.theme.FONT_SANS
+import app.openbridge.theme.STYLE_MATERIAL3
+import app.openbridge.theme.ThemeConfig
+import app.openbridge.theme.ThemePalette
+import app.openbridge.theme.parseThemeColor
 
 const val THEME_DARK = "dark"
 const val THEME_LIGHT = "light"
@@ -70,6 +86,9 @@ val FlatLightPalette = FlatPalette(
 
 val LocalFlatPalette = staticCompositionLocalOf { FlatDarkPalette }
 
+/** Theme plugin currently applied to the UI. Shared components read geometry from it. */
+val LocalThemeConfig = staticCompositionLocalOf { BuiltInThemes.DefaultFlat }
+
 val FlatBackground: Color
     @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.background
 
@@ -106,139 +125,176 @@ val FlatTextSecondary: Color
 val FlatTextMuted: Color
     @Composable @ReadOnlyComposable get() = LocalFlatPalette.current.textMuted
 
-private val FlatFont = FontFamily(
+val FlatCornerRadius: Dp
+    @Composable @ReadOnlyComposable get() = LocalThemeConfig.current.cornerRadiusDp.dp
+
+val FlatBorderWidth: Dp
+    @Composable @ReadOnlyComposable get() = LocalThemeConfig.current.borderWidthDp.dp
+
+val FlatShape: Shape
+    @Composable @ReadOnlyComposable get() = RoundedCornerShape(FlatCornerRadius)
+
+val IsMaterialControls: Boolean
+    @Composable @ReadOnlyComposable get() =
+        LocalThemeConfig.current.controlsStyle == STYLE_MATERIAL3
+
+val FlatThemeFont: FontFamily
+    @Composable @ReadOnlyComposable get() =
+        if (LocalThemeConfig.current.font == FONT_SANS) FontFamily.SansSerif else MonoFont
+
+/** Adds the plugin border, unless the active theme asks for borderless controls. */
+@Composable
+fun Modifier.flatBorder(
+    color: Color = FlatBorder,
+    shape: Shape = FlatShape,
+): Modifier {
+    val width = FlatBorderWidth
+    return if (width > 0.dp) border(BorderStroke(width, color), shape) else this
+}
+
+private val MonoFont = FontFamily(
     Font(R.font.ioskeylemonnl_regular, FontWeight.Normal),
     Font(R.font.ioskeylemonnl_medium, FontWeight.Medium),
     Font(R.font.ioskeylemonnl_bold, FontWeight.Bold),
 )
 
-private val FlatTypography = Typography(
-    displayLarge = TextStyle(
-        fontSize = 30.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont,
-    ),
-    displayMedium = TextStyle(
-        fontSize = 24.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont,
-    ),
-    displaySmall = TextStyle(
-        fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont,
-    ),
-    headlineLarge = TextStyle(
-        fontSize = 24.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp,
-        fontFamily = FlatFont,
-    ),
-    headlineMedium = TextStyle(
-        fontSize = 20.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont,
-    ),
-    headlineSmall = TextStyle(
-        fontSize = 16.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont,
-    ),
-    titleLarge = TextStyle(
-        fontSize = 18.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont,
-    ),
-    titleMedium = TextStyle(
-        fontSize = 16.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont,
-    ),
-    titleSmall = TextStyle(
-        fontSize = 14.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont,
-    ),
-    bodyLarge = TextStyle(
-        fontSize = 15.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp,
-        fontFamily = FlatFont,
-    ),
-    bodyMedium = TextStyle(
-        fontSize = 14.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp,
-        fontFamily = FlatFont,
-    ),
-    bodySmall = TextStyle(
-        fontSize = 12.sp, fontWeight = FontWeight.Normal, letterSpacing = 0.5.sp,
-        fontFamily = FlatFont,
-    ),
-    labelLarge = TextStyle(
-        fontSize = 14.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp,
-        fontFamily = FlatFont,
-    ),
-    labelMedium = TextStyle(
-        fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont,
-    ),
-    labelSmall = TextStyle(
-        fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.5.sp,
-        fontFamily = FlatFont,
-    ),
+private fun buildTypography(config: ThemeConfig): Typography {
+    val family = if (config.font == FONT_SANS) FontFamily.SansSerif else MonoFont
+    val flat = config.controlsStyle != STYLE_MATERIAL3
+    val wide = if (flat) 1.5.sp else 0.sp
+    val medium = if (flat) 0.5.sp else 0.sp
+
+    fun text(size: Int, weight: FontWeight, spacing: androidx.compose.ui.unit.TextUnit) =
+        TextStyle(
+            fontSize = size.sp,
+            fontWeight = weight,
+            letterSpacing = spacing,
+            fontFamily = family,
+        )
+
+    return Typography(
+        displayLarge = text(30, FontWeight.Bold, wide),
+        displayMedium = text(24, FontWeight.Bold, wide),
+        displaySmall = text(20, FontWeight.Bold, wide),
+        headlineLarge = text(24, FontWeight.Bold, wide),
+        headlineMedium = text(20, FontWeight.Bold, wide),
+        headlineSmall = text(16, FontWeight.Bold, wide),
+        titleLarge = text(18, FontWeight.Bold, wide),
+        titleMedium = text(16, FontWeight.Bold, wide),
+        titleSmall = text(14, FontWeight.Bold, wide),
+        bodyLarge = text(15, FontWeight.Medium, medium),
+        bodyMedium = text(14, FontWeight.Medium, medium),
+        bodySmall = text(12, FontWeight.Normal, medium),
+        labelLarge = text(14, FontWeight.Bold, if (flat) 1.sp else 0.sp),
+        labelMedium = text(12, FontWeight.Bold, if (flat) 1.5.sp else 0.sp),
+        labelSmall = text(11, FontWeight.Bold, if (flat) 1.5.sp else 0.sp),
+    )
+}
+
+private fun ThemePalette.toFlatPalette(): FlatPalette {
+    val background = parseThemeColor(background, Color.Black)
+    val surface = parseThemeColor(surface, background)
+    val elevated = parseThemeColor(surfaceElevated, surface)
+    val border = parseThemeColor(border, surface)
+    val accent = parseThemeColor(accent, Color(0xFFC95D48))
+    val primary = parseThemeColor(textPrimary, Color.White)
+    val secondary = parseThemeColor(textSecondary, primary)
+
+    return FlatPalette(
+        background = background,
+        surface = surface,
+        surfaceElevated = elevated,
+        border = border,
+        borderActive = lerp(border, primary, 0.28f),
+        accent = accent,
+        accentMuted = lerp(accent, secondary, 0.45f),
+        error = accent,
+        accentDimBg = lerp(background, accent, 0.14f),
+        textPrimary = primary,
+        textSecondary = secondary,
+        textMuted = lerp(background, secondary, 0.55f),
+    )
+}
+
+private fun paletteFor(config: ThemeConfig, dark: Boolean): FlatPalette =
+    (if (dark) config.dark else config.light).toFlatPalette()
+
+private fun shapesFor(config: ThemeConfig): Shapes {
+    val radius = config.cornerRadiusDp.toFloat()
+    fun shape(factor: Float) = RoundedCornerShape((radius * factor).dp)
+    return Shapes(
+        extraSmall = shape(0.35f),
+        small = shape(0.6f),
+        medium = shape(1f),
+        large = shape(1.2f),
+        extraLarge = shape(1.5f),
+    )
+}
+
+private fun darkColors(palette: FlatPalette) = darkColorScheme(
+    primary = palette.accent,
+    onPrimary = palette.background,
+    primaryContainer = palette.accentDimBg,
+    onPrimaryContainer = palette.accent,
+    secondary = palette.borderActive,
+    onSecondary = palette.textPrimary,
+    secondaryContainer = palette.surfaceElevated,
+    onSecondaryContainer = palette.textPrimary,
+    tertiary = palette.borderActive,
+    onTertiary = palette.textPrimary,
+    tertiaryContainer = palette.surfaceElevated,
+    onTertiaryContainer = palette.textPrimary,
+    background = palette.background,
+    onBackground = palette.textPrimary,
+    surface = palette.surface,
+    onSurface = palette.textPrimary,
+    surfaceVariant = palette.surfaceElevated,
+    onSurfaceVariant = palette.textSecondary,
+    surfaceContainerLowest = palette.surface,
+    surfaceContainerLow = lerp(palette.background, palette.surface, 0.5f),
+    surfaceContainer = palette.surface,
+    surfaceContainerHigh = palette.surfaceElevated,
+    surfaceContainerHighest = lerp(palette.surfaceElevated, palette.textPrimary, 0.06f),
+    surfaceTint = palette.accent,
+    outline = palette.border,
+    outlineVariant = palette.border,
+    error = palette.error,
+    onError = palette.background,
+    errorContainer = palette.accentDimBg,
+    onErrorContainer = palette.accent,
 )
 
-private val FlatDarkColors = darkColorScheme(
-    primary = FlatDarkPalette.accent,
-    onPrimary = FlatDarkPalette.background,
-    primaryContainer = FlatDarkPalette.accentDimBg,
-    onPrimaryContainer = FlatDarkPalette.accent,
-    secondary = FlatDarkPalette.borderActive,
-    onSecondary = FlatDarkPalette.textPrimary,
-    secondaryContainer = FlatDarkPalette.surfaceElevated,
-    onSecondaryContainer = FlatDarkPalette.textPrimary,
-    tertiary = FlatDarkPalette.borderActive,
-    onTertiary = FlatDarkPalette.textPrimary,
-    tertiaryContainer = FlatDarkPalette.surfaceElevated,
-    onTertiaryContainer = FlatDarkPalette.textPrimary,
-    background = FlatDarkPalette.background,
-    onBackground = FlatDarkPalette.textPrimary,
-    surface = FlatDarkPalette.surface,
-    onSurface = FlatDarkPalette.textPrimary,
-    surfaceVariant = FlatDarkPalette.surfaceElevated,
-    onSurfaceVariant = FlatDarkPalette.textSecondary,
-    surfaceContainerLowest = FlatDarkPalette.surface,
-    surfaceContainerLow = Color(0xFF0D0D0D),
-    surfaceContainer = FlatDarkPalette.surface,
-    surfaceContainerHigh = FlatDarkPalette.surfaceElevated,
-    surfaceContainerHighest = Color(0xFF1C1C1C),
-    surfaceTint = FlatDarkPalette.accent,
-    outline = FlatDarkPalette.border,
-    outlineVariant = FlatDarkPalette.border,
-    error = FlatDarkPalette.accent,
-    onError = FlatDarkPalette.background,
-    errorContainer = FlatDarkPalette.accentDimBg,
-    onErrorContainer = FlatDarkPalette.accent,
-)
-
-private val FlatLightColors = lightColorScheme(
-    primary = FlatLightPalette.accent,
-    onPrimary = FlatLightPalette.surface,
-    primaryContainer = FlatLightPalette.accentDimBg,
-    onPrimaryContainer = FlatLightPalette.accent,
-    secondary = FlatLightPalette.borderActive,
-    onSecondary = FlatLightPalette.textPrimary,
-    secondaryContainer = FlatLightPalette.surfaceElevated,
-    onSecondaryContainer = FlatLightPalette.textPrimary,
-    tertiary = FlatLightPalette.borderActive,
-    onTertiary = FlatLightPalette.textPrimary,
-    tertiaryContainer = FlatLightPalette.surfaceElevated,
-    onTertiaryContainer = FlatLightPalette.textPrimary,
-    background = FlatLightPalette.background,
-    onBackground = FlatLightPalette.textPrimary,
-    surface = FlatLightPalette.surface,
-    onSurface = FlatLightPalette.textPrimary,
-    surfaceVariant = FlatLightPalette.surfaceElevated,
-    onSurfaceVariant = FlatLightPalette.textSecondary,
-    surfaceContainerLowest = FlatLightPalette.surface,
-    surfaceContainerLow = FlatLightPalette.background,
-    surfaceContainer = FlatLightPalette.surface,
-    surfaceContainerHigh = FlatLightPalette.surfaceElevated,
-    surfaceContainerHighest = Color(0xFFE3E3E3),
-    surfaceTint = FlatLightPalette.accent,
-    outline = FlatLightPalette.border,
-    outlineVariant = FlatLightPalette.border,
-    error = FlatLightPalette.error,
-    onError = FlatLightPalette.surface,
-    errorContainer = FlatLightPalette.accentDimBg,
-    onErrorContainer = FlatLightPalette.error,
+private fun lightColors(palette: FlatPalette) = lightColorScheme(
+    primary = palette.accent,
+    onPrimary = palette.surface,
+    primaryContainer = palette.accentDimBg,
+    onPrimaryContainer = palette.accent,
+    secondary = palette.borderActive,
+    onSecondary = palette.textPrimary,
+    secondaryContainer = palette.surfaceElevated,
+    onSecondaryContainer = palette.textPrimary,
+    tertiary = palette.borderActive,
+    onTertiary = palette.textPrimary,
+    tertiaryContainer = palette.surfaceElevated,
+    onTertiaryContainer = palette.textPrimary,
+    background = palette.background,
+    onBackground = palette.textPrimary,
+    surface = palette.surface,
+    onSurface = palette.textPrimary,
+    surfaceVariant = palette.surfaceElevated,
+    onSurfaceVariant = palette.textSecondary,
+    surfaceContainerLowest = palette.surface,
+    surfaceContainerLow = palette.background,
+    surfaceContainer = palette.surface,
+    surfaceContainerHigh = palette.surfaceElevated,
+    surfaceContainerHighest = lerp(palette.surfaceElevated, palette.textPrimary, 0.06f),
+    surfaceTint = palette.accent,
+    outline = palette.border,
+    outlineVariant = palette.border,
+    error = palette.error,
+    onError = palette.surface,
+    errorContainer = palette.accentDimBg,
+    onErrorContainer = palette.error,
 )
 
 @Composable
@@ -249,14 +305,25 @@ fun isDarkTheme(mode: String): Boolean = when (mode) {
 }
 
 @Composable
-fun OpenBridgeTheme(mode: String = THEME_SYSTEM, content: @Composable () -> Unit) {
+fun OpenBridgeTheme(
+    mode: String = THEME_SYSTEM,
+    theme: ThemeConfig = BuiltInThemes.DefaultFlat,
+    content: @Composable () -> Unit,
+) {
     val dark = isDarkTheme(mode)
+    val palette = remember(theme, dark) { paletteFor(theme, dark) }
+    val typography = remember(theme.font, theme.controlsStyle) { buildTypography(theme) }
+    val shapes = remember(theme.cornerRadiusDp) { shapesFor(theme) }
+    val colors = remember(palette) { if (dark) darkColors(palette) else lightColors(palette) }
+
     CompositionLocalProvider(
-        LocalFlatPalette provides if (dark) FlatDarkPalette else FlatLightPalette,
+        LocalFlatPalette provides palette,
+        LocalThemeConfig provides theme,
     ) {
         MaterialTheme(
-            colorScheme = if (dark) FlatDarkColors else FlatLightColors,
-            typography = FlatTypography,
+            colorScheme = colors,
+            typography = typography,
+            shapes = shapes,
             content = content,
         )
     }

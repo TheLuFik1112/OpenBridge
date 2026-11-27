@@ -66,8 +66,8 @@ fun IncomingSheetContent(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(0.dp))
-            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+            .background(MaterialTheme.colorScheme.surface, FlatShape)
+            .flatBorder()
             .navigationBarsPadding()
             .padding(horizontal = 18.dp),
     ) {
@@ -76,7 +76,7 @@ fun IncomingSheetContent(
                 .fillMaxWidth()
                 .padding(top = 0.dp)
                 .height(2.dp)
-                .background(FlatAccent, RoundedCornerShape(0.dp)),
+                .background(FlatAccent, FlatShape),
         )
 
         Row(
@@ -86,11 +86,8 @@ fun IncomingSheetContent(
             Box(
                 modifier = Modifier
                     .size(44.dp)
-                    .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
-                    .border(
-                        androidx.compose.foundation.BorderStroke(1.dp, FlatBorder),
-                        RoundedCornerShape(0.dp),
-                    ),
+                    .background(FlatSurfaceElevated, FlatShape)
+                    .flatBorder(),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -213,8 +210,8 @@ private fun PreviewCard(payload: Payload, stage: IncomingStage) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
-            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp)),
+            .background(FlatSurfaceElevated, FlatShape)
+            .flatBorder(),
     ) {
         Column(Modifier.padding(14.dp)) {
             when (payload) {
@@ -328,8 +325,8 @@ private fun FileThumb(file: FileMeta) {
     Box(
         modifier = Modifier
             .size(64.dp)
-            .background(FlatSurface, RoundedCornerShape(0.dp))
-            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp)),
+            .background(FlatSurface, FlatShape)
+            .flatBorder(),
         contentAlignment = Alignment.Center,
     ) {
         Icon(

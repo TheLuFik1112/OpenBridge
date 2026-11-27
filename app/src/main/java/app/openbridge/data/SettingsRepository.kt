@@ -21,10 +21,20 @@ class SettingsRepository(private val context: Context) {
 
     val themeMode = MutableStateFlow(normalizeTheme(prefs.getString(KEY_THEME, null)))
 
+    val themePluginId = MutableStateFlow(
+        prefs.getString(KEY_THEME_PLUGIN, null)?.takeIf { it.isNotBlank() } ?: DEFAULT_THEME_PLUGIN,
+    )
+
     fun setThemeMode(value: String) {
         val clean = normalizeTheme(value)
         themeMode.value = clean
         prefs.edit().putString(KEY_THEME, clean).apply()
+    }
+
+    fun setThemePluginId(value: String) {
+        val clean = value.trim().take(64).ifBlank { DEFAULT_THEME_PLUGIN }
+        themePluginId.value = clean
+        prefs.edit().putString(KEY_THEME_PLUGIN, clean).apply()
     }
 
     private fun normalizeTheme(value: String?): String =
@@ -95,6 +105,9 @@ class SettingsRepository(private val context: Context) {
         const val KEY_AUTO_REPORTS = "auto_send_reports"
         const val KEY_LANGUAGE = "app_language"
         const val KEY_THEME = "theme_mode"
+        const val KEY_THEME_PLUGIN = "theme_plugin_id"
+
+        const val DEFAULT_THEME_PLUGIN = "default_flat"
 
         const val THEME_DARK = "dark"
         const val THEME_LIGHT = "light"

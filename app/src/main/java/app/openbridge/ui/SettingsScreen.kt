@@ -77,10 +77,12 @@ fun SettingsScreen(viewModel: AppViewModel) {
     val autoAccept by viewModel.autoAccept.collectAsState()
     val developerMode by viewModel.developerMode.collectAsState()
     val autoSendReports by viewModel.autoSendReports.collectAsState()
+    val activeTheme by viewModel.activeTheme.collectAsState()
 
     var renameOpen by rememberSaveable { mutableStateOf(false) }
     var langOpen by rememberSaveable { mutableStateOf(false) }
     var themeOpen by rememberSaveable { mutableStateOf(false) }
+    var pluginsOpen by rememberSaveable { mutableStateOf(false) }
     var statsOpen by rememberSaveable { mutableStateOf(false) }
     var logsOpen by rememberSaveable { mutableStateOf(false) }
     var overlayGranted by remember { mutableStateOf(hasOverlayPermission(context)) }
@@ -88,6 +90,11 @@ fun SettingsScreen(viewModel: AppViewModel) {
 
     var taps by rememberSaveable { mutableStateOf(0) }
     var lastTapAt by remember { mutableLongStateOf(0L) }
+
+    if (pluginsOpen) {
+        PluginsScreen(viewModel = viewModel, onBack = { pluginsOpen = false })
+        return
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -116,6 +123,13 @@ fun SettingsScreen(viewModel: AppViewModel) {
                     },
                     action = strings.btnChange,
                     onClick = { langOpen = true },
+                )
+                RowDivider()
+                ValueRow(
+                    title = strings.pluginsLabel,
+                    value = activeTheme.name,
+                    action = strings.btnOpen,
+                    onClick = { pluginsOpen = true },
                 )
             }
         }
@@ -223,8 +237,8 @@ fun SettingsScreen(viewModel: AppViewModel) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceContainerHighest, RoundedCornerShape(0.dp))
-                        .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHighest, FlatShape)
+                        .flatBorder()
                         .clickable {
                             if (developerMode) return@clickable
                             val now = System.currentTimeMillis()
@@ -374,7 +388,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
     if (renameOpen) {
         var value by remember(deviceName) { mutableStateOf(deviceName) }
         AlertDialog(
-            shape = RoundedCornerShape(0.dp),
+            shape = FlatShape,
             containerColor = FlatSurface,
             onDismissRequest = { renameOpen = false },
             title = { Text(strings.renameDialogTitle) },
@@ -407,7 +421,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
 
     if (statsOpen) {
         AlertDialog(
-            shape = RoundedCornerShape(0.dp),
+            shape = FlatShape,
             containerColor = FlatSurface,
             onDismissRequest = { statsOpen = false },
             title = { Text("Server Stats") },
@@ -432,7 +446,7 @@ private fun ThemeDialog(
     onSelect: (String) -> Unit,
 ) {
     AlertDialog(
-        shape = RoundedCornerShape(0.dp),
+        shape = FlatShape,
         containerColor = FlatSurface,
         onDismissRequest = onDismiss,
         title = { Text(strings.themeCard) },
@@ -472,7 +486,7 @@ private fun LanguageDialog(
     onSelect: (String) -> Unit,
 ) {
     AlertDialog(
-        shape = RoundedCornerShape(0.dp),
+        shape = FlatShape,
         containerColor = FlatSurface,
         onDismissRequest = onDismiss,
         title = { Text(strings.languageCard) },
@@ -515,7 +529,7 @@ private fun LogsDialog(viewModel: AppViewModel, onDismiss: () -> Unit) {
     }
 
     AlertDialog(
-        shape = RoundedCornerShape(0.dp),
+        shape = FlatShape,
         containerColor = FlatSurface,
         onDismissRequest = onDismiss,
         title = { Text("Logs") },

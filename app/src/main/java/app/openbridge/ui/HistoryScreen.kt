@@ -57,8 +57,8 @@ fun HistoryScreen(viewModel: AppViewModel) {
                     Box(
                         modifier = Modifier
                             .size(56.dp)
-                            .background(FlatSurfaceElevated, RoundedCornerShape(0.dp))
-                            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp)),
+                            .background(FlatSurfaceElevated, FlatShape)
+                            .flatBorder(),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
@@ -107,8 +107,8 @@ private fun HistoryRow(entry: HistoryEntry) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(0.dp))
-            .border(androidx.compose.foundation.BorderStroke(1.dp, FlatBorder), RoundedCornerShape(0.dp))
+            .background(MaterialTheme.colorScheme.surface, FlatShape)
+            .flatBorder()
             .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
