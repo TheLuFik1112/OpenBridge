@@ -314,7 +314,7 @@ fun OpenBridgeTheme(
     val palette = remember(theme, dark) { paletteFor(theme, dark) }
     val typography = remember(theme.font, theme.controlsStyle) { buildTypography(theme) }
     val shapes = remember(theme.cornerRadiusDp) { shapesFor(theme) }
-    val colors = remember(palette) { if (dark) darkColors(palette) else lightColors(palette) }
+    val colors = remember(palette, dark) { if (dark) darkColors(palette) else lightColors(palette) }
 
     CompositionLocalProvider(
         LocalFlatPalette provides palette,
