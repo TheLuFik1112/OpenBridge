@@ -68,11 +68,18 @@ class PluginManager(context: Context) {
 
     fun importThemeFromUri(uri: Uri): Result<ThemeConfig> = runCatching {
         val bytes = appContext.contentResolver.openInputStream(uri)?.use {
-            readLimited(it, MAX_THEME_BYTES)
+            readLimited(it, MAX_SOURCE_BYTES)
         } ?: throw IllegalArgumentException("Cannot read the selected file")
 
-        val payload = if (looksLikeZip(bytes)) extractThemeFromZip(bytes) else bytes
-        val text = payload.toString(Charsets.UTF_8).trim()
+        val payload = if (looksLikeZip(bytes)) {
+            extractThemeFromZip(bytes)
+        } else {
+            if (bytes.size > MAX_THEME_BYTES) {
+                throw IllegalArgumentException("The theme file is too large")
+            }
+            bytes
+        }
+        val text = payload.toString(Charsets.UTF_8).trim().removePrefix("\uFEFF").trim()
         if (text.isEmpty()) throw IllegalArgumentException("The theme file is empty")
 
         val theme = validate(parseTheme(text))
@@ -156,11 +163,16 @@ class PluginManager(context: Context) {
         var theme: ByteArray? = null
         var manifest: ByteArray? = null
         var total = 0
+        var entries = 0
 
         runCatching {
             ZipInputStream(ByteArrayInputStream(bytes)).use { zip ->
                 while (true) {
                     val entry = zip.nextEntry ?: break
+                    entries++
+                    if (entries > MAX_ZIP_ENTRIES) {
+                        throw IllegalArgumentException("The package has too many entries")
+                    }
                     if (!entry.isDirectory) {
                         val name = entry.name.substringAfterLast('/').lowercase()
                         if (name == "theme.json" || name == "manifest.json") {
@@ -215,5 +227,7 @@ class PluginManager(context: Context) {
         const val MAX_BORDER_WIDTH = 8
         const val MAX_THEME_BYTES = 512 * 1024
         const val MAX_ZIP_BYTES = 2 * 1024 * 1024
+        const val MAX_SOURCE_BYTES = 8 * 1024 * 1024
+        const val MAX_ZIP_ENTRIES = 2000
     }
 }

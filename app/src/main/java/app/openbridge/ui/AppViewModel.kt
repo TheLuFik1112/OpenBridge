@@ -121,7 +121,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val installedThemes = MutableStateFlow(graph.plugins.builtInThemes())
     val themes: StateFlow<List<ThemeConfig>> = installedThemes.asStateFlow()
 
-    private val activeThemeState = MutableStateFlow(BuiltInThemes.DefaultFlat)
+    private val activeThemeState = MutableStateFlow(
+        BuiltInThemes.byId(graph.settings.themePluginId.value) ?: BuiltInThemes.DefaultFlat,
+    )
     val activeTheme: StateFlow<ThemeConfig> = activeThemeState.asStateFlow()
 
     private val themePluginState = MutableStateFlow(graph.settings.themePluginId.value)
