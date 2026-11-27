@@ -94,7 +94,6 @@ private fun AppContent(viewModel: AppViewModel) {
 
     val message by viewModel.message.collectAsState()
     val crash by viewModel.crash.collectAsState()
-    val nearbyIncoming by viewModel.nearbyIncoming.collectAsState()
     val nearbyProgress by viewModel.nearbyProgress.collectAsState()
     val strings by viewModel.strings.collectAsState()
 
@@ -209,15 +208,6 @@ private fun AppContent(viewModel: AppViewModel) {
                     }
                 }
             }
-        }
-
-        nearbyIncoming?.let { request ->
-            NearbyIncomingSheet(
-                request = request,
-                onAccept = viewModel::acceptNearby,
-                onTrust = viewModel::trustNearby,
-                onDecline = viewModel::declineNearby,
-            )
         }
 
         nearbyProgress?.let { progress ->

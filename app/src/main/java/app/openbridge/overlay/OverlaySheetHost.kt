@@ -49,7 +49,7 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import app.openbridge.core.IncomingStage
-import app.openbridge.core.TransferOffer
+import app.openbridge.service.IncomingPrompt
 import app.openbridge.ui.OpenBridgeTheme
 import app.openbridge.ui.IncomingSheetContent
 import kotlinx.coroutines.delay
@@ -66,20 +66,32 @@ class OverlaySheetHost(
     private var composeView: ComposeView? = null
     private var owner: OverlayLifecycleOwner? = null
     private var windowManager: WindowManager? = null
-    private var current: TransferOffer? = null
+
+    @Volatile
+    private var current: IncomingPrompt? = null
     private val stageState = mutableStateOf<IncomingStage>(IncomingStage.Awaiting)
 
     fun canShow(): Boolean = Settings.canDrawOverlays(context)
 
-    fun show(offer: TransferOffer) {
-        main.post {
-            if (current != null) return@post
-            if (!canShow()) return@post
+    /** Returns false when another request already owns the sheet. */
+    fun show(prompt: IncomingPrompt): Boolean {
+        if (!canShow()) return false
+        if (current != null) return false
+        current = prompt
 
-            current = offer
+        main.post {
+            if (!canShow()) {
+                current = null
+                return@post
+            }
+
             stageState.value = IncomingStage.Awaiting
 
-            val wm = context.getSystemService(WindowManager::class.java) ?: return@post
+            val wm = context.getSystemService(WindowManager::class.java)
+            if (wm == null) {
+                current = null
+                return@post
+            }
             val lifecycleOwner = OverlayLifecycleOwner().apply { onCreate() }
 
             val view = ComposeView(context).apply {
@@ -92,15 +104,15 @@ class OverlaySheetHost(
                 setContent {
                     OpenBridgeTheme {
                         SheetOverlay(
-                            offer = offer,
+                            prompt = prompt,
                             stage = stageState.value,
                             onClose = ::close,
                             onAccept = { always ->
                                 stageState.value = IncomingStage.Connecting
-                                onAccept(offer.transferId, always)
+                                onAccept(prompt.id, always)
                             },
                             onDecline = {
-                                onDecline(offer.transferId)
+                                onDecline(prompt.id)
                                 close()
                             },
                         )
@@ -136,17 +148,18 @@ class OverlaySheetHost(
                 owner = null
             }
         }
+        return true
     }
 
-    fun updateStage(stage: IncomingStage) {
-        main.post { stageState.value = stage }
+    fun updateStage(promptId: String, stage: IncomingStage) {
+        main.post { if (current?.id == promptId) stageState.value = stage }
     }
 
     fun close() {
         main.post {
+            current = null
             val view = composeView ?: return@post
             composeView = null
-            current = null
             runCatching { windowManager?.removeViewImmediate(view) }
             windowManager = null
             owner?.onDestroy()
@@ -157,7 +170,7 @@ class OverlaySheetHost(
 
 @Composable
 private fun SheetOverlay(
-    offer: TransferOffer,
+    prompt: IncomingPrompt,
     stage: IncomingStage,
     onClose: () -> Unit,
     onAccept: (Boolean) -> Unit,
@@ -213,7 +226,7 @@ private fun SheetOverlay(
                     ),
             ) {
                 IncomingSheetContent(
-                    offer = offer,
+                    prompt = prompt,
                     stage = stage,
                     onAccept = onAccept,
                     onDecline = { animateOut(onDecline) },

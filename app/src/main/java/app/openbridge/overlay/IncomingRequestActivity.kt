@@ -17,6 +17,8 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,16 +49,20 @@ class IncomingRequestActivity : ComponentActivity() {
         }
 
         val graph = (application as OpenBridgeApp).graph
-        val transferId = intent.getStringExtra(EXTRA_TRANSFER_ID)
-        val offer = transferId?.let { graph.incoming.offer(it) }
-        if (transferId == null || offer == null) {
+        val promptId = intent.getStringExtra(EXTRA_PROMPT_ID)
+        val prompt = promptId?.let { graph.presenter.prompt(it) }
+        if (promptId == null || prompt == null) {
             finish()
             return
         }
 
         setContent {
             OpenBridgeTheme {
-                val stage by graph.incoming.stage(transferId).collectAsState()
+                val stage by if (prompt.trackProgress) {
+                    graph.incoming.stage(promptId).collectAsState()
+                } else {
+                    remember { mutableStateOf<IncomingStage>(IncomingStage.Awaiting) }
+                }
                 val sheetState = rememberModalBottomSheetState(
                     skipPartiallyExpanded = true,
                 )
@@ -82,7 +88,7 @@ class IncomingRequestActivity : ComponentActivity() {
 
                 ModalBottomSheet(
                     onDismissRequest = {
-                        graph.incoming.decline(transferId)
+                        graph.presenter.decline(promptId)
                         close()
                     },
                     sheetState = sheetState,
@@ -94,11 +100,14 @@ class IncomingRequestActivity : ComponentActivity() {
                     scrimColor = Color.Black.copy(alpha = 0.72f),
                 ) {
                     IncomingSheetContent(
-                        offer = offer,
+                        prompt = prompt,
                         stage = stage,
-                        onAccept = { always -> graph.incoming.accept(transferId, always) },
+                        onAccept = { always ->
+                            graph.presenter.accept(promptId, always)
+                            if (!prompt.trackProgress) close()
+                        },
                         onDecline = {
-                            graph.incoming.decline(transferId)
+                            graph.presenter.decline(promptId)
                             close()
                         },
                     )
@@ -108,11 +117,11 @@ class IncomingRequestActivity : ComponentActivity() {
     }
 
     companion object {
-        const val EXTRA_TRANSFER_ID = "transfer_id"
+        const val EXTRA_PROMPT_ID = "prompt_id"
 
-        fun intent(context: Context, transferId: String): Intent =
+        fun intent(context: Context, promptId: String): Intent =
             Intent(context, IncomingRequestActivity::class.java)
-                .putExtra(EXTRA_TRANSFER_ID, transferId)
+                .putExtra(EXTRA_PROMPT_ID, promptId)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
     }
 }

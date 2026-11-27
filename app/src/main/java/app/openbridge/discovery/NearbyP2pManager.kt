@@ -85,6 +85,7 @@ class NearbyP2pManager(
     private val onPeer: (NearbyPeer) -> Unit,
     private val onPeerLost: (String) -> Unit,
     private val isNfcHandoff: () -> Boolean = { false },
+    private val onIncomingRequest: (NearbyRequest) -> Unit = {},
 ) {
     private companion object {
         const val SERVICE_ID = "app.openbridge.nearby"
@@ -118,6 +119,18 @@ class NearbyP2pManager(
     private val outgoing = ConcurrentHashMap.newKeySet<String>()
 
     private val pendingFileNames = ConcurrentHashMap<String, String>()
+
+    // Nearby hands out a temp file that keeps growing while the payload is in
+    // flight. Copying it in onPayloadReceived saves the first chunk only, so
+    // the payload is kept here and finalised on Status.SUCCESS.
+    private class PendingFile(
+        val endpointId: String,
+        val peerName: String,
+        val uri: Uri,
+        val expectedBytes: Long,
+    )
+
+    private val pendingFiles = ConcurrentHashMap<Long, PendingFile>()
 
     private val connectionWaiters = ConcurrentHashMap<String, CompletableDeferred<Boolean>>()
     private val payloadWaiters = ConcurrentHashMap<Long, CompletableDeferred<Boolean>>()
@@ -234,6 +247,7 @@ class NearbyP2pManager(
         connections.clear()
         outgoing.clear()
         pendingFileNames.clear()
+        pendingFiles.clear()
         controlWaiters.clear()
         pullCounters.clear()
         pullTotals.clear()
@@ -301,12 +315,14 @@ class NearbyP2pManager(
             } else if (trusted) {
                 acceptInternal(endpointId, deviceId)
             } else if (_incoming.value == null) {
-                _incoming.value = NearbyRequest(
+                val request = NearbyRequest(
                     endpointId = endpointId,
                     deviceId = deviceId,
                     name = name,
                     trusted = false,
                 )
+                _incoming.value = request
+                runCatching { onIncomingRequest(request) }
             } else {
                 Diag.log("nearby", "заняты другим запросом — отклоняем")
                 runCatching { client?.rejectConnection(endpointId) }
@@ -618,6 +634,79 @@ class NearbyP2pManager(
         _progress.value = NearbyProgress(peerName, done.toFloat() / total, "")
     }
 
+    /**
+     * Copies a finished Nearby file into Download/OpenBridge.
+     *
+     * Called only after [PayloadTransferUpdate.Status.SUCCESS], so the whole
+     * payload is on disk. A size mismatch means the file is unusable: it is
+     * deleted and reported as an error instead of being saved truncated.
+     */
+    private fun finalizeFile(pending: PendingFile) {
+        val peerName = pending.peerName
+        val name = pendingFileNames.remove(pending.endpointId)
+            ?: pending.uri.lastPathSegment?.substringAfter('-')?.ifBlank { "file" }
+            ?: "file"
+        val safeName = name.substringAfterLast('/').ifBlank { "file" }
+        val dir = File(context.cacheDir, "nearby-in").apply { mkdirs() }
+        val incoming = File(dir, safeName)
+
+        var copied = 0L
+        val complete = runCatching {
+            context.contentResolver.openInputStream(pending.uri)?.use { input ->
+                incoming.outputStream().use { output ->
+                    val buffer = ByteArray(256 * 1024)
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        output.write(buffer, 0, read)
+                        copied += read
+                    }
+                    output.flush()
+                }
+            } ?: error("не удалось открыть файл")
+
+            if (pending.expectedBytes >= 0 && copied != pending.expectedBytes) {
+                error("получено $copied из ${pending.expectedBytes} байт")
+            }
+            true
+        }.getOrElse { error ->
+            Diag.log("nearby", "[ERR] файл $safeName не скопирован: ${error.message}")
+            false
+        }
+
+        if (!complete) {
+            runCatching { incoming.delete() }
+            _events.value = NearbyEvent.Failed(peerName, "Файл $safeName пришёл не полностью")
+            return
+        }
+
+        val mime = runCatching {
+            java.net.URLConnection.guessContentTypeFromName(safeName)
+        }.getOrNull() ?: "application/octet-stream"
+
+        val saved = Downloads.save(context, incoming, safeName, mime)
+        runCatching { incoming.delete() }
+
+        if (saved == null) {
+            Diag.log("nearby", "[ERR] файл $safeName не сохранён в Download")
+            _events.value = NearbyEvent.Failed(peerName, "Не удалось сохранить $safeName")
+            return
+        }
+
+        pullCounters[pending.endpointId]?.let { it[1]++ }
+        updatePullProgress(pending.endpointId, peerName)
+
+        val savedMime = runCatching { context.contentResolver.getType(saved) }.getOrNull() ?: mime
+        Diag.log("nearby", "[OK] файл $safeName ($copied байт) -> $saved")
+        _events.value = NearbyEvent.FileSaved(
+            peerName = peerName,
+            path = saved.toString(),
+            bytes = copied,
+            name = safeName,
+            mime = savedMime,
+        )
+    }
+
     private fun copyToCache(uri: Uri, name: String): File {
         val dir = File(context.cacheDir, "nearby").apply { mkdirs() }
         val safe = name.substringAfterLast('/').ifBlank { "file.bin" }
@@ -670,43 +759,25 @@ class NearbyP2pManager(
                 }
 
                 Payload.Type.FILE -> {
-                    val uri = payload.asFile()?.asUri() ?: return
-
-                    pullCounters[endpointId]?.let { it[1]++ }
-                    updatePullProgress(endpointId, peerName)
-                    scope.launch(Dispatchers.IO) {
-                        val name = pendingFileNames.remove(endpointId)
-                            ?: uri.lastPathSegment?.substringAfter('-')?.ifBlank { "file" }
-                            ?: "file"
-                        val temp = File(context.cacheDir, "nearby-in").apply { mkdirs() }
-                        val incoming = File(temp, name)
-                        val copied = runCatching {
-                            context.contentResolver.openInputStream(uri)?.use { input ->
-                                incoming.outputStream().use { output -> input.copyTo(output) }
-                            }
-                            incoming.length()
-                        }.getOrDefault(0L)
-
-                        val saved = if (copied > 0) {
-                            Downloads.save(context, incoming, name, "application/octet-stream")
-                        } else {
-                            null
-                        }
-                        runCatching { incoming.delete() }
-                        Diag.log("nearby", "получен файл $name -> $saved")
-                        val mime = saved?.let {
-                            runCatching { context.contentResolver.getType(it) }.getOrNull()
-                        } ?: runCatching {
-                            java.net.URLConnection.guessContentTypeFromName(name)
-                        }.getOrNull() ?: "application/octet-stream"
-                        _events.value = NearbyEvent.FileSaved(
-                            peerName = peerName,
-                            path = saved?.toString().orEmpty(),
-                            bytes = copied,
-                            name = name,
-                            mime = mime,
-                        )
+                    val file = payload.asFile()
+                    val uri = runCatching { file?.asUri() }.getOrNull()
+                    if (uri == null) {
+                        Diag.log("nearby", "[ERR] файл от $peerName без uri")
+                        _events.value = NearbyEvent.Failed(peerName, "Не удалось принять файл")
+                        return
                     }
+
+                    val expected = runCatching { file?.size ?: -1L }.getOrDefault(-1L)
+                    pendingFiles[payload.id] = PendingFile(
+                        endpointId = endpointId,
+                        peerName = peerName,
+                        uri = uri,
+                        expectedBytes = expected,
+                    )
+                    Diag.log(
+                        "nearby",
+                        "файл от $peerName принят в очередь (${payload.id}, $expected байт)",
+                    )
                 }
 
                 else -> Diag.log("nearby", "payload type=${payload.type} не поддержан")
@@ -716,13 +787,34 @@ class NearbyP2pManager(
         override fun onPayloadTransferUpdate(endpointId: String, update: PayloadTransferUpdate) {
             val waiter = payloadWaiters[update.payloadId]
             when (update.status) {
-                PayloadTransferUpdate.Status.SUCCESS -> waiter?.complete(true)
+                PayloadTransferUpdate.Status.SUCCESS -> {
+                    waiter?.complete(true)
+                    // Only now the temp file holds every byte of the payload.
+                    pendingFiles.remove(update.payloadId)?.let { pending ->
+                        scope.launch(Dispatchers.IO) { finalizeFile(pending) }
+                    }
+                }
+
                 PayloadTransferUpdate.Status.FAILURE -> {
                     waiter?.complete(false)
+                    pendingFiles.remove(update.payloadId)
+                    pendingFileNames.remove(endpointId)
                     controlWaiters.remove(endpointId)?.complete("failed")
                     _events.value = NearbyEvent.Failed(
                         names[endpointId] ?: "устройство",
                         "получатель не принял данные",
+                    )
+                }
+
+                PayloadTransferUpdate.Status.CANCELED -> {
+                    waiter?.complete(false)
+                    val dropped = pendingFiles.remove(update.payloadId)
+                    pendingFileNames.remove(endpointId)
+                    controlWaiters.remove(endpointId)?.complete("failed")
+                    Diag.log("nearby", "[ERR] передача отменена (${dropped?.peerName ?: endpointId})")
+                    _events.value = NearbyEvent.Failed(
+                        names[endpointId] ?: dropped?.peerName ?: "устройство",
+                        "Передача отменена",
                     )
                 }
 

@@ -26,6 +26,13 @@ import java.util.UUID
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.HttpsURLConnection
 
+/**
+ * The receiver looked at the offer and declined it. This is a decision, not a
+ * broken network, so the sender must stop instead of retrying over Nearby.
+ */
+class TransferRejectedException(val reason: String) :
+    Exception("Получатель отклонил передачу")
+
 class TransferClient(private val g: AppGraph) {
     private data class HttpResult(val code: Int, val text: String) {
         val ok: Boolean get() = code in 200..299
@@ -55,8 +62,9 @@ class TransferClient(private val g: AppGraph) {
             if (!offerResult.ok) {
                 val reason = runCatching {
                     g.json.decodeFromString(OfferResponse.serializer(), offerResult.text).reason
-                }.getOrNull()
-                error(reason?.takeIf { it.isNotBlank() } ?: "Передача отклонена")
+                }.getOrNull().orEmpty()
+                Diag.log("client", "offer declined by ${peer.name}: $reason")
+                throw TransferRejectedException(reason)
             }
             val token = g.json.decodeFromString(OfferResponse.serializer(), offerResult.text).token
 
@@ -128,8 +136,12 @@ class TransferClient(private val g: AppGraph) {
                 )
             )
         }.onFailure { error ->
-            Diag.log("send", "failed to ${peer.name} ${ip}:${peer.port}: $error")
-            runCatching { Diag.dump("send", error) }
+            val rejected = error is TransferRejectedException
+            Diag.log(
+                "send",
+                "${if (rejected) "declined" else "failed"} by ${peer.name} ${ip}:${peer.port}: $error",
+            )
+            if (!rejected) runCatching { Diag.dump("send", error) }
             g.history.add(
                 HistoryEntry(
                     id = transferId,
@@ -139,7 +151,7 @@ class TransferClient(private val g: AppGraph) {
                     bytes = built.payload.totalBytes,
                     files = built.payload.filesOrEmpty.size,
                     timestamp = System.currentTimeMillis(),
-                    status = "failed",
+                    status = if (rejected) "declined" else "failed",
                 )
             )
             onProgress(0f, friendlyError(error))
@@ -147,6 +159,8 @@ class TransferClient(private val g: AppGraph) {
     }
 
     private fun friendlyError(error: Throwable): String {
+        if (error is TransferRejectedException) return "Получатель отклонил передачу"
+
         val text = error.message.orEmpty()
         val looksLikeDrop = listOf(
             "unexpected end of stream",

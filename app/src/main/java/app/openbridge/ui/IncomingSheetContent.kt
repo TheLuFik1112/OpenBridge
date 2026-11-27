@@ -45,21 +45,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.openbridge.core.FileMeta
 import app.openbridge.core.IncomingStage
-import app.openbridge.core.Payload
-import app.openbridge.core.TransferOffer
 import app.openbridge.core.formatBytes
-import app.openbridge.core.totalBytes
+import app.openbridge.service.IncomingPrompt
 
 @Composable
 fun IncomingSheetContent(
-    offer: TransferOffer,
+    prompt: IncomingPrompt,
     stage: IncomingStage,
     onAccept: (always: Boolean) -> Unit,
     onDecline: () -> Unit,
     modifier: Modifier = Modifier,
     showHandle: Boolean = true,
 ) {
-    var alwaysAccept by rememberSaveable(offer.transferId) { mutableStateOf(false) }
+    var alwaysAccept by rememberSaveable(prompt.id) { mutableStateOf(false) }
     val busy = stage is IncomingStage.Connecting || stage is IncomingStage.Transferring
     val failed = stage is IncomingStage.Failed
 
@@ -91,7 +89,7 @@ fun IncomingSheetContent(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = offer.sender.name.trim().take(1).uppercase().ifEmpty { "?" },
+                    text = prompt.peerName.trim().take(1).uppercase().ifEmpty { "?" },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = FlatAccent,
@@ -105,7 +103,7 @@ fun IncomingSheetContent(
                     color = FlatTextSecondary,
                 )
                 Text(
-                    text = offer.sender.name,
+                    text = prompt.peerName,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = FlatTextPrimary,
@@ -113,7 +111,7 @@ fun IncomingSheetContent(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "${offer.sender.platform.uppercase()} · РЯДОМ",
+                    text = "${prompt.platform.uppercase()} · ${prompt.transport}",
                     style = MaterialTheme.typography.labelSmall,
                     color = FlatTextMuted,
                     maxLines = 1,
@@ -130,54 +128,52 @@ fun IncomingSheetContent(
 
         Spacer(Modifier.height(12.dp))
         Text(
-            text = when (val payload = offer.payload) {
-                is Payload.Text -> "Хочет отправить текст из буфера"
-                is Payload.Files -> "Хочет отправить файлы (${payload.files.size})"
-                is Payload.Mixed -> "Хочет отправить файлы и текст"
-            },
+            text = prompt.headline,
             style = MaterialTheme.typography.bodyLarge,
             color = FlatTextPrimary,
         )
         Spacer(Modifier.height(12.dp))
 
-        PreviewCard(offer.payload, stage)
+        PreviewCard(prompt, stage)
 
-        Spacer(Modifier.height(8.dp))
+        if (prompt.allowAlways) {
+            Spacer(Modifier.height(8.dp))
 
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .toggleable(
-                    value = alwaysAccept,
-                    enabled = !busy,
-                    role = Role.Checkbox,
-                    onValueChange = { alwaysAccept = it },
-                )
-                .padding(vertical = 8.dp, horizontal = 2.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            FlatCheckbox(checked = alwaysAccept, enabled = !busy)
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = "Всегда принимать от «${offer.sender.name}»",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = FlatTextPrimary,
-                )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Rounded.Shield,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp),
-                        tint = FlatTextMuted,
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .toggleable(
+                        value = alwaysAccept,
+                        enabled = !busy,
+                        role = Role.Checkbox,
+                        onValueChange = { alwaysAccept = it },
                     )
-                    Spacer(Modifier.width(4.dp))
+                    .padding(vertical = 8.dp, horizontal = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FlatCheckbox(checked = alwaysAccept, enabled = !busy)
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
                     Text(
-                        text = "Ключ устройства сохранится, следующие передачи — без подтверждения",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = FlatTextMuted,
-                        maxLines = 2,
+                        text = "Всегда принимать от «${prompt.peerName}»",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = FlatTextPrimary,
                     )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Rounded.Shield,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = FlatTextMuted,
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            text = "Ключ устройства сохранится, следующие передачи — без подтверждения",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = FlatTextMuted,
+                            maxLines = 2,
+                        )
+                    }
                 }
             }
         }
@@ -206,7 +202,7 @@ fun IncomingSheetContent(
 }
 
 @Composable
-private fun PreviewCard(payload: Payload, stage: IncomingStage) {
+private fun PreviewCard(prompt: IncomingPrompt, stage: IncomingStage) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -214,14 +210,19 @@ private fun PreviewCard(payload: Payload, stage: IncomingStage) {
             .flatBorder(),
     ) {
         Column(Modifier.padding(14.dp)) {
-            when (payload) {
-                is Payload.Text -> TextPreview(payload.text)
-                is Payload.Files -> FilesPreview(payload.files)
-                is Payload.Mixed -> {
-                    FilesPreview(payload.files, compact = true)
-                    Spacer(Modifier.height(10.dp))
-                    TextPreview(payload.text)
-                }
+            val text = prompt.text
+            if (prompt.files.isNotEmpty()) {
+                FilesPreview(prompt.files, compact = text != null)
+                if (text != null) Spacer(Modifier.height(10.dp))
+            }
+            if (text != null) {
+                TextPreview(text)
+            } else if (prompt.files.isEmpty()) {
+                Text(
+                    text = "Отправитель рядом. Подтвердите приём, чтобы начать.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = FlatTextSecondary,
+                )
             }
 
             if (stage is IncomingStage.Transferring) {
@@ -345,5 +346,3 @@ fun iconFor(file: FileMeta): ImageVector = when {
     else -> Icons.Rounded.Description
 }
 
-@Suppress("unused")
-private fun payloadBytes(payload: Payload): Long = payload.totalBytes

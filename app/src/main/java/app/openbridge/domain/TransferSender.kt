@@ -8,6 +8,7 @@ import app.openbridge.core.QueueKind
 import app.openbridge.data.DiscoveredPeer
 import app.openbridge.discovery.NearbyItem
 import app.openbridge.discovery.NearbyProgress
+import app.openbridge.net.TransferRejectedException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -150,8 +151,17 @@ class TransferSender(
         return clip.getItemAt(0).coerceToText(context)?.toString()
     }
 
+    /**
+     * A declined offer is a decision, not a broken network: retrying it over
+     * Nearby would just show the person a second popup for a transfer they
+     * already refused.
+     */
     private fun shouldFallbackToNearby(error: Throwable?): Boolean {
+        if (error is TransferRejectedException) return false
+
         val text = error?.message.orEmpty()
-        return !text.contains("отклонен", ignoreCase = true)
+        return !text.contains("отклонен", ignoreCase = true) &&
+            !text.contains("declined", ignoreCase = true) &&
+            !text.contains("rejected", ignoreCase = true)
     }
 }

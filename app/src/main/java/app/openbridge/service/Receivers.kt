@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 class DecisionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION) return
-        val transferId = intent.getStringExtra(EXTRA_ID) ?: return
+        val promptId = intent.getStringExtra(EXTRA_ID) ?: return
         val accept = intent.getBooleanExtra(EXTRA_ACCEPT, false)
 
         val graph = (context.applicationContext as? OpenBridgeApp)?.graph ?: return
@@ -19,12 +19,12 @@ class DecisionReceiver : BroadcastReceiver() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 if (accept) {
-                    graph.incoming.accept(transferId, always = false)
+                    graph.presenter.accept(promptId, always = false)
                 } else {
-                    graph.incoming.decline(transferId)
+                    graph.presenter.decline(promptId)
                 }
             } finally {
-                graph.notifier.cancel(transferId)
+                graph.notifier.cancel(promptId)
                 pending.finish()
             }
         }

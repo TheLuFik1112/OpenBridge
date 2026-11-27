@@ -79,6 +79,8 @@ class AppGraph(val app: Application) {
                 )
             },
             onPeerLost = { id -> peers.onPeerLost(id, "nearby") },
+            // Nearby requests use the same sheet as Wi-Fi offers.
+            onIncomingRequest = { request -> presenter.presentNearby(request) },
         )
     }
 

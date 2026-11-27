@@ -12,44 +12,119 @@ import app.openbridge.OpenBridgeApp
 import app.openbridge.R
 import app.openbridge.core.AppGraph
 import app.openbridge.core.IncomingStage
+import app.openbridge.core.PeerInfo
 import app.openbridge.core.Payload
 import app.openbridge.core.TransferOffer
 import app.openbridge.core.filesOrEmpty
 import app.openbridge.core.formatBytes
+import app.openbridge.discovery.NearbyRequest
 import app.openbridge.overlay.IncomingRequestActivity
 import app.openbridge.overlay.OverlaySheetHost
 import app.openbridge.util.canUseFullScreenIntent
+import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 
+/**
+ * Shows incoming requests from every transport.
+ *
+ * Wi-Fi offers and Nearby requests become the same [IncomingPrompt] and go
+ * through one pipeline: in-app activity when OpenBridge is visible, the
+ * system overlay when it is not, and a heads-up notification as a fallback.
+ */
 class IncomingPresenter(private val context: Context, private val g: AppGraph) {
+    private class Pending(
+        val prompt: IncomingPrompt,
+        val accept: (Boolean) -> Unit,
+        val decline: () -> Unit,
+    )
+
+    private val pending = ConcurrentHashMap<String, Pending>()
+
     private val overlay by lazy {
         OverlaySheetHost(
             context = context,
-            onAccept = { transferId, always -> g.incoming.accept(transferId, always) },
-            onDecline = { transferId -> g.incoming.decline(transferId) },
+            onAccept = { id, always -> accept(id, always) },
+            onDecline = { id -> decline(id) },
         )
     }
 
+    fun prompt(id: String): IncomingPrompt? = pending[id]?.prompt
+
     fun present(offer: TransferOffer) {
+        present(
+            prompt = IncomingPrompt.fromOffer(offer),
+            accept = { always -> g.incoming.accept(offer.transferId, always) },
+            decline = { g.incoming.decline(offer.transferId) },
+        )
+    }
+
+    fun presentNearby(request: NearbyRequest) {
+        present(
+            prompt = IncomingPrompt.fromNearby(request),
+            accept = { always ->
+                g.scope.launch {
+                    if (always && request.deviceId.isNotBlank()) {
+                        g.peers.trust(
+                            PeerInfo(
+                                id = request.deviceId,
+                                name = request.name,
+                                certFingerprint = request.deviceId,
+                            )
+                        )
+                    }
+                    g.nearby.accept(request.endpointId)
+                }
+            },
+            decline = { g.nearby.decline(request.endpointId) },
+        )
+    }
+
+    private fun present(
+        prompt: IncomingPrompt,
+        accept: (Boolean) -> Unit,
+        decline: () -> Unit,
+    ) {
+        pending[prompt.id] = Pending(prompt, accept, decline)
+
         val app = context.applicationContext as? OpenBridgeApp
         when {
-            app?.isInForeground == true -> startActivity(offer)
-            overlay.canShow() && !isDeviceLocked() -> overlay.show(offer)
-            else -> g.notifier.headsUp(offer)
+            app?.isInForeground == true -> startActivity(prompt)
+            overlay.canShow() && !isDeviceLocked() -> {
+                if (!overlay.show(prompt)) g.notifier.headsUp(prompt)
+            }
+            else -> g.notifier.headsUp(prompt)
         }
     }
 
+    fun accept(id: String, always: Boolean) {
+        val item = pending.remove(id) ?: return
+        item.accept(always)
+        if (!item.prompt.trackProgress) {
+            overlay.close()
+            g.notifier.clearProgress(id)
+        }
+    }
+
+    fun decline(id: String) {
+        val item = pending.remove(id) ?: return
+        overlay.close()
+        g.notifier.clearProgress(id)
+        item.decline()
+    }
+
     fun onStage(transferId: String, stage: IncomingStage) {
-        overlay.updateStage(stage)
+        overlay.updateStage(transferId, stage)
         if (stage is IncomingStage.Done) g.notifier.clearProgress(transferId)
     }
 
     fun dismiss(transferId: String) {
+        pending.remove(transferId)
         overlay.close()
         g.notifier.clearProgress(transferId)
     }
 
-    private fun startActivity(offer: TransferOffer) {
-        val intent = IncomingRequestActivity.intent(context, offer.transferId)
+    private fun startActivity(prompt: IncomingPrompt) {
+        val intent = IncomingRequestActivity.intent(context, prompt.id)
         runCatching {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 val options = ActivityOptions.makeBasic().apply {
@@ -61,7 +136,7 @@ class IncomingPresenter(private val context: Context, private val g: AppGraph) {
             } else {
                 context.startActivity(intent)
             }
-        }.onFailure { g.notifier.headsUp(offer) }
+        }.onFailure { g.notifier.headsUp(prompt) }
     }
 
     private fun isDeviceLocked(): Boolean {
@@ -73,15 +148,15 @@ class IncomingPresenter(private val context: Context, private val g: AppGraph) {
 class IncomingNotifier(private val context: Context) {
     private val nm = context.getSystemService(NotificationManager::class.java)
 
-    fun headsUp(offer: TransferOffer) {
-        val open = openIntent(offer.transferId, offer.transferId.hashCode())
-        val accept = decisionIntent(offer.transferId, accept = true, requestCode = 11)
-        val decline = decisionIntent(offer.transferId, accept = false, requestCode = 12)
+    fun headsUp(prompt: IncomingPrompt) {
+        val open = openIntent(prompt.id, prompt.id.hashCode())
+        val accept = decisionIntent(prompt.id, accept = true, requestCode = 11)
+        val decline = decisionIntent(prompt.id, accept = false, requestCode = 12)
 
         val builder = NotificationCompat.Builder(context, RadarService.CHANNEL_INCOMING)
             .setSmallIcon(R.drawable.ic_stat_incoming)
-            .setContentTitle(offer.sender.name)
-            .setContentText(summary(offer))
+            .setContentTitle(prompt.peerName)
+            .setContentText("${prompt.headline} · ${prompt.transport.lowercase()}")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setAutoCancel(true)
@@ -135,11 +210,11 @@ class IncomingNotifier(private val context: Context) {
         is Payload.Mixed -> "Файлы (${payload.files.size}) и текст"
     }
 
-    private fun openIntent(transferId: String, requestCode: Int): PendingIntent =
+    private fun openIntent(promptId: String, requestCode: Int): PendingIntent =
         PendingIntent.getActivity(
             context,
             requestCode,
-            IncomingRequestActivity.intent(context, transferId),
+            IncomingRequestActivity.intent(context, promptId),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 ActivityOptions.makeBasic().apply {
@@ -152,13 +227,13 @@ class IncomingNotifier(private val context: Context) {
             },
         )
 
-    private fun decisionIntent(transferId: String, accept: Boolean, requestCode: Int): PendingIntent =
+    private fun decisionIntent(promptId: String, accept: Boolean, requestCode: Int): PendingIntent =
         PendingIntent.getBroadcast(
             context,
-            requestCode + transferId.hashCode(),
+            requestCode + promptId.hashCode(),
             Intent(context, DecisionReceiver::class.java)
                 .setAction(DecisionReceiver.ACTION)
-                .putExtra(DecisionReceiver.EXTRA_ID, transferId)
+                .putExtra(DecisionReceiver.EXTRA_ID, promptId)
                 .putExtra(DecisionReceiver.EXTRA_ACCEPT, accept),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
