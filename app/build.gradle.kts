@@ -16,7 +16,7 @@ android {
         applicationId = "app.openbridge"
         minSdk = 26
         targetSdk = 35
-        versionCode = 22
+        versionCode = 23
         versionName = "0.6.0"
     }
 
@@ -95,6 +95,9 @@ dependencies {
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
+
+    // Lightweight JavaScript engine for user-installed script plugins.
+    implementation("app.cash.quickjs:quickjs-android:0.9.2")
 
     implementation("io.ktor:ktor-server-core:3.0.3")
     implementation("io.ktor:ktor-server-cio:3.0.3")

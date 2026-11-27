@@ -16,6 +16,8 @@ import java.util.concurrent.ConcurrentHashMap
 class ReceiveStore(
     private val context: Context,
     @Suppress("unused") private val identity: IdentityStore,
+    private val onFileSaved: (name: String, path: String, mime: String, senderName: String) -> Unit =
+        { _, _, _, _ -> },
 ) {
     class Session(val offer: TransferOffer, val token: String, val dir: File) {
         val files = ConcurrentHashMap<Int, ReceivingFile>()
@@ -165,7 +167,13 @@ class ReceiveStore(
         expectedFiles.forEach { meta ->
             val source = File(outDir, sanitize(meta.path))
             if (!source.exists()) return@forEach
-            Downloads.save(context, source, sanitize(meta.path), meta.mime)
+            val mime = meta.mime.ifBlank { "application/octet-stream" }
+            val uri = Downloads.save(context, source, sanitize(meta.path), mime)
+            if (uri != null) {
+                runCatching {
+                    onFileSaved(source.name, uri.toString(), mime, session.offer.sender.name)
+                }
+            }
             exported += meta.path
         }
 

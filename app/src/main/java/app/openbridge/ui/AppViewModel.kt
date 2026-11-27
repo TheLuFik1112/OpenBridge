@@ -22,6 +22,7 @@ import app.openbridge.domain.NfcState
 import app.openbridge.domain.PackageQueue
 import app.openbridge.domain.SendState
 import app.openbridge.domain.TransferSender
+import app.openbridge.plugins.ScriptPlugin
 import app.openbridge.text.AppStrings
 import app.openbridge.text.resolveStrings
 import app.openbridge.theme.BuiltInThemes
@@ -129,11 +130,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val themePluginState = MutableStateFlow(graph.settings.themePluginId.value)
     val themePluginId: StateFlow<String> = themePluginState.asStateFlow()
 
+    private val installedScriptPlugins = MutableStateFlow<List<ScriptPlugin>>(emptyList())
+    val scriptPlugins: StateFlow<List<ScriptPlugin>> = installedScriptPlugins.asStateFlow()
+
     init {
         viewModelScope.launch(Dispatchers.IO) {
             val list = graph.plugins.loadInstalledThemes()
             installedThemes.value = list
             applyTheme(list, settings.themePluginId.value)
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            installedScriptPlugins.value = graph.scripts.loadInstalled()
         }
     }
 
@@ -265,6 +272,39 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 messages.value = s.themeDeleted
             } else {
                 messages.value = s.themeDeleteFailed
+            }
+        }
+    }
+
+    fun importScriptPlugin(uri: Uri) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val s = strings.value
+            graph.scripts.importFromUri(uri)
+                .onSuccess { plugin ->
+                    installedScriptPlugins.value = graph.scripts.loadInstalled()
+                    messages.value = s.pluginImported(plugin.manifest.name)
+                }
+                .onFailure { error ->
+                    messages.value = "${s.pluginImportFailed}: ${error.message ?: "unknown error"}"
+                }
+        }
+    }
+
+    fun setScriptPluginEnabled(id: String, enabled: Boolean) {
+        viewModelScope.launch(Dispatchers.IO) {
+            graph.scripts.setEnabled(id, enabled)
+            installedScriptPlugins.value = graph.scripts.loadInstalled()
+        }
+    }
+
+    fun deleteScriptPlugin(id: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val s = strings.value
+            if (graph.scripts.deletePlugin(id)) {
+                installedScriptPlugins.value = graph.scripts.loadInstalled()
+                messages.value = s.pluginDeleted
+            } else {
+                messages.value = s.pluginDeleteFailed
             }
         }
     }

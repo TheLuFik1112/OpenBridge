@@ -1,0 +1,9 @@
+{
+  "id": "auto-open-links",
+  "name": "Auto Open Links",
+  "description": "Сразу открывает присланные ссылки в браузере",
+  "author": "TheLuFik",
+  "version": "1.0",
+  "entry": "main.js",
+  "permissions": ["open_url"]
+}

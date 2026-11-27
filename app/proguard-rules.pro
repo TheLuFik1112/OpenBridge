@@ -32,6 +32,26 @@
     *** serializer(...);
 }
 
+# Script plugin manifests come from user-supplied .obp archives.
+-keep class app.openbridge.plugins.PluginManifest { *; }
+-keep class app.openbridge.plugins.PluginManifest$$serializer { *; }
+-keepclassmembers class app.openbridge.plugins.** {
+    *** Companion;
+    *** serializer(...);
+}
+
+# QuickJS exposes the bridge by reflection, so method names and signatures must survive R8.
+-keep interface app.openbridge.plugins.ObBridge { *; }
+-keep class app.openbridge.plugins.AndroidObBridge { *; }
+-keepclassmembers class app.openbridge.plugins.AndroidObBridge {
+    public *;
+}
+-keep class app.cash.quickjs.** { *; }
+-keepclasseswithmembernames,includedescriptorclasses class app.cash.quickjs.** {
+    native <methods>;
+}
+-dontwarn app.cash.quickjs.**
+
 # Ktor server and CIO engine resolve converters and engines by type at runtime.
 -keep class io.ktor.** { *; }
 -dontwarn io.ktor.**

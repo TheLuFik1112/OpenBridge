@@ -61,7 +61,13 @@ data class PullSummary(val texts: Int, val files: Int)
 
 sealed interface NearbyEvent {
     data class Text(val peerName: String, val text: String) : NearbyEvent
-    data class FileSaved(val peerName: String, val path: String, val bytes: Long) : NearbyEvent
+    data class FileSaved(
+        val peerName: String,
+        val path: String,
+        val bytes: Long,
+        val name: String = "",
+        val mime: String = "application/octet-stream",
+    ) : NearbyEvent
     data class Failed(val peerName: String, val reason: String) : NearbyEvent
 }
 
@@ -688,10 +694,17 @@ class NearbyP2pManager(
                         }
                         runCatching { incoming.delete() }
                         Diag.log("nearby", "получен файл $name -> $saved")
+                        val mime = saved?.let {
+                            runCatching { context.contentResolver.getType(it) }.getOrNull()
+                        } ?: runCatching {
+                            java.net.URLConnection.guessContentTypeFromName(name)
+                        }.getOrNull() ?: "application/octet-stream"
                         _events.value = NearbyEvent.FileSaved(
                             peerName = peerName,
                             path = saved?.toString().orEmpty(),
                             bytes = copied,
+                            name = name,
+                            mime = mime,
                         )
                     }
                 }

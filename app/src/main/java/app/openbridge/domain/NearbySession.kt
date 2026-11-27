@@ -84,6 +84,7 @@ class NearbySession(
         when (event) {
             is NearbyEvent.Text -> {
                 copyToClipboard(event.text)
+                graph.pluginEngine.onTextReceived(event.text, event.peerName)
                 graph.history.add(
                     HistoryEntry(
                         id = UUID.randomUUID().toString(),
@@ -101,6 +102,14 @@ class NearbySession(
             }
 
             is NearbyEvent.FileSaved -> {
+                if (event.path.isNotBlank()) {
+                    graph.pluginEngine.onFileReceived(
+                        fileName = event.name.ifBlank { "file" },
+                        filePath = event.path,
+                        mimeType = event.mime,
+                        senderName = event.peerName,
+                    )
+                }
                 graph.history.add(
                     HistoryEntry(
                         id = UUID.randomUUID().toString(),

@@ -150,6 +150,9 @@ class IncomingCoordinator(private val g: AppGraph) {
                         cm.setPrimaryClip(ClipData.newPlainText("OpenBridge", text))
                     }
                 }
+                if (result.ok) {
+                    g.pluginEngine.onTextReceived(text, offer.sender.name)
+                }
             }
 
             g.history.add(

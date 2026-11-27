@@ -130,7 +130,10 @@ fun SettingsScreen(viewModel: AppViewModel) {
                 onBack = { themesOpen = false },
             )
 
-            SCREEN_PLUGINS -> PluginsScreen(onBack = { pluginsOpen = false })
+            SCREEN_PLUGINS -> PluginsScreen(
+                viewModel = viewModel,
+                onBack = { pluginsOpen = false },
+            )
 
             else -> {
                 LazyColumn(

@@ -371,6 +371,8 @@ class TransferServer(private val g: AppGraph) {
             ?: "application/octet-stream"
         Diag.log("portal", "upload $name ($rawType)")
 
+        var savedUri: Uri? = null
+
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
             val uri = withContext(Dispatchers.IO) { createDownload(name, rawType) }
                 ?: return respondText(
@@ -384,6 +386,7 @@ class TransferServer(private val g: AppGraph) {
                     } ?: error("openOutputStream failed")
                 }
                 withContext(Dispatchers.IO) { finalizeDownload(uri) }
+                savedUri = uri
             } catch (t: Throwable) {
                 runCatching { g.app.contentResolver.delete(uri, null, null) }
                 Diag.log("portal", "upload failed: $t")
@@ -397,7 +400,7 @@ class TransferServer(private val g: AppGraph) {
             try {
                 withContext(Dispatchers.IO) {
                     temp.outputStream().use { copyBody(call, it) }
-                    Downloads.save(g.app, temp, "web/$name", rawType)
+                    savedUri = Downloads.save(g.app, temp, "web/$name", rawType)
                 }
             } catch (t: Throwable) {
                 Diag.log("portal", "upload failed: $t")
@@ -409,6 +412,21 @@ class TransferServer(private val g: AppGraph) {
                 temp.delete()
             }
         }
+
+        savedUri?.let { uri ->
+            val path = uri.toString()
+            if (looksLikeText(rawType, name)) {
+                val text = withContext(Dispatchers.IO) { readPortalText(uri) }
+                if (!text.isNullOrBlank()) {
+                    g.pluginEngine.onTextReceived(text, PORTAL_SENDER)
+                } else {
+                    g.pluginEngine.onFileReceived(name, path, rawType, PORTAL_SENDER)
+                }
+            } else {
+                g.pluginEngine.onFileReceived(name, path, rawType, PORTAL_SENDER)
+            }
+        }
+
         respondText("ok")
     }
 
@@ -525,6 +543,42 @@ class TransferServer(private val g: AppGraph) {
         }
     }
 
+    private fun looksLikeText(mime: String, name: String): Boolean =
+        mime.startsWith("text/", ignoreCase = true) ||
+            name.endsWith(".txt", ignoreCase = true) ||
+            name.endsWith(".md", ignoreCase = true)
+
+    /**
+     * Reads a small text upload so it can be passed to `onTextReceived`.
+     * Larger files stay file-only, which keeps memory use predictable.
+     */
+    private fun readPortalText(uri: Uri): String? = runCatching {
+        val input = if (uri.scheme == "file") {
+            uri.path?.let { java.io.File(it).inputStream() }
+        } else {
+            g.app.contentResolver.openInputStream(uri)
+        }
+        input.use { stream ->
+            if (stream == null) return@use null
+
+            val out = java.io.ByteArrayOutputStream()
+            val buffer = ByteArray(8 * 1024)
+            var total = 0
+            var tooLarge = false
+            while (true) {
+                val read = stream.read(buffer)
+                if (read < 0) break
+                total += read
+                if (total > MAX_PORTAL_TEXT_BYTES) {
+                    tooLarge = true
+                    break
+                }
+                out.write(buffer, 0, read)
+            }
+            if (tooLarge) null else out.toString("UTF-8")
+        }
+    }.getOrNull()
+
     private fun createDownload(name: String, mime: String): Uri? {
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, name)
@@ -542,4 +596,9 @@ class TransferServer(private val g: AppGraph) {
 
     private fun sanitizeName(name: String): String =
         name.replace('/', '_').replace('\\', '_').take(120).ifBlank { "file" }
+
+    private companion object {
+        const val PORTAL_SENDER = "QR Portal"
+        const val MAX_PORTAL_TEXT_BYTES = 256 * 1024
+    }
 }

@@ -118,6 +118,13 @@ interface AppStrings {
     val pluginsTitle: String
     val pluginsSubtitle: String
     val pluginsEmpty: String
+    val pluginsImport: String
+    val pluginsDelete: String
+    fun pluginImported(name: String): String
+    val pluginImportFailed: String
+    val pluginDeleted: String
+    val pluginDeleteFailed: String
+    fun pluginAuthorVersion(author: String, version: String): String
 
     val nearbyIncomingDesc: String
     val btnTrustAlways: String
@@ -244,6 +251,13 @@ object RuStrings : AppStrings {
     override val pluginsTitle = "Плагины"
     override val pluginsSubtitle = "Скрипты и расширения"
     override val pluginsEmpty = "Плагины пока не установлены"
+    override val pluginsImport = "+ Установить (.OBP)"
+    override val pluginsDelete = "Удалить"
+    override fun pluginImported(name: String) = "Плагин «$name» установлен"
+    override val pluginImportFailed = "Не удалось установить плагин"
+    override val pluginDeleted = "Плагин удалён"
+    override val pluginDeleteFailed = "Не удалось удалить плагин"
+    override fun pluginAuthorVersion(author: String, version: String) = "$author · v$version"
 
     override val nearbyIncomingDesc = "Телефон рядом хочет передать данные напрямую без роутера через Nearby / Wi-Fi Direct."
     override val btnTrustAlways = "Всегда принимать (Доверенное)"
@@ -370,6 +384,13 @@ object EnStrings : AppStrings {
     override val pluginsTitle = "Plugins"
     override val pluginsSubtitle = "Scripts & extensions"
     override val pluginsEmpty = "No plugins installed yet"
+    override val pluginsImport = "+ Import plugin (.OBP)"
+    override val pluginsDelete = "Delete"
+    override fun pluginImported(name: String) = "Plugin “$name” installed"
+    override val pluginImportFailed = "Could not import plugin"
+    override val pluginDeleted = "Plugin removed"
+    override val pluginDeleteFailed = "Could not remove plugin"
+    override fun pluginAuthorVersion(author: String, version: String) = "$author · v$version"
 
     override val nearbyIncomingDesc = "Nearby device wants to transfer data directly without a router via Nearby / Wi-Fi Direct."
     override val btnTrustAlways = "Always accept (Trusted)"

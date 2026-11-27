@@ -12,6 +12,8 @@ import app.openbridge.net.ReceiveStore
 import app.openbridge.net.TransferClient
 import app.openbridge.net.TransferServer
 import app.openbridge.plugins.PluginManager
+import app.openbridge.plugins.ScriptPluginEngine
+import app.openbridge.plugins.ScriptPluginManager
 import app.openbridge.service.IncomingNotifier
 import app.openbridge.service.IncomingPresenter
 import app.openbridge.util.NfcHelper
@@ -44,10 +46,16 @@ class AppGraph(val app: Application) {
     }
     val settings by lazy { SettingsRepository(app) }
     val plugins by lazy { PluginManager(app) }
+    val scripts by lazy { ScriptPluginManager(app) }
+    val pluginEngine by lazy { ScriptPluginEngine(app, scripts) }
     val peers by lazy { PeerRepository(app, json) }
     val history by lazy { HistoryRepository(app, json) }
     val portal by lazy { Portal(app, settings) }
-    val receiver by lazy { ReceiveStore(app, identity) }
+    val receiver by lazy {
+        ReceiveStore(app, identity) { name, path, mime, senderName ->
+            pluginEngine.onFileReceived(name, path, mime, senderName)
+        }
+    }
     val notifier by lazy { IncomingNotifier(app) }
 
     val incoming by lazy { IncomingCoordinator(this) }
