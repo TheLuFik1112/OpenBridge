@@ -34,6 +34,7 @@ class EngineController(
     val serverState = MutableStateFlow("starting")
     val lastSelfCheck = MutableStateFlow("—")
     val crash = MutableStateFlow<PendingCrash?>(null)
+    val discoveryRefreshing = MutableStateFlow(false)
 
     private val started = AtomicBoolean(false)
 
@@ -134,6 +135,19 @@ class EngineController(
         }
     }
 
+    fun refreshNearby() {
+        scope.launch(Dispatchers.IO) {
+            discoveryRefreshing.value = true
+            runCatching { graph.nearby.stop() }
+            runCatching { graph.nearby.start() }
+                .onFailure { Diag.log("discovery", "Nearby restart failed: $it") }
+            nearbyEnabled.value = runCatching { graph.nearby.isAvailable() }.getOrDefault(false)
+            Diag.log("discovery", "nearby refresh")
+            delay(900)
+            discoveryRefreshing.value = false
+        }
+    }
+
     fun restartServer() {
         scope.launch(Dispatchers.IO) {
             val state = graph.restartServer()
@@ -147,6 +161,22 @@ class EngineController(
             runCatching { graph.nearby.start() }
             runCatching { graph.discovery.start() }
             nearbyEnabled.value = runCatching { graph.nearby.isAvailable() }.getOrDefault(false)
+        }
+    }
+
+    fun refreshDiscovery(preferredAddress: String?) {
+        scope.launch(Dispatchers.IO) {
+            discoveryRefreshing.value = true
+            runCatching { graph.discovery.setPreferredAddress(preferredAddress) }
+            runCatching { graph.discovery.restart() }
+                .onFailure { Diag.log("discovery", "LAN restart failed: $it") }
+            runCatching { graph.nearby.stop() }
+            runCatching { graph.nearby.start() }
+                .onFailure { Diag.log("discovery", "Nearby restart failed: $it") }
+            nearbyEnabled.value = runCatching { graph.nearby.isAvailable() }.getOrDefault(false)
+            Diag.log("discovery", "manual refresh, interface=${preferredAddress ?: "auto"}")
+            delay(900)
+            discoveryRefreshing.value = false
         }
     }
 

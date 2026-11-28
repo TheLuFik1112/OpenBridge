@@ -1,7 +1,12 @@
 package app.openbridge.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -37,11 +42,14 @@ import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.QrCode2
+import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -58,6 +66,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -69,6 +78,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import app.openbridge.core.LocalInterface
 import app.openbridge.core.QueueItem
 import app.openbridge.core.QueueKind
 import app.openbridge.core.TransferDirection
@@ -102,6 +112,9 @@ fun HomeScreen(
     val isEngineReady by viewModel.isEngineReady.collectAsState()
     val nfcSheetOpen by viewModel.nfcSheetOpen.collectAsState()
     val nfcState by viewModel.nfcState.collectAsState()
+    val localInterfaces by viewModel.localInterfaces.collectAsState()
+    val preferredInterface by viewModel.preferredInterface.collectAsState()
+    val refreshing by viewModel.discoveryRefreshing.collectAsState()
     val scope = rememberCoroutineScope()
 
     var panelShown by remember { mutableStateOf(nfcSheetOpen) }
@@ -241,7 +254,14 @@ fun HomeScreen(
             }
 
             item(key = "devices-title", contentType = "title") {
-                SectionHeader("02", strings.devicesNearby)
+                DevicesHeader(
+                    strings = strings,
+                    interfaces = localInterfaces,
+                    selected = preferredInterface,
+                    refreshing = refreshing,
+                    onSelect = viewModel::selectInterface,
+                    onRefreshNearby = viewModel::refreshNearby,
+                )
             }
 
             if (peers.isEmpty()) {
@@ -273,6 +293,112 @@ fun HomeScreen(
                 showTextDialog = false
             },
         )
+    }
+}
+
+@Composable
+private fun DevicesHeader(
+    strings: AppStrings,
+    interfaces: List<LocalInterface>,
+    selected: String?,
+    refreshing: Boolean,
+    onSelect: (String?) -> Unit,
+    onRefreshNearby: () -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    val transition = rememberInfiniteTransition(label = "refresh-spin")
+    val angle by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 850, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart,
+        ),
+        label = "refresh-angle",
+    )
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SectionHeader(
+            index = "02",
+            title = strings.devicesNearby,
+            modifier = Modifier.weight(1f),
+        )
+
+        Box {
+            Box(
+                modifier = Modifier
+                    .size(34.dp)
+                    .clip(FlatShape)
+                    .flatBorder()
+                    .clickable { menuOpen = true },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Refresh,
+                    contentDescription = strings.btnRefreshDevices,
+                    tint = if (refreshing) FlatAccent else FlatTextSecondary,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .rotate(if (refreshing) angle else 0f),
+                )
+            }
+            DropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = strings.interfacesAuto,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    },
+                    onClick = {
+                        menuOpen = false
+                        onSelect(null)
+                    },
+                )
+                interfaces.forEach { iface ->
+                    DropdownMenuItem(
+                        text = {
+                            Column {
+                                Text(
+                                    text = iface.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (iface.address == selected) FlatAccent else FlatTextPrimary,
+                                )
+                                Text(
+                                    text = iface.address,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = FlatTextSecondary,
+                                )
+                            }
+                        },
+                        onClick = {
+                            menuOpen = false
+                            onSelect(iface.address)
+                        },
+                    )
+                }
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = strings.nearbyScan,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    },
+                    onClick = {
+                        menuOpen = false
+                        onRefreshNearby()
+                    },
+                )
+            }
+        }
     }
 }
 

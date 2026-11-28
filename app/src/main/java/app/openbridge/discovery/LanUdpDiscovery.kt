@@ -1,6 +1,7 @@
 package app.openbridge.discovery
 
 import android.content.Context
+import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import app.openbridge.core.Beacon
 import app.openbridge.core.Diag
@@ -39,45 +40,105 @@ class LanUdpDiscovery(
     private val json = Json { ignoreUnknownKeys = true }
 
     private val lastPeerAt = java.util.concurrent.atomic.AtomicLong(0L)
+    private val forceSweep = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    @Volatile
+    private var preferredAddress: String? = null
 
     private var job: Job? = null
     private var socket: DatagramSocket? = null
+    private var sendSocket: DatagramSocket? = null
     private var multicastLock: WifiManager.MulticastLock? = null
+
+    fun setPreferredAddress(address: String?) {
+        preferredAddress = address?.trim()?.takeIf { it.isNotBlank() }
+    }
+
+    fun restart() {
+        stop()
+        start()
+    }
 
     fun start() {
         if (job != null) return
+        forceSweep.set(true)
         acquireMulticastLock()
-        job = scope.launch(Dispatchers.IO) {
-            val sock = runCatching { openSocket() }.getOrElse { error ->
-                Diag.log("lan", "socket failed to open: $error")
-                return@launch
-            }
-            socket = sock
-
-            launch { beaconLoop(sock) }
-            launch { receiveLoop(sock) }
+        val receive = runCatching { openReceiveSocket() }.getOrElse { error ->
+            Diag.log("lan", "socket failed to open: $error")
+            releaseMulticastLock()
+            return
         }
-        Diag.log("lan", "LAN discovery started on UDP $PORT")
+        socket = receive
+        val sender = openSendSocket(receive)
+        sendSocket = sender
+        job = scope.launch(Dispatchers.IO) {
+            launch { beaconLoop(sender) }
+            launch { receiveLoop(receive) }
+        }
+        Diag.log("lan", "LAN discovery started on UDP $PORT, interface=${preferredAddress ?: "auto"}")
     }
 
     fun stop() {
         job?.cancel()
         job = null
-        runCatching { socket?.close() }
+        val receive = socket
+        val sender = sendSocket
         socket = null
+        sendSocket = null
+        runCatching { if (sender !== receive) sender?.close() }
+        runCatching { receive?.close() }
         releaseMulticastLock()
         Diag.log("lan", "LAN discovery stopped")
     }
 
-    private fun openSocket(): DatagramSocket = DatagramSocket(null).apply {
-        reuseAddress = true
-        broadcast = true
-        bind(InetSocketAddress(PORT))
+    private fun openReceiveSocket(): DatagramSocket {
+        val sock = DatagramSocket(null).apply {
+            reuseAddress = true
+            broadcast = true
+        }
+        bindToNetwork(sock)
+        sock.bind(InetSocketAddress(PORT))
+        return sock
+    }
+
+    private fun openSendSocket(receive: DatagramSocket): DatagramSocket {
+        val target = preferredAddress ?: return receive
+        val sock = DatagramSocket(null).apply {
+            reuseAddress = true
+            broadcast = true
+        }
+        return runCatching {
+            bindToNetwork(sock)
+            sock.bind(InetSocketAddress(InetAddress.getByName(target), 0))
+            sock
+        }.getOrElse { error ->
+            runCatching { sock.close() }
+            Diag.log("lan", "send socket bind to $target failed: ${error.javaClass.simpleName}")
+            receive
+        }
+    }
+
+    private fun bindToNetwork(sock: DatagramSocket) {
+        val target = preferredAddress ?: return
+        val manager = context.applicationContext
+            .getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager ?: return
+        val network = runCatching {
+            manager.allNetworks.firstOrNull { net ->
+                val props = manager.getLinkProperties(net) ?: return@firstOrNull false
+                props.linkAddresses.any { it.address.hostAddress == target }
+            }
+        }.getOrNull()
+        if (network == null) {
+            Diag.log("lan", "no network owns $target, network bind skipped")
+            return
+        }
+        runCatching { network.bindSocket(sock) }
+            .onFailure { Diag.log("lan", "network bind failed: ${it.javaClass.simpleName}") }
     }
 
     private suspend fun beaconLoop(sock: DatagramSocket) {
         var tick = 0
-        while (scope.isActive) {
+        while (scope.isActive && !sock.isClosed) {
             val me = runCatching { self() }.getOrNull()
             if (me != null) {
                 val packet = runCatching { buildBeacon(me) }.getOrNull()
@@ -100,8 +161,9 @@ class LanUdpDiscovery(
                         }
                     }
 
-                    if (tick % SWEEP_EVERY_TICKS == 0 &&
-                        System.currentTimeMillis() - lastPeerAt.get() > QUIET_BEFORE_SWEEP_MS
+                    if (forceSweep.getAndSet(false) ||
+                        (tick % SWEEP_EVERY_TICKS == 0 &&
+                            System.currentTimeMillis() - lastPeerAt.get() > QUIET_BEFORE_SWEEP_MS)
                     ) {
                         unicastSweep(sock, packet)
                     }
@@ -162,7 +224,15 @@ class LanUdpDiscovery(
     private fun interfaces(): List<NetworkInterface> = runCatching {
         Collections.list(NetworkInterface.getNetworkInterfaces())
     }.getOrDefault(emptyList()).filter { nif ->
-        nif.isUp && !nif.isLoopback && isUsable(nif.name)
+        nif.isUp && !nif.isLoopback && allowed(nif)
+    }
+
+    private fun allowed(nif: NetworkInterface): Boolean {
+        val target = preferredAddress
+        if (target == null) return isUsable(nif.name)
+        return nif.interfaceAddresses.any { iface ->
+            (iface.address as? Inet4Address)?.hostAddress == target
+        }
     }
 
     private fun isUsable(name: String): Boolean {

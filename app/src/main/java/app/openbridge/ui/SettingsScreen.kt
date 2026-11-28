@@ -89,7 +89,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
     val serviceEnabled by viewModel.serviceEnabled.collectAsState()
     val autoAccept by viewModel.autoAccept.collectAsState()
     val developerMode by viewModel.developerMode.collectAsState()
-    val autoSendReports by viewModel.autoSendReports.collectAsState()
+    val updateChecking by viewModel.updateChecking.collectAsState()
 
     var renameOpen by rememberSaveable { mutableStateOf(false) }
     var langOpen by rememberSaveable { mutableStateOf(false) }
@@ -276,12 +276,17 @@ fun SettingsScreen(viewModel: AppViewModel) {
 
                     item(key = "other") {
                         SettingsCard(strings.otherCard) {
-                            SwitchRow(
-                                title = strings.reportsTitle,
-                                subtitle = if (autoSendReports) strings.reportsSubtitleAuto else strings.reportsSubtitleManual,
-                                checked = autoSendReports,
-                                onCheckedChange = viewModel::setAutoSendReports,
-                            )
+                            ActionRow(
+                                title = strings.updateCheckTitle,
+                                subtitle = if (updateChecking) {
+                                    strings.updateChecking
+                                } else {
+                                    "${strings.versionLabel} $APP_VERSION"
+                                },
+                                action = strings.updateCheckAction,
+                            ) {
+                                viewModel.checkForUpdates()
+                            }
                             RowDivider()
 
                             Box(
@@ -342,7 +347,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
                             }
 
                             Spacer(Modifier.height(8.dp))
-                            HorizontalDivider()
+                            RowDivider()
                             AboutLink(label = strings.aboutCard, url = REPO_URL)
                             AboutLink(label = strings.licenseLabel, url = LICENSE_URL)
                         }
@@ -706,7 +711,7 @@ private fun ActionRow(
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(horizontal = 2.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
@@ -717,14 +722,19 @@ private fun ActionRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = labelCase(action),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Bold,
-            color = FlatAccent,
-            modifier = Modifier.clickable(onClick = onClick),
-        )
+        Spacer(Modifier.width(12.dp))
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = labelCase(action),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = FlatAccent,
+                modifier = Modifier
+                    .clip(FlatShape)
+                    .clickable(onClick = onClick)
+                    .padding(horizontal = 6.dp, vertical = 6.dp),
+            )
+        }
     }
 }
 

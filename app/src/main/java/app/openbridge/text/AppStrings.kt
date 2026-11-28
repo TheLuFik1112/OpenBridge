@@ -135,6 +135,22 @@ interface AppStrings {
     val btnAccept: String
     val qrScanTitle: String
     val qrError: String
+
+    val btnRefreshDevices: String
+    val interfacesAuto: String
+    val nearbyScan: String
+    val updateCheckTitle: String
+    val updateChecking: String
+    val updateCheckAction: String
+    val updateAvailableTitle: String
+    val updateDownload: String
+    val updateLater: String
+    val updateClose: String
+    val updateUpToDate: String
+    val updateCheckFailed: String
+    val updateReleaseDate: String
+    fun whatsNewTitle(version: String): String
+    val whatsNewBody: String
 }
 
 object RuStrings : AppStrings {
@@ -271,6 +287,24 @@ object RuStrings : AppStrings {
     override val btnAccept = "Принять"
     override val qrScanTitle = "Отсканируйте камерой телефона"
     override val qrError = "Не удалось построить QR-код"
+
+    override val btnRefreshDevices = "Обновить список устройств"
+    override val interfacesAuto = "Все интерфейсы"
+    override val nearbyScan = "Nearby"
+    override val updateCheckTitle = "Обновления"
+    override val updateChecking = "Проверяю…"
+    override val updateCheckAction = "Проверить"
+    override val updateAvailableTitle = "Доступно обновление"
+    override val updateDownload = "Скачать"
+    override val updateLater = "Позже"
+    override val updateClose = "Закрыть"
+    override val updateUpToDate = "Установлена последняя версия"
+    override val updateCheckFailed = "Не удалось проверить обновления"
+    override val updateReleaseDate = "Дата выхода"
+    override fun whatsNewTitle(version: String) = "Что нового в $version"
+    override val whatsNewBody = "• Проверка обновлений и окно «Что нового»\n" +
+            "• Кнопка обновления списка устройств и выбор сетевого интерфейса\n" +
+            "• Отправка файлов и текста через системное меню «Поделиться»"
 }
 
 object EnStrings : AppStrings {
@@ -407,6 +441,24 @@ object EnStrings : AppStrings {
     override val btnAccept = "Accept"
     override val qrScanTitle = "Scan with phone camera"
     override val qrError = "Failed to generate QR code"
+
+    override val btnRefreshDevices = "Refresh device list"
+    override val interfacesAuto = "All interfaces"
+    override val nearbyScan = "Nearby"
+    override val updateCheckTitle = "Updates"
+    override val updateChecking = "Checking…"
+    override val updateCheckAction = "Check"
+    override val updateAvailableTitle = "Update available"
+    override val updateDownload = "Download"
+    override val updateLater = "Later"
+    override val updateClose = "Close"
+    override val updateUpToDate = "You have the latest version"
+    override val updateCheckFailed = "Could not check for updates"
+    override val updateReleaseDate = "Released"
+    override fun whatsNewTitle(version: String) = "What's new in $version"
+    override val whatsNewBody = "• Update checker and \"What's New\" dialog\n" +
+            "• Device list refresh with network interface picker\n" +
+            "• Share files and text through the Android share sheet"
 }
 
 fun resolveStrings(languageCode: String): AppStrings {

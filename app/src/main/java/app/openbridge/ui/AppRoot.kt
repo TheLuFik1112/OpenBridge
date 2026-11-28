@@ -111,6 +111,9 @@ private fun AppContent(viewModel: AppViewModel) {
     val nearbyProgress by viewModel.nearbyProgress.collectAsState()
     val transfer by viewModel.transfer.collectAsState()
     val strings by viewModel.strings.collectAsState()
+    val availableUpdate by viewModel.availableUpdate.collectAsState()
+    val whatsNew by viewModel.whatsNew.collectAsState()
+    val sendTabRequest by viewModel.sendTabRequest.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.startEngine()
@@ -169,6 +172,10 @@ private fun AppContent(viewModel: AppViewModel) {
     val selectedTab = pagerState.currentPage
     LaunchedEffect(pagerState.currentPage) {
         viewModel.closeNfcSheet()
+    }
+
+    LaunchedEffect(sendTabRequest) {
+        if (sendTabRequest > 0L) pagerState.animateScrollToPage(0)
     }
 
     CompositionLocalProvider(LocalStrings provides strings) {
@@ -236,6 +243,24 @@ private fun AppContent(viewModel: AppViewModel) {
 
         qrPayload?.let { payload ->
             QrDialog(payload = payload, onDismiss = { qrPayload = null })
+        }
+
+        whatsNew?.let { release ->
+            WhatsNewDialog(
+                strings = strings,
+                release = release,
+                onClose = viewModel::dismissWhatsNew,
+            )
+        }
+
+        if (whatsNew == null) {
+            availableUpdate?.let { release ->
+                UpdateAvailableDialog(
+                    strings = strings,
+                    release = release,
+                    onDismiss = viewModel::dismissUpdate,
+                )
+            }
         }
 
         crash?.let { pending ->

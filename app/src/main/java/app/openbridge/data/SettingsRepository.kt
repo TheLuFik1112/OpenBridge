@@ -18,6 +18,7 @@ class SettingsRepository(private val context: Context) {
     val developerMode = MutableStateFlow(prefs.getBoolean(KEY_DEVELOPER, false))
     val autoSendReports = MutableStateFlow(prefs.getBoolean(KEY_AUTO_REPORTS, false))
     val appLanguage = MutableStateFlow(prefs.getString(KEY_LANGUAGE, "system") ?: "system")
+    val lastSeenVersion = MutableStateFlow(prefs.getString(KEY_LAST_SEEN_VERSION, null).orEmpty())
 
     val themeMode = MutableStateFlow(normalizeTheme(prefs.getString(KEY_THEME, null)))
 
@@ -44,6 +45,12 @@ class SettingsRepository(private val context: Context) {
         val clean = if (value in listOf("system", "en", "ru")) value else "system"
         appLanguage.value = clean
         prefs.edit().putString(KEY_LANGUAGE, clean).apply()
+    }
+
+    fun setLastSeenVersion(value: String) {
+        val clean = value.trim().take(32)
+        lastSeenVersion.value = clean
+        prefs.edit().putString(KEY_LAST_SEEN_VERSION, clean).apply()
     }
 
     fun setDeviceName(value: String) {
@@ -104,6 +111,7 @@ class SettingsRepository(private val context: Context) {
         const val KEY_DEVELOPER = "developer_mode"
         const val KEY_AUTO_REPORTS = "auto_send_reports"
         const val KEY_LANGUAGE = "app_language"
+        const val KEY_LAST_SEEN_VERSION = "last_seen_version"
         const val KEY_THEME = "theme_mode"
         const val KEY_THEME_PLUGIN = "theme_plugin_id"
 

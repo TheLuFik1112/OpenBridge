@@ -6,8 +6,11 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.openbridge.OpenBridgeApp
+import app.openbridge.core.APP_VERSION
 import app.openbridge.core.Diag
 import app.openbridge.core.HistoryEntry
+import app.openbridge.core.LocalInterface
+import app.openbridge.core.NetInterfaces
 import app.openbridge.core.PendingCrash
 import app.openbridge.core.QueueItem
 import app.openbridge.core.TransferProgress
@@ -21,8 +24,10 @@ import app.openbridge.domain.NearbySession
 import app.openbridge.domain.NfcSession
 import app.openbridge.domain.NfcState
 import app.openbridge.domain.PackageQueue
+import app.openbridge.domain.ReleaseInfo
 import app.openbridge.domain.SendState
 import app.openbridge.domain.TransferSender
+import app.openbridge.domain.UpdateChecker
 import app.openbridge.plugins.PluginUiRegistry
 import app.openbridge.plugins.ScriptPlugin
 import app.openbridge.text.AppStrings
@@ -49,6 +54,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val strings = MutableStateFlow<AppStrings>(
         resolveStrings(graph.settings.appLanguage.value),
     )
+
+    private val _availableUpdate = MutableStateFlow<ReleaseInfo?>(null)
+    val availableUpdate: StateFlow<ReleaseInfo?> = _availableUpdate.asStateFlow()
+
+    private val _whatsNew = MutableStateFlow<ReleaseInfo?>(null)
+    val whatsNew: StateFlow<ReleaseInfo?> = _whatsNew.asStateFlow()
+
+    private val _updateChecking = MutableStateFlow(false)
+    val updateChecking: StateFlow<Boolean> = _updateChecking.asStateFlow()
+
+    val localInterfaces = MutableStateFlow<List<LocalInterface>>(emptyList())
+    private val _preferredInterface = MutableStateFlow<String?>(null)
+    val preferredInterface: StateFlow<String?> = _preferredInterface.asStateFlow()
+
+    private val _sendTabRequest = MutableStateFlow(0L)
+    val sendTabRequest: StateFlow<Long> = _sendTabRequest.asStateFlow()
 
     private val engineReady = MutableStateFlow(false)
     private val nearbyEnabledState = MutableStateFlow(false)
@@ -100,7 +121,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if (progress != null) nfc.onNearbyProgress(progress.fraction)
             }
         }
+
+        viewModelScope.launch(Dispatchers.IO) {
+            localInterfaces.value = NetInterfaces.list()
+            showWhatsNewIfNeeded()
+            checkForUpdatesSilently()
+        }
     }
+
+    val discoveryRefreshing: StateFlow<Boolean> = engine.discoveryRefreshing
 
     val isEngineReady: StateFlow<Boolean> = engineReady
     val engineError: StateFlow<String?> = engine.error
@@ -354,6 +383,75 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun restartDiscovery() = engine.restartDiscovery()
 
     fun logsFlow() = engine.logsFlow()
+
+    fun selectInterface(address: String?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val list = NetInterfaces.list()
+            localInterfaces.value = list
+            val requested = address?.takeIf { it.isNotBlank() }
+            val next = requested?.takeIf { target -> list.any { it.address == target } }
+            _preferredInterface.value = next
+            engine.refreshDiscovery(next)
+        }
+    }
+
+    fun refreshNearby() {
+        viewModelScope.launch(Dispatchers.IO) {
+            localInterfaces.value = NetInterfaces.list()
+            engine.refreshNearby()
+        }
+    }
+
+    fun checkForUpdates() {
+        if (_updateChecking.value) return
+        viewModelScope.launch(Dispatchers.IO) {
+            _updateChecking.value = true
+            val release = UpdateChecker.latest()
+            _updateChecking.value = false
+            val s = strings.value
+            when {
+                release == null -> messages.value = s.updateCheckFailed
+                UpdateChecker.isNewer(release.version, APP_VERSION) -> _availableUpdate.value = release
+                else -> messages.value = s.updateUpToDate
+            }
+        }
+    }
+
+    fun dismissUpdate() {
+        _availableUpdate.value = null
+    }
+
+    fun dismissWhatsNew() {
+        _whatsNew.value = null
+    }
+
+    fun requestSendTab() {
+        _sendTabRequest.value = System.currentTimeMillis()
+    }
+
+    private fun checkForUpdatesSilently() {
+        val release = UpdateChecker.latest() ?: return
+        if (!UpdateChecker.isNewer(release.version, APP_VERSION)) return
+        _availableUpdate.value = release
+    }
+
+    private fun showWhatsNewIfNeeded() {
+        val stored = graph.settings.lastSeenVersion.value
+        if (stored.isBlank()) {
+            graph.settings.setLastSeenVersion(APP_VERSION)
+            return
+        }
+        if (stored == APP_VERSION) return
+        graph.settings.setLastSeenVersion(APP_VERSION)
+        _whatsNew.value = ReleaseInfo(
+            version = APP_VERSION,
+            name = APP_VERSION,
+            notes = strings.value.whatsNewBody,
+            publishedAt = "",
+            pageUrl = UpdateChecker.RELEASES_PAGE,
+            apkUrl = null,
+        )
+    }
 
     fun serverStats(): String = buildString {
         appendLine("Engine: ${if (engineReady.value) "ready" else "starting"}")

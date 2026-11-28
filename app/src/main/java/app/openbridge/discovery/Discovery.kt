@@ -17,4 +17,8 @@ class PeerDiscovery(
     fun start() = lan.start()
 
     fun stop() = lan.stop()
+
+    fun restart() = lan.restart()
+
+    fun setPreferredAddress(address: String?) = lan.setPreferredAddress(address)
 }
