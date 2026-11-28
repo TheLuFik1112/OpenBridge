@@ -1,0 +1,54 @@
+package app.openbridge.theme
+
+object BuiltInThemes {
+    const val DEFAULT_ID = "default_flat"
+
+    val DefaultFlat = ThemeConfig(
+        id = DEFAULT_ID,
+        name = "Flat Technical",
+        author = "OpenBridge",
+        version = "1.1",
+        shapes = ThemeShapes(
+            cardRadiusDp = 0,
+            buttonRadiusDp = 0,
+            badgeRadiusDp = 0,
+        ),
+        components = ThemeComponents(
+            buttonStyle = BUTTON_FILLED,
+            switchStyle = SWITCH_FLAT,
+            navBarStyle = NAV_TOP_LINE,
+            cardBorderWidthDp = 1,
+            cardElevationDp = 0,
+        ),
+        typography = ThemeTypography(
+            font = FONT_MONO,
+            fontFile = null,
+            uppercaseLabels = true,
+            letterSpacingSp = 1.2f,
+        ),
+        dark = ThemePalette(
+            background = "#0A0A0A",
+            surface = "#111111",
+            surfaceElevated = "#161616",
+            border = "#242424",
+            accent = "#C95D48",
+            textPrimary = "#F2F2F2",
+            textSecondary = "#8A8A8A",
+        ),
+        light = ThemePalette(
+            background = "#F4F4F4",
+            surface = "#FFFFFF",
+            surfaceElevated = "#EDEDED",
+            border = "#D4D4D4",
+            accent = "#C95D48",
+            textPrimary = "#121212",
+            textSecondary = "#5C5C5C",
+        ),
+    )
+
+    val all: List<ThemeConfig> = listOf(DefaultFlat)
+
+    fun byId(id: String?): ThemeConfig? = all.firstOrNull { it.id == id }
+
+    fun isBuiltIn(id: String?): Boolean = byId(id) != null
+}

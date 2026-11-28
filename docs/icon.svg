@@ -1,0 +1,35 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="64" height="64" rx="8" fill="url(#paint0_linear_79_65)"/>
+<foreignObject x="0" y="0" width="64" height="64" overflow="visible" data-figma-3d="true">
+<div xmlns="http://www.w3.org/1999/xhtml" style="position:relative;width:64px;height:64px">
+<div style="position:absolute;left:0;top:0;margin:0;width:32px;height:32px;transform-origin:0 0;transform:matrix(1, 0, 0, 1, 24, 8) translate(50%, 50%) rotateX(30deg) rotateY(25deg) rotateZ(1deg) translate(-50%, -50%)">
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" overflow="visible" style="position:absolute;left:0;top:0;overflow:visible">
+<path d="M0 8C0 3.58172 3.58172 0 8 0H24C28.4183 0 32 3.58172 32 8V24C32 28.4183 28.4183 32 24 32H8C3.58172 32 0 28.4183 0 24V8Z" fill="url(#paint1_linear_79_65)"/>
+</svg>
+</div>
+</div>
+</foreignObject>
+<foreignObject x="0" y="0" width="64" height="64" overflow="visible" data-figma-3d="true">
+<div xmlns="http://www.w3.org/1999/xhtml" style="position:relative;width:64px;height:64px">
+<div style="position:absolute;left:0;top:0;margin:0;width:32px;height:32px;transform-origin:0 0;transform:matrix(1, 0, 0, 1, 8, 24) translate(50%, 50%) rotateX(30deg) rotateY(25deg) rotateZ(1deg) translate(-50%, -50%)">
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" overflow="visible" style="position:absolute;left:0;top:0;overflow:visible">
+<path d="M0 8C0 3.58172 3.58172 0 8 0H24C28.4183 0 32 3.58172 32 8V24C32 28.4183 28.4183 32 24 32H8C3.58172 32 0 28.4183 0 24V8Z" fill="url(#paint2_linear_79_65)"/>
+</svg>
+</div>
+</div>
+</foreignObject>
+<defs>
+<linearGradient id="paint0_linear_79_65" x1="32" y1="0" x2="32" y2="64" gradientUnits="userSpaceOnUse">
+<stop stop-color="#CDCDCD"/>
+<stop offset="1" stop-color="#8C8C8C"/>
+</linearGradient>
+<linearGradient id="paint1_linear_79_65" x1="16" y1="0" x2="16" y2="32" gradientUnits="userSpaceOnUse">
+<stop stop-color="#0F0F0F"/>
+<stop offset="1" stop-color="#252525"/>
+</linearGradient>
+<linearGradient id="paint2_linear_79_65" x1="16" y1="0" x2="16" y2="32" gradientUnits="userSpaceOnUse">
+<stop stop-color="#0F0F0F"/>
+<stop offset="1" stop-color="#252525"/>
+</linearGradient>
+</defs>
+</svg>

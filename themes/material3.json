@@ -1,0 +1,41 @@
+{
+  "id": "material3",
+  "name": "Material 3",
+  "author": "OpenBridge",
+  "version": "1.0",
+  "shapes": {
+    "cardRadiusDp": 20,
+    "buttonRadiusDp": 20,
+    "badgeRadiusDp": 8
+  },
+  "components": {
+    "buttonStyle": "filled",
+    "switchStyle": "pill",
+    "navBarStyle": "pill",
+    "cardBorderWidthDp": 0,
+    "cardElevationDp": 1
+  },
+  "typography": {
+    "font": "sans",
+    "uppercaseLabels": false,
+    "letterSpacingSp": 0.0
+  },
+  "dark": {
+    "background": "#101014",
+    "surface": "#1C1B1F",
+    "surfaceElevated": "#2B2930",
+    "border": "#49454F",
+    "accent": "#D0BCFF",
+    "textPrimary": "#E6E1E5",
+    "textSecondary": "#CAC4D0"
+  },
+  "light": {
+    "background": "#FEF7FF",
+    "surface": "#FFFFFF",
+    "surfaceElevated": "#F3EDF7",
+    "border": "#CAC4D0",
+    "accent": "#6750A4",
+    "textPrimary": "#1D1B20",
+    "textSecondary": "#49454F"
+  }
+}
